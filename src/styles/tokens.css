@@ -1,0 +1,70 @@
+:root {
+  /* Surfaces */
+  --nova-background: #0B0D12;
+  --nova-surface: #141720;
+  --nova-surface-elevated: #1C2130;
+  --nova-surface-glass: rgba(20, 23, 32, 0.85);
+  --nova-pill-bg: rgba(12, 15, 22, 0.94);
+
+  /* Typography */
+  --nova-text-primary: #F5F6FA;
+  --nova-text-secondary: #9BA3B4;
+  --nova-text-muted: #626A7A;
+
+  /* Accent Brand Colors */
+  --nova-blue: #6688FF;
+  --nova-violet: #956AFF;
+  --nova-cyan: #54D7E8;
+
+  /* Semantic Feedback */
+  --nova-success: #49C98A;
+  --nova-warning: #F3B95B;
+  --nova-danger: #F16C78;
+
+  /* Borders & Shadows */
+  --nova-border: rgba(255, 255, 255, 0.08);
+  --nova-border-hover: rgba(255, 255, 255, 0.16);
+  --nova-border-focus: rgba(102, 136, 255, 0.45);
+  --nova-shadow-pill: 0 8px 30px rgba(0, 0, 0, 0.5), 0 0 1px rgba(255, 255, 255, 0.15);
+  --nova-shadow-card: 0 24px 60px -12px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.08);
+
+  /* RGB / Glow Animation */
+  --nova-rgb-gradient: linear-gradient(135deg, #6688FF, #956AFF, #54D7E8, #49C98A);
+  --nova-glow-rgb: 0 0 20px rgba(102, 136, 255, 0.35);
+
+  /* Radii */
+  --nova-radius-pill: 9999px;
+  --nova-radius-card: 22px;
+  --nova-radius-widget: 14px;
+  --nova-radius-button: 10px;
+  --nova-radius-input: 8px;
+
+  /* Fonts */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+/* Light Theme Override */
+[data-theme='light'] {
+  --nova-background: #F4F6FB;
+  --nova-surface: #FFFFFF;
+  --nova-surface-elevated: #EBF0F8;
+  --nova-surface-glass: rgba(255, 255, 255, 0.88);
+  --nova-pill-bg: rgba(255, 255, 255, 0.95);
+
+  --nova-text-primary: #151821;
+  --nova-text-secondary: #586174;
+  --nova-text-muted: #8E99AF;
+
+  --nova-border: rgba(0, 0, 0, 0.08);
+  --nova-border-hover: rgba(0, 0, 0, 0.15);
+  --nova-shadow-pill: 0 8px 24px rgba(0, 0, 0, 0.08), 0 0 1px rgba(0, 0, 0, 0.12);
+  --nova-shadow-card: 0 20px 40px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.06);
+}
+
+/* RGB Gaming Mode */
+[data-theme='rgb'] {
+  --nova-border: rgba(102, 136, 255, 0.25);
+  --nova-shadow-pill: 0 8px 30px rgba(0, 0, 0, 0.6), 0 0 12px rgba(102, 136, 255, 0.4);
+  --nova-shadow-card: 0 24px 60px rgba(0, 0, 0, 0.8), 0 0 24px rgba(149, 106, 255, 0.25);
+}
