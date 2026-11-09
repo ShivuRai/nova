@@ -30,10 +30,10 @@ function createWindow() {
     },
   });
 
-  // Enable click-through for transparent areas if needed, or load frontend
-  const devUrl = 'http://localhost:5173';
-  mainWindow.loadURL(devUrl).catch(() => {
-    mainWindow.loadFile(path.join(__dirname, 'dist', 'index.html'));
+  // Load self-contained local build
+  const indexPath = path.join(__dirname, 'dist', 'index.html');
+  mainWindow.loadFile(indexPath).catch(() => {
+    mainWindow.loadURL('http://localhost:5173');
   });
 
   // Dynamic sizing IPC

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useIslandStore } from '../../stores/useIslandStore';
 import { useThemeStore } from '../../stores/useThemeStore';
@@ -7,25 +7,55 @@ import {
   LayoutGrid,
   ClipboardCopy,
   FileText,
-  Activity,
-  Timer,
-  QrCode,
+  Bookmark,
   CloudSun,
+  ArrowLeftRight,
+  QrCode,
+  FolderArchive,
+  RefreshCw,
+  Wrench,
+  Timer,
+  CalendarDays,
+  Globe,
+  BarChart2,
+  Activity,
+  MessageSquare,
+  Search,
+  Sliders,
+  Cpu,
+  TrendingUp,
+  DollarSign,
+  Smile,
+  Sparkles,
   Settings,
   Pin,
   X,
-  Search,
 } from 'lucide-react';
 
 import { HomeView } from '../../modules/home/HomeView';
 import { ClipboardView } from '../../modules/clipboard/ClipboardView';
 import { NotesView } from '../../modules/notes/NotesView';
-import { SystemView } from '../../modules/system/SystemView';
-import { TimersView } from '../../modules/timers/TimersView';
-import { DropView } from '../../modules/drop/DropView';
+import { LinksView } from '../../modules/links/LinksView';
 import { WeatherView } from '../../modules/weather/WeatherView';
-import { SettingsView } from '../../modules/settings/SettingsView';
+import { UnitsView } from '../../modules/units/UnitsView';
+import { DropView } from '../../modules/drop/DropView';
+import { ShelfView } from '../../modules/shelf/ShelfView';
+import { ConverterView } from '../../modules/converter/ConverterView';
+import { FileToolsView } from '../../modules/file-tools/FileToolsView';
+import { TimersView } from '../../modules/timers/TimersView';
+import { CalendarView } from '../../modules/calendar/CalendarView';
+import { ClockView } from '../../modules/clock/ClockView';
+import { ScreenTimeView } from '../../modules/screen-time/ScreenTimeView';
+import { SystemView } from '../../modules/system/SystemView';
+import { MessageView } from '../../modules/message/MessageView';
 import { LauncherView } from '../../modules/launcher/LauncherView';
+import { QuickSettingsView } from '../../modules/quick-settings/QuickSettingsView';
+import { AiCodingView } from '../../modules/ai-coding/AiCodingView';
+import { AnalyticsView } from '../../modules/analytics/AnalyticsView';
+import { RevenueView } from '../../modules/revenue/RevenueView';
+import { PetView } from '../../modules/pet/PetView';
+import { RgbView } from '../../modules/rgb/RgbView';
+import { SettingsView } from '../../modules/settings/SettingsView';
 
 interface IslandExpandedProps {
   onCollapse: () => void;
@@ -34,20 +64,50 @@ interface IslandExpandedProps {
 export const IslandExpanded: React.FC<IslandExpandedProps> = ({ onCollapse }) => {
   const { activeModule, setActiveModule, isPinned, setPinned } = useIslandStore();
   const { settings } = useThemeStore();
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
   const isRgb = settings.enableRgbBorder || settings.themeMode === 'rgb';
 
-  // Primary navigation tabs
-  const tabs = [
-    { id: 'home', label: 'Home', icon: LayoutGrid },
-    { id: 'clipboard', label: 'Clipboard', icon: ClipboardCopy },
-    { id: 'notes', label: 'Notes', icon: FileText },
-    { id: 'system', label: 'System', icon: Activity },
-    { id: 'timers', label: 'Timers', icon: Timer },
-    { id: 'drop', label: 'Drop', icon: QrCode },
-    { id: 'weather', label: 'Weather', icon: CloudSun },
-    { id: 'settings', label: 'Settings', icon: Settings },
+  // Map icons
+  const iconMap: Record<string, React.ComponentType<{ size?: number }>> = {
+    home: LayoutGrid,
+    clipboard: ClipboardCopy,
+    notes: FileText,
+    links: Bookmark,
+    weather: CloudSun,
+    units: ArrowLeftRight,
+    drop: QrCode,
+    shelf: FolderArchive,
+    converter: RefreshCw,
+    'file-tools': Wrench,
+    timers: Timer,
+    calendar: CalendarDays,
+    clock: Globe,
+    'screen-time': BarChart2,
+    system: Activity,
+    message: MessageSquare,
+    launcher: Search,
+    'quick-settings': Sliders,
+    'ai-coding': Cpu,
+    analytics: TrendingUp,
+    revenue: DollarSign,
+    pet: Smile,
+    rgb: Sparkles,
+    settings: Settings,
+  };
+
+  const categories = [
+    { id: 'all', label: 'All' },
+    { id: 'everyday', label: 'Everyday' },
+    { id: 'files', label: 'Files' },
+    { id: 'time', label: 'Time' },
+    { id: 'desktop', label: 'Desktop' },
+    { id: 'specialist', label: 'Specialist' },
   ];
+
+  const visibleModules = MODULE_REGISTRY.filter(
+    (m) => selectedCategory === 'all' || m.category === selectedCategory
+  );
 
   const renderModuleContent = () => {
     switch (activeModule) {
@@ -57,18 +117,48 @@ export const IslandExpanded: React.FC<IslandExpandedProps> = ({ onCollapse }) =>
         return <ClipboardView />;
       case 'notes':
         return <NotesView />;
-      case 'system':
-        return <SystemView />;
-      case 'timers':
-        return <TimersView />;
-      case 'drop':
-        return <DropView />;
+      case 'links':
+        return <LinksView />;
       case 'weather':
         return <WeatherView />;
-      case 'settings':
-        return <SettingsView />;
+      case 'units':
+        return <UnitsView />;
+      case 'drop':
+        return <DropView />;
+      case 'shelf':
+        return <ShelfView />;
+      case 'converter':
+        return <ConverterView />;
+      case 'file-tools':
+        return <FileToolsView />;
+      case 'timers':
+        return <TimersView />;
+      case 'calendar':
+        return <CalendarView />;
+      case 'clock':
+        return <ClockView />;
+      case 'screen-time':
+        return <ScreenTimeView />;
+      case 'system':
+        return <SystemView />;
+      case 'message':
+        return <MessageView />;
       case 'launcher':
         return <LauncherView />;
+      case 'quick-settings':
+        return <QuickSettingsView />;
+      case 'ai-coding':
+        return <AiCodingView />;
+      case 'analytics':
+        return <AnalyticsView />;
+      case 'revenue':
+        return <RevenueView />;
+      case 'pet':
+        return <PetView />;
+      case 'rgb':
+        return <RgbView />;
+      case 'settings':
+        return <SettingsView />;
       default:
         return <HomeView />;
     }
@@ -86,7 +176,7 @@ export const IslandExpanded: React.FC<IslandExpandedProps> = ({ onCollapse }) =>
         maxHeight: settings.expandedHeight,
         borderRadius: 'var(--nova-radius-card)',
         backgroundColor: 'var(--nova-surface-glass)',
-        boxShadow: isRgb ? 'var(--nova-shadow-card)' : 'var(--nova-shadow-card)',
+        boxShadow: 'var(--nova-shadow-card)',
         border: isRgb
           ? '1px solid rgba(102, 136, 255, 0.45)'
           : '1px solid var(--nova-border)',
@@ -153,6 +243,28 @@ export const IslandExpanded: React.FC<IslandExpandedProps> = ({ onCollapse }) =>
           </div>
         </div>
 
+        {/* Category Filter Pills in Header */}
+        <div style={{ display: 'flex', gap: 4 }}>
+          {categories.map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => setSelectedCategory(cat.id)}
+              style={{
+                fontSize: '10px',
+                padding: '3px 8px',
+                borderRadius: 'var(--nova-radius-pill)',
+                backgroundColor:
+                  selectedCategory === cat.id ? 'rgba(102, 136, 255, 0.2)' : 'transparent',
+                color:
+                  selectedCategory === cat.id ? 'var(--nova-blue)' : 'var(--nova-text-muted)',
+                fontWeight: selectedCategory === cat.id ? 600 : 400,
+              }}
+            >
+              {cat.label}
+            </button>
+          ))}
+        </div>
+
         {/* Action Controls */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <button
@@ -190,7 +302,7 @@ export const IslandExpanded: React.FC<IslandExpandedProps> = ({ onCollapse }) =>
         </div>
       </div>
 
-      {/* Navigation Pill Strip */}
+      {/* Dynamic Module Nav Strip */}
       <div
         style={{
           display: 'flex',
@@ -200,18 +312,18 @@ export const IslandExpanded: React.FC<IslandExpandedProps> = ({ onCollapse }) =>
           overflowX: 'auto',
         }}
       >
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeModule === tab.id;
+        {visibleModules.map((mod) => {
+          const Icon = iconMap[mod.id] || LayoutGrid;
+          const isActive = activeModule === mod.id;
           return (
             <button
-              key={tab.id}
-              onClick={() => setActiveModule(tab.id)}
+              key={mod.id}
+              onClick={() => setActiveModule(mod.id)}
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: 6,
-                padding: '5px 10px',
+                gap: 5,
+                padding: '4px 9px',
                 borderRadius: 'var(--nova-radius-pill)',
                 fontSize: '11px',
                 fontWeight: isActive ? 600 : 500,
@@ -225,7 +337,7 @@ export const IslandExpanded: React.FC<IslandExpandedProps> = ({ onCollapse }) =>
               }}
             >
               <Icon size={12} />
-              <span>{tab.label}</span>
+              <span>{mod.name}</span>
             </button>
           );
         })}
