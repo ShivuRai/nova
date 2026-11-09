@@ -19,7 +19,7 @@ interface IslandState {
 }
 
 export const useIslandStore = create<IslandState>((set) => ({
-  isExpanded: false,
+  isExpanded: true, // Start expanded so user immediately sees the running companion!
   isPinned: false,
   isInteracting: false,
   activeModule: 'home',

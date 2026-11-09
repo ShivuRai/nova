@@ -2,6 +2,7 @@
   "name": "nova",
   "version": "1.0.0",
   "description": "NOVA - Your desktop. Reimagined.",
+  "main": "electron.cjs",
   "type": "module",
   "scripts": {
     "dev": "vite",
