@@ -1,10 +1,11 @@
 import React, { useRef, useEffect } from 'react';
-import { AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useIslandStore } from '../../stores/useIslandStore';
+import { useSystemStore } from '../../stores/useSystemStore';
 import { useThemeStore } from '../../stores/useThemeStore';
 import { resizeDesktopWindow } from '../../services/platformService';
-import { IslandPill } from './IslandPill';
-import { IslandExpanded } from './IslandExpanded';
+import { IslandPillContent } from './IslandPill';
+import { IslandExpandedContent } from './IslandExpanded';
 
 export const IslandContainer: React.FC = () => {
   const {
@@ -14,7 +15,9 @@ export const IslandContainer: React.FC = () => {
     isPinned,
     isInteracting,
     setActiveModule,
+    liveActivity,
   } = useIslandStore();
+  const { media } = useSystemStore();
   const { settings } = useThemeStore();
 
   const hoverTimerRef = useRef<number | null>(null);
@@ -39,7 +42,7 @@ export const IslandContainer: React.FC = () => {
         settings.notchStyle
       );
     } else {
-      // Delay window shrink until after the spring morph animation completes (320ms)
+      // Delay window shrink until after the spring morph animation completes (350ms)
       windowResizeTimerRef.current = window.setTimeout(() => {
         resizeDesktopWindow(
           false,
@@ -48,7 +51,7 @@ export const IslandContainer: React.FC = () => {
           settings.screenPosition,
           settings.notchStyle
         );
-      }, 320);
+      }, 350);
     }
 
     return () => {
@@ -101,13 +104,11 @@ export const IslandContainer: React.FC = () => {
   }, [isExpanded, setExpanded]);
 
   const handleMouseEnter = () => {
-    // Cancel any pending collapse
     if (collapseTimerRef.current) {
       window.clearTimeout(collapseTimerRef.current);
       collapseTimerRef.current = null;
     }
 
-    // Start hover delay
     if (!isExpanded) {
       hoverTimerRef.current = window.setTimeout(() => {
         setExpanded(true);
@@ -116,13 +117,11 @@ export const IslandContainer: React.FC = () => {
   };
 
   const handleMouseLeave = () => {
-    // Cancel pending expand
     if (hoverTimerRef.current) {
       window.clearTimeout(hoverTimerRef.current);
       hoverTimerRef.current = null;
     }
 
-    // Only collapse if not pinned and not interacting
     if (isExpanded && !isPinned && !isInteracting) {
       collapseTimerRef.current = window.setTimeout(() => {
         setExpanded(false);
@@ -143,6 +142,29 @@ export const IslandContainer: React.FC = () => {
   const isBottom = settings.screenPosition?.startsWith('bottom');
   const isLeft = settings.screenPosition?.endsWith('left');
   const isRight = settings.screenPosition?.endsWith('right');
+  const isNotch = settings.notchStyle === 'notch-attached' && !isBottom;
+  const isSquircle = settings.notchStyle === 'squircle-bar';
+  const isCompact = settings.notchStyle === 'compact-badge';
+  const isRgb = settings.enableRgbBorder || settings.themeMode === 'rgb';
+
+  const effectivePillWidth = isCompact
+    ? 170
+    : liveActivity || media.isPlaying
+    ? 260
+    : settings.pillWidth;
+  const effectivePillHeight = isCompact ? 32 : settings.pillHeight;
+
+  const currentWidth = isExpanded ? settings.expandedWidth : effectivePillWidth;
+  const currentHeight = isExpanded ? settings.expandedHeight : effectivePillHeight;
+
+  let currentRadius: string | number = 9999;
+  if (isNotch) {
+    currentRadius = isExpanded ? '0 0 26px 26px' : '0 0 22px 22px';
+  } else if (isSquircle) {
+    currentRadius = isExpanded ? '28px' : '14px';
+  } else if (isExpanded) {
+    currentRadius = '28px';
+  }
 
   const justifyContent = isLeft ? 'flex-start' : isRight ? 'flex-end' : 'center';
   const alignItems = isBottom ? 'flex-end' : 'flex-start';
@@ -159,29 +181,163 @@ export const IslandContainer: React.FC = () => {
         paddingBottom: isBottom ? 18 : 0,
         paddingLeft: isLeft ? 18 : 0,
         paddingRight: isRight ? 18 : 0,
-        pointerEvents: 'none', // pass through outside clicks
+        pointerEvents: 'none', // pass through clicks on transparent canvas
       }}
     >
       <div
-        style={{ pointerEvents: 'auto' }}
+        style={{
+          position: 'relative',
+          pointerEvents: 'auto',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: isBottom ? 'flex-end' : 'flex-start',
+        }}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
-        <AnimatePresence initial={false}>
-          {!isExpanded ? (
-            <IslandPill
-              key="pill"
-              onHoverStart={handleMouseEnter}
-              onHoverEnd={handleMouseLeave}
-              onClick={handleManualExpand}
+        {/* Natural Ambient Glow Halo - Smoothly scales and feathers with capsule */}
+        {settings.enableGlow && (
+          <motion.div
+            animate={{
+              width: currentWidth + (isNotch ? 48 : 40),
+              height: currentHeight + (isNotch ? 24 : 36),
+              borderRadius: isNotch ? '0 0 34px 34px' : isSquircle ? '24px' : 9999,
+            }}
+            transition={{
+              type: 'spring',
+              stiffness: 350,
+              damping: 28,
+              mass: 0.8,
+            }}
+            style={{
+              position: 'absolute',
+              top: isNotch ? 0 : -8,
+              background: isRgb
+                ? 'radial-gradient(ellipse at center, rgba(96, 165, 250, 0.45) 0%, rgba(167, 139, 250, 0.28) 40%, rgba(244, 63, 94, 0.10) 65%, transparent 80%)'
+                : isNotch
+                ? 'radial-gradient(ellipse at 50% 0%, var(--nova-glow-color) 0%, rgba(var(--nova-glow-rgb), 0.22) 40%, rgba(var(--nova-glow-rgb), 0.05) 65%, transparent 80%)'
+                : 'radial-gradient(ellipse at center, var(--nova-glow-color) 0%, rgba(var(--nova-glow-rgb), 0.22) 40%, rgba(var(--nova-glow-rgb), 0.05) 65%, transparent 80%)',
+              filter: 'blur(16px)',
+              pointerEvents: 'none',
+              zIndex: 0,
+              animation: isRgb ? 'rgb-flow 8s linear infinite' : undefined,
+            }}
+          />
+        )}
+
+        {/* Left Notch Bezel Ear */}
+        {isNotch && (
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 16 16"
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: `calc(50% - ${currentWidth / 2}px - 16px)`,
+              pointerEvents: 'none',
+              zIndex: 1,
+              transition: 'left 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)',
+            }}
+          >
+            <path
+              d="M 0,0 Q 16,0 16,16 L 16,0 Z"
+              fill={isExpanded ? 'var(--nova-surface-glass)' : 'var(--nova-pill-bg)'}
             />
-          ) : (
-            <IslandExpanded
-              key="expanded"
-              onCollapse={handleManualCollapse}
+          </svg>
+        )}
+
+        {/* Right Notch Bezel Ear */}
+        {isNotch && (
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 16 16"
+            style={{
+              position: 'absolute',
+              top: 0,
+              right: `calc(50% - ${currentWidth / 2}px - 16px)`,
+              pointerEvents: 'none',
+              zIndex: 1,
+              transition: 'right 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)',
+            }}
+          >
+            <path
+              d="M 16,0 Q 0,0 0,16 L 0,0 Z"
+              fill={isExpanded ? 'var(--nova-surface-glass)' : 'var(--nova-pill-bg)'}
             />
-          )}
-        </AnimatePresence>
+          </svg>
+        )}
+
+        {/* Master Single Island Capsule */}
+        <motion.div
+          animate={{
+            width: currentWidth,
+            height: currentHeight,
+            borderRadius: currentRadius,
+          }}
+          transition={{
+            type: 'spring',
+            stiffness: 350,
+            damping: 28,
+            mass: 0.8,
+          }}
+          style={{
+            backgroundColor: isExpanded ? 'var(--nova-surface-glass)' : 'var(--nova-pill-bg)',
+            boxShadow: isExpanded ? 'var(--nova-shadow-card)' : 'var(--nova-shadow-pill)',
+            border: isRgb
+              ? '1.5px solid rgba(96, 165, 250, 0.6)'
+              : '1px solid var(--nova-border)',
+            borderTop: isNotch ? 'none' : undefined,
+            backdropFilter: 'blur(30px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(30px) saturate(180%)',
+            position: 'relative',
+            overflow: 'hidden',
+            zIndex: 2,
+            cursor: isExpanded ? 'default' : 'pointer',
+          }}
+          className={isRgb ? 'rgb-border' : ''}
+        >
+          <AnimatePresence mode="wait">
+            {!isExpanded ? (
+              <motion.div
+                key="pill-content"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.12 }}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: isCompact ? '0 10px' : '0 14px',
+                }}
+                onClick={handleManualExpand}
+              >
+                <IslandPillContent isCompact={isCompact} />
+              </motion.div>
+            ) : (
+              <motion.div
+                key="expanded-content"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.18, delay: 0.05 }}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  overflow: 'hidden',
+                }}
+              >
+                <IslandExpandedContent onCollapse={handleManualCollapse} />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
       </div>
     </div>
   );

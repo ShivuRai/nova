@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
 import { useIslandStore } from '../../stores/useIslandStore';
 import { useThemeStore } from '../../stores/useThemeStore';
 import { MODULE_REGISTRY } from '../../modules/registry';
@@ -61,12 +60,9 @@ interface IslandExpandedProps {
   onCollapse: () => void;
 }
 
-export const IslandExpanded: React.FC<IslandExpandedProps> = ({ onCollapse }) => {
+export const IslandExpandedContent: React.FC<IslandExpandedProps> = ({ onCollapse }) => {
   const { activeModule, setActiveModule, isPinned, setPinned } = useIslandStore();
-  const { settings } = useThemeStore();
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-
-  const isRgb = settings.enableRgbBorder || settings.themeMode === 'rgb';
 
   // Map icons
   const iconMap: Record<string, React.ComponentType<{ size?: number }>> = {
@@ -169,36 +165,7 @@ export const IslandExpanded: React.FC<IslandExpandedProps> = ({ onCollapse }) =>
   const dateString = now.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
 
   return (
-    <motion.div
-      layoutId="nova-island-body"
-      initial={{ opacity: 0, scale: 0.95, y: -6 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.95, y: -6 }}
-      style={{
-        width: settings.expandedWidth,
-        maxHeight: settings.expandedHeight,
-        borderRadius: settings.notchStyle === 'notch-attached' ? '0 0 26px 26px' : 'var(--nova-radius-card)',
-        backgroundColor: 'var(--nova-surface-glass)',
-        boxShadow: 'var(--nova-shadow-card)',
-        border: isRgb
-          ? '1px solid rgba(96, 165, 250, 0.55)'
-          : '1px solid var(--nova-border)',
-        borderTop: settings.notchStyle === 'notch-attached' ? 'none' : undefined,
-        backdropFilter: 'blur(30px) saturate(180%) contrast(105%)',
-        WebkitBackdropFilter: 'blur(30px) saturate(180%) contrast(105%)',
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-        position: 'relative',
-      }}
-      className={isRgb ? 'rgb-border' : ''}
-      transition={{
-        type: 'spring',
-        stiffness: 360,
-        damping: 30,
-        mass: 0.75,
-      }}
-    >
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', overflow: 'hidden' }}>
       {/* Specular top light streak for ultra-luxurious glass look */}
       <div
         style={{
@@ -233,84 +200,42 @@ export const IslandExpanded: React.FC<IslandExpandedProps> = ({ onCollapse }) =>
                 boxShadow: '0 0 8px var(--nova-blue)',
               }}
             />
-            <span
-              style={{
-                fontSize: '12px',
-                fontWeight: 700,
-                letterSpacing: '0.08em',
-                color: 'var(--nova-text-primary)',
-              }}
-            >
+            <span style={{ fontSize: '13px', fontWeight: 700, letterSpacing: '0.04em' }}>
               NOVA
             </span>
           </div>
-
           <span style={{ fontSize: '11px', color: 'var(--nova-text-muted)' }}>|</span>
-
-          <div
-            style={{
-              fontSize: '11px',
-              color: 'var(--nova-text-secondary)',
-              fontFamily: 'var(--font-mono)',
-            }}
-          >
-            <span>{timeString}</span>
-            <span style={{ margin: '0 4px', color: 'var(--nova-text-muted)' }}>•</span>
-            <span>{dateString}</span>
-          </div>
+          <span style={{ fontSize: '11px', color: 'var(--nova-text-secondary)', fontWeight: 500 }}>
+            {dateString} • {timeString}
+          </span>
         </div>
 
-        {/* Category Filter Pills in Header */}
-        <div style={{ display: 'flex', gap: 4 }}>
-          {categories.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => setSelectedCategory(cat.id)}
-              style={{
-                fontSize: '10px',
-                padding: '3px 8px',
-                borderRadius: 'var(--nova-radius-pill)',
-                backgroundColor:
-                  selectedCategory === cat.id ? 'rgba(102, 136, 255, 0.2)' : 'transparent',
-                color:
-                  selectedCategory === cat.id ? 'var(--nova-blue)' : 'var(--nova-text-muted)',
-                fontWeight: selectedCategory === cat.id ? 600 : 400,
-              }}
-            >
-              {cat.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Action Controls */}
+        {/* Pin & Close */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <button
-            onClick={() => setActiveModule('launcher')}
-            style={{
-              padding: 5,
-              color: activeModule === 'launcher' ? 'var(--nova-blue)' : 'var(--nova-text-secondary)',
-            }}
-            title="Search & Launcher"
-          >
-            <Search size={14} />
-          </button>
-
           <button
             onClick={() => setPinned(!isPinned)}
             style={{
-              padding: 5,
-              color: isPinned ? 'var(--nova-warning)' : 'var(--nova-text-secondary)',
+              padding: 6,
+              borderRadius: 'var(--nova-radius-button)',
+              color: isPinned ? 'var(--nova-blue)' : 'var(--nova-text-muted)',
+              backgroundColor: isPinned ? 'rgba(102, 136, 255, 0.15)' : 'transparent',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
-            title={isPinned ? 'Unpin (Auto-collapse enabled)' : 'Pin Open'}
+            title={isPinned ? 'Unpin Island' : 'Pin Island open'}
           >
             <Pin size={14} />
           </button>
-
           <button
             onClick={onCollapse}
             style={{
-              padding: 5,
-              color: 'var(--nova-text-secondary)',
+              padding: 6,
+              borderRadius: 'var(--nova-radius-button)',
+              color: 'var(--nova-text-muted)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
             title="Collapse (Esc)"
           >
@@ -319,14 +244,48 @@ export const IslandExpanded: React.FC<IslandExpandedProps> = ({ onCollapse }) =>
         </div>
       </div>
 
-      {/* Dynamic Module Nav Strip */}
+      {/* Category Tabs */}
       <div
         style={{
           display: 'flex',
-          gap: 4,
-          padding: '8px 16px',
+          gap: 6,
+          padding: '8px 18px',
           borderBottom: '1px solid var(--nova-border)',
           overflowX: 'auto',
+          scrollbarWidth: 'none',
+        }}
+      >
+        {categories.map((cat) => (
+          <button
+            key={cat.id}
+            onClick={() => setSelectedCategory(cat.id)}
+            style={{
+              fontSize: '11px',
+              fontWeight: selectedCategory === cat.id ? 600 : 500,
+              padding: '3px 10px',
+              borderRadius: 'var(--nova-radius-pill)',
+              color:
+                selectedCategory === cat.id ? 'var(--nova-text-primary)' : 'var(--nova-text-muted)',
+              backgroundColor:
+                selectedCategory === cat.id ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
+              whiteSpace: 'nowrap',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            {cat.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Module Strip Bar */}
+      <div
+        style={{
+          display: 'flex',
+          gap: 6,
+          padding: '8px 18px',
+          borderBottom: '1px solid var(--nova-border)',
+          overflowX: 'auto',
+          scrollbarWidth: 'none',
         }}
       >
         {visibleModules.map((mod) => {
@@ -364,6 +323,36 @@ export const IslandExpanded: React.FC<IslandExpandedProps> = ({ onCollapse }) =>
       <div style={{ padding: '14px 18px', overflowY: 'auto', flex: 1 }}>
         {renderModuleContent()}
       </div>
-    </motion.div>
+    </div>
+  );
+};
+
+export const IslandExpanded: React.FC<IslandExpandedProps> = ({ onCollapse }) => {
+  const { settings } = useThemeStore();
+  const isRgb = settings.enableRgbBorder || settings.themeMode === 'rgb';
+
+  return (
+    <div
+      style={{
+        width: settings.expandedWidth,
+        maxHeight: settings.expandedHeight,
+        borderRadius: settings.notchStyle === 'notch-attached' ? '0 0 26px 26px' : 'var(--nova-radius-card)',
+        backgroundColor: 'var(--nova-surface-glass)',
+        boxShadow: 'var(--nova-shadow-card)',
+        border: isRgb
+          ? '1px solid rgba(96, 165, 250, 0.55)'
+          : '1px solid var(--nova-border)',
+        borderTop: settings.notchStyle === 'notch-attached' ? 'none' : undefined,
+        backdropFilter: 'blur(30px) saturate(180%) contrast(105%)',
+        WebkitBackdropFilter: 'blur(30px) saturate(180%) contrast(105%)',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+        position: 'relative',
+      }}
+      className={isRgb ? 'rgb-border' : ''}
+    >
+      <IslandExpandedContent onCollapse={onCollapse} />
+    </div>
   );
 };

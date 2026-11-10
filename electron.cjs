@@ -176,11 +176,9 @@ function createWindow() {
       const currentDisplay = screen.getPrimaryDisplay();
       const { width: screenWidth, height: screenHeight } = currentDisplay.workAreaSize;
 
-      // Provide generous breathing room around the window so ambient glow and rounded corners are never clipped
-      const padX = expanded ? 60 : 120;
-      const padY = expanded ? 60 : 80;
-      const winW = Math.round(width + padX);
-      const winH = Math.round(height + padY);
+      // Keep width fixed at 760 so the window origin NEVER jumps horizontally across the monitor!
+      const winW = 760;
+      const winH = expanded ? 560 : 120;
 
       let targetX, targetY;
       const pos = position || 'top-center';
