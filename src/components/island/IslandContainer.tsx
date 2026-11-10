@@ -112,6 +112,9 @@ export const IslandContainer: React.FC = () => {
       try {
         const { ipcRenderer } = (window as any).require('electron');
         const handleToggle = () => toggleExpanded();
+        const handleBringToFront = () => {
+          setExpanded(true);
+        };
         const handleOpenModule = (_event: any, moduleId: string) => {
           if (moduleId) {
             setActiveModule(moduleId);
@@ -128,10 +131,12 @@ export const IslandContainer: React.FC = () => {
           }
         };
 
+        ipcRenderer.on('bring-to-front', handleBringToFront);
         ipcRenderer.on('toggle-island', handleToggle);
         ipcRenderer.on('open-module', handleOpenModule);
         ipcRenderer.on('media-status-update', handleMediaUpdate);
         return () => {
+          ipcRenderer.removeListener('bring-to-front', handleBringToFront);
           ipcRenderer.removeListener('toggle-island', handleToggle);
           ipcRenderer.removeListener('open-module', handleOpenModule);
           ipcRenderer.removeListener('media-status-update', handleMediaUpdate);

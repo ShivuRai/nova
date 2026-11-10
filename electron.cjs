@@ -1,28 +1,41 @@
+if (process.env.ELECTRON_RUN_AS_NODE) {
+  delete process.env.ELECTRON_RUN_AS_NODE;
+}
+
 const { app, BrowserWindow, screen, ipcMain, Tray, Menu, nativeImage, globalShortcut, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
+
+// Global safety handler: Suppress uncaught exception dialogs to prevent scary modal popups
+process.on('uncaughtException', (err) => {
+  console.error('[NOVA Main Process Uncaught Exception]', err);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('[NOVA Main Process Unhandled Rejection]', reason);
+});
 
 let mainWindow = null;
 let tray = null;
 let dropServerInstance = null;
 let activeDropPort = 5980;
 
-// Single-instance lock: prevents duplicate processes from colliding or throwing port errors
+// Single-instance lock: if NOVA is already running, focus and bring the existing instance to front
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
   app.quit();
-  process.exit(0);
-}
-
-app.on('second-instance', () => {
-  if (mainWindow) {
-    if (!mainWindow.isVisible()) {
-      mainWindow.show();
+} else {
+  app.on('second-instance', () => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      if (!mainWindow.isVisible()) mainWindow.show();
+      mainWindow.focus();
+      mainWindow.setAlwaysOnTop(true, 'screen-saver');
+      mainWindow.webContents.send('bring-to-front');
     }
-    mainWindow.focus();
-    mainWindow.webContents.send('toggle-island');
-  }
-});
+  });
+
+  app.whenReady().then(createWindow);
+}
 
 function createWindow() {
   const primaryDisplay = screen.getPrimaryDisplay();
@@ -37,6 +50,11 @@ function createWindow() {
   let iconPath = path.join(__dirname, 'src-tauri', 'icons', 'icon.ico');
   if (!fs.existsSync(iconPath)) {
     iconPath = path.join(__dirname, '..', 'src-tauri', 'icons', 'icon.ico');
+  }
+
+  let trayIconPath = path.join(__dirname, 'src-tauri', 'icons', '32x32.png');
+  if (!fs.existsSync(trayIconPath)) {
+    trayIconPath = iconPath;
   }
 
   mainWindow = new BrowserWindow({
@@ -67,13 +85,13 @@ function createWindow() {
   // Create Windows Notification Area System Tray Icon ("Hidden Icons" section)
   try {
     let trayIcon = null;
-    if (fs.existsSync(iconPath)) {
+    if (fs.existsSync(trayIconPath)) {
+      trayIcon = nativeImage.createFromPath(trayIconPath);
+    } else if (fs.existsSync(iconPath)) {
       trayIcon = nativeImage.createFromPath(iconPath);
-    } else {
-      trayIcon = nativeImage.createEmpty();
     }
 
-    if (!tray) {
+    if (trayIcon && !tray) {
       tray = new Tray(trayIcon);
       tray.setToolTip('NOVA - Dynamic Island Companion');
 
@@ -346,6 +364,7 @@ function createWindow() {
 
   // REAL NOVA DROP: Local Wi-Fi File Transfer HTTP Server
   const http = require('http');
+  const net = require('net');
   const os = require('os');
   const dropDir = path.join(os.homedir(), 'Downloads', 'NovaDrop');
   if (!fs.existsSync(dropDir)) {
@@ -366,9 +385,36 @@ function createWindow() {
     return '127.0.0.1';
   }
 
-  const dropPort = 5980;
-  try {
-    const dropServer = http.createServer((req, res) => {
+  function findAvailablePort(startPort, maxAttempts = 30) {
+    return new Promise((resolve) => {
+      let currentPort = startPort;
+      let attempts = 0;
+
+      function testPort() {
+        if (attempts >= maxAttempts) {
+          return resolve(0); // 0 lets the OS kernel allocate a free port
+        }
+        attempts++;
+        const tester = net.createServer();
+        tester.unref();
+        tester.once('error', () => {
+          currentPort++;
+          testPort();
+        });
+        tester.once('listening', () => {
+          const port = tester.address().port;
+          tester.close(() => resolve(port));
+        });
+        tester.listen(currentPort, '0.0.0.0');
+      }
+
+      testPort();
+    });
+  }
+
+  findAvailablePort(5980).then((chosenPort) => {
+    try {
+      const dropServer = http.createServer((req, res) => {
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
       res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -534,30 +580,21 @@ function uploadFiles() {
     });
 
     dropServerInstance = dropServer;
-    activeDropPort = dropPort;
 
     dropServer.on('error', (err) => {
-      if (err.code === 'EADDRINUSE') {
-        console.warn(`[NOVA Drop] Port ${activeDropPort} in use, trying next port...`);
-        activeDropPort++;
-        if (activeDropPort < 5998) {
-          setTimeout(() => {
-            try {
-              dropServer.listen(activeDropPort, '0.0.0.0');
-            } catch (e) {}
-          }, 150);
-        }
-      } else {
-        console.error('[NOVA Drop] Server error:', err.message);
-      }
+      console.warn('[NOVA Drop] Server warning:', err.message);
     });
 
-    dropServer.listen(activeDropPort, '0.0.0.0', () => {
+    dropServer.listen(chosenPort, '0.0.0.0', () => {
+      activeDropPort = dropServer.address().port;
       console.log(`[NOVA Drop] Wi-Fi file server active at http://${getLocalWifiIp()}:${activeDropPort}`);
     });
   } catch (err) {
     console.error('[NOVA Drop] Could not start HTTP server:', err);
   }
+  }).catch((err) => {
+    console.error('[NOVA Drop] Port discovery error:', err);
+  });
 
   // NOVA Drop IPC
   ipcMain.handle('get-drop-info', () => {
@@ -634,8 +671,6 @@ function uploadFiles() {
     mainWindow = null;
   });
 }
-
-app.whenReady().then(createWindow);
 
 app.on('will-quit', () => {
   try {
