@@ -15,8 +15,8 @@ const DEFAULT_SETTINGS: AppearanceSettings = {
   rgbPreset: 'rainbow',
   pillWidth: 230,
   pillHeight: 38,
-  expandedWidth: 680,
-  expandedHeight: 500,
+  expandedWidth: 640,
+  expandedHeight: 420,
   hoverDelayMs: 120,
   collapseDelayMs: 320,
 };
@@ -38,6 +38,13 @@ const getSavedSettings = (): AppearanceSettings => {
       // Sanitize notch style
       if (!VALID_NOTCH_STYLES.includes(merged.notchStyle)) {
         merged.notchStyle = 'floating-pill';
+      }
+      // Tighten dimensions if old 500px height was saved
+      if (merged.expandedHeight > 440) {
+        merged.expandedHeight = 420;
+      }
+      if (merged.expandedWidth > 660) {
+        merged.expandedWidth = 640;
       }
       return merged;
     }

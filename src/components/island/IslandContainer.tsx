@@ -17,7 +17,7 @@ export const IslandContainer: React.FC = () => {
     setActiveModule,
     liveActivity,
   } = useIslandStore();
-  const { media } = useSystemStore();
+  const { media, updateMedia } = useSystemStore();
   const { settings } = useThemeStore();
 
   const hoverTimerRef = useRef<number | null>(null);
@@ -81,16 +81,27 @@ export const IslandContainer: React.FC = () => {
           }
           setExpanded(true);
         };
+        const handleMediaUpdate = (_event: any, data: any) => {
+          if (data && typeof data.isPlaying === 'boolean') {
+            updateMedia({
+              isPlaying: data.isPlaying,
+              title: data.title || '',
+              artist: data.artist || (data.isPlaying ? 'Media Playback' : ''),
+            });
+          }
+        };
 
         ipcRenderer.on('toggle-island', handleToggle);
         ipcRenderer.on('open-module', handleOpenModule);
+        ipcRenderer.on('media-status-update', handleMediaUpdate);
         return () => {
           ipcRenderer.removeListener('toggle-island', handleToggle);
           ipcRenderer.removeListener('open-module', handleOpenModule);
+          ipcRenderer.removeListener('media-status-update', handleMediaUpdate);
         };
       } catch (e) {}
     }
-  }, [toggleExpanded, setActiveModule, setExpanded]);
+  }, [toggleExpanded, setActiveModule, setExpanded, updateMedia]);
 
   // Global Escape key handler
   useEffect(() => {

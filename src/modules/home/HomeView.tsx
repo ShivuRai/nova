@@ -22,6 +22,20 @@ export const HomeView: React.FC = () => {
   const { metrics, media, updateMedia } = useSystemStore();
   const { setActiveModule } = useIslandStore();
 
+  const handleMediaControl = (action: 'play-pause' | 'next' | 'prev') => {
+    if (typeof window !== 'undefined' && (window as any).require) {
+      try {
+        const { ipcRenderer } = (window as any).require('electron');
+        ipcRenderer.send('control-media', action);
+      } catch (e) {}
+    }
+    if (action === 'play-pause') {
+      updateMedia({ isPlaying: !media.isPlaying });
+    }
+  };
+
+  const isYouTube = media.title?.toLowerCase().includes('youtube') || media.artist?.toLowerCase().includes('youtube');
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       {/* Search / Quick Launcher Trigger */}
@@ -69,12 +83,13 @@ export const HomeView: React.FC = () => {
           style={{
             padding: 12,
             backgroundColor: 'var(--nova-surface)',
-            border: '1px solid var(--nova-border)',
+            border: media.isPlaying ? '1px solid var(--nova-blue)' : '1px solid var(--nova-border)',
             borderRadius: 'var(--nova-radius-widget)',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
             gap: 8,
+            transition: 'border 0.2s ease',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -83,37 +98,40 @@ export const HomeView: React.FC = () => {
                 width: 36,
                 height: 36,
                 borderRadius: 8,
-                backgroundColor: 'rgba(102, 136, 255, 0.15)',
+                backgroundColor: media.isPlaying ? 'rgba(56, 189, 248, 0.18)' : 'rgba(102, 136, 255, 0.12)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: 'var(--nova-blue)',
+                color: media.isPlaying ? 'var(--nova-cyan)' : 'var(--nova-text-muted)',
+                fontSize: '15px',
               }}
             >
-              🎵
+              {isYouTube ? '▶️' : '🎵'}
             </div>
             <div style={{ overflow: 'hidden' }}>
               <div
                 style={{
-                  fontSize: '13px',
+                  fontSize: '12px',
                   fontWeight: 600,
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
+                  color: media.isPlaying ? 'var(--nova-text-primary)' : 'var(--nova-text-secondary)',
                 }}
               >
-                {media.title}
+                {media.title || 'No Media Playing'}
               </div>
               <div
                 style={{
-                  fontSize: '11px',
-                  color: 'var(--nova-text-secondary)',
+                  fontSize: '10px',
+                  color: 'var(--nova-text-muted)',
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
+                  marginTop: 1,
                 }}
               >
-                {media.artist}
+                {media.isPlaying ? (media.artist || 'Web Playback') : 'YouTube / Spotify will auto-detect'}
               </div>
             </div>
           </div>
@@ -128,13 +146,14 @@ export const HomeView: React.FC = () => {
             }}
           >
             <button
-              onClick={() => {}}
-              style={{ color: 'var(--nova-text-secondary)', padding: 4 }}
+              onClick={() => handleMediaControl('prev')}
+              style={{ color: 'var(--nova-text-secondary)', padding: 4, cursor: 'pointer' }}
+              title="Previous Track"
             >
               <SkipBack size={15} />
             </button>
             <button
-              onClick={() => updateMedia({ isPlaying: !media.isPlaying })}
+              onClick={() => handleMediaControl('play-pause')}
               style={{
                 width: 28,
                 height: 28,
@@ -144,13 +163,16 @@ export const HomeView: React.FC = () => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
+                cursor: 'pointer',
               }}
+              title={media.isPlaying ? 'Pause' : 'Play'}
             >
               {media.isPlaying ? <Pause size={14} /> : <Play size={14} style={{ marginLeft: 2 }} />}
             </button>
             <button
-              onClick={() => {}}
-              style={{ color: 'var(--nova-text-secondary)', padding: 4 }}
+              onClick={() => handleMediaControl('next')}
+              style={{ color: 'var(--nova-text-secondary)', padding: 4, cursor: 'pointer' }}
+              title="Next Track"
             >
               <SkipForward size={15} />
             </button>

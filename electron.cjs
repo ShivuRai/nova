@@ -176,9 +176,9 @@ function createWindow() {
       const currentDisplay = screen.getPrimaryDisplay();
       const { width: screenWidth, height: screenHeight } = currentDisplay.workAreaSize;
 
-      // Keep width fixed at 760 so the window origin NEVER jumps horizontally across the monitor!
-      const winW = 760;
-      const winH = expanded ? 560 : 120;
+      // Keep width fixed at 720 so the window origin NEVER jumps horizontally across the monitor!
+      const winW = 720;
+      const winH = expanded ? 480 : 110;
 
       let targetX, targetY;
       const pos = position || 'top-center';
@@ -219,6 +219,55 @@ function createWindow() {
         height: winH,
       });
     }
+  });
+
+  // Real-Time System Media & YouTube playback monitoring
+  const { execFile } = require('child_process');
+  let lastMediaRaw = '';
+
+  function pollMedia() {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+
+    let scriptPath = path.join(__dirname, 'scripts', 'get-media.ps1');
+    if (!fs.existsSync(scriptPath)) {
+      scriptPath = path.join(__dirname, '..', 'scripts', 'get-media.ps1');
+    }
+    if (!fs.existsSync(scriptPath)) return;
+
+    execFile(
+      'powershell.exe',
+      ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', scriptPath],
+      { timeout: 2500, windowsHide: true },
+      (err, stdout) => {
+        if (err || !stdout) return;
+        try {
+          const raw = stdout.trim();
+          if (raw && raw !== lastMediaRaw) {
+            lastMediaRaw = raw;
+            const data = JSON.parse(raw);
+            if (mainWindow && !mainWindow.isDestroyed()) {
+              mainWindow.webContents.send('media-status-update', data);
+            }
+          }
+        } catch (e) {}
+      }
+    );
+  }
+
+  // Poll every 2 seconds
+  const mediaInterval = setInterval(pollMedia, 2000);
+  setTimeout(pollMedia, 1000);
+
+  // IPC media playback hardware keystroke controls
+  ipcMain.on('control-media', (event, action) => {
+    let key = '179'; // VK_MEDIA_PLAY_PAUSE
+    if (action === 'next') key = '176'; // VK_MEDIA_NEXT_TRACK
+    if (action === 'prev') key = '177'; // VK_MEDIA_PREV_TRACK
+
+    const psCommand = `(New-Object -ComObject WScript.Shell).SendKeys([char]${key})`;
+    execFile('powershell.exe', ['-NoProfile', '-Command', psCommand], { windowsHide: true }, () => {});
+    // Trigger immediate re-poll after action
+    setTimeout(pollMedia, 500);
   });
 
   // Windows Auto-Start / Login Item IPC
