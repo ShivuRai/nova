@@ -1,9 +1,28 @@
-const { app, BrowserWindow, screen, ipcMain, Tray, Menu, nativeImage, globalShortcut } = require('electron');
+const { app, BrowserWindow, screen, ipcMain, Tray, Menu, nativeImage, globalShortcut, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
 let mainWindow = null;
 let tray = null;
+let dropServerInstance = null;
+let activeDropPort = 5980;
+
+// Single-instance lock: prevents duplicate processes from colliding or throwing port errors
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) {
+  app.quit();
+  process.exit(0);
+}
+
+app.on('second-instance', () => {
+  if (mainWindow) {
+    if (!mainWindow.isVisible()) {
+      mainWindow.show();
+    }
+    mainWindow.focus();
+    mainWindow.webContents.send('toggle-island');
+  }
+});
 
 function createWindow() {
   const primaryDisplay = screen.getPrimaryDisplay();
@@ -514,8 +533,27 @@ function uploadFiles() {
       res.end('Not Found');
     });
 
-    dropServer.listen(dropPort, '0.0.0.0', () => {
-      console.log(`[NOVA Drop] Wi-Fi file server active at http://${getLocalWifiIp()}:${dropPort}`);
+    dropServerInstance = dropServer;
+    activeDropPort = dropPort;
+
+    dropServer.on('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        console.warn(`[NOVA Drop] Port ${activeDropPort} in use, trying next port...`);
+        activeDropPort++;
+        if (activeDropPort < 5998) {
+          setTimeout(() => {
+            try {
+              dropServer.listen(activeDropPort, '0.0.0.0');
+            } catch (e) {}
+          }, 150);
+        }
+      } else {
+        console.error('[NOVA Drop] Server error:', err.message);
+      }
+    });
+
+    dropServer.listen(activeDropPort, '0.0.0.0', () => {
+      console.log(`[NOVA Drop] Wi-Fi file server active at http://${getLocalWifiIp()}:${activeDropPort}`);
     });
   } catch (err) {
     console.error('[NOVA Drop] Could not start HTTP server:', err);
@@ -527,8 +565,8 @@ function uploadFiles() {
     return {
       active: true,
       ip,
-      port: dropPort,
-      url: `http://${ip}:${dropPort}`,
+      port: activeDropPort,
+      url: `http://${ip}:${activeDropPort}`,
       dropDir,
     };
   });
@@ -602,6 +640,12 @@ app.whenReady().then(createWindow);
 app.on('will-quit', () => {
   try {
     globalShortcut.unregisterAll();
+  } catch (e) {}
+  try {
+    if (dropServerInstance) {
+      dropServerInstance.close();
+      dropServerInstance = null;
+    }
   } catch (e) {}
   if (tray) {
     try {
