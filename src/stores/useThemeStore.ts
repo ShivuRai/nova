@@ -31,7 +31,7 @@ const DEFAULT_SETTINGS: AppearanceSettings = {
   enableSoundEffects: true,
   soundVolume: 70,
   ambientParticles: 'off',
-  pillWidth: 230,
+  pillWidth: 255,
   pillHeight: 38,
   expandedWidth: 640,
   expandedHeight: 420,

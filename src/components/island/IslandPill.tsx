@@ -7,55 +7,130 @@ import { useTimerStore } from '../../stores/useTimerStore';
 import { Music, Activity, Battery, Timer, Cpu, QrCode, ChevronDown, Wifi } from 'lucide-react';
 
 export const IslandBrandMascot: React.FC<{ isCompact?: boolean; type?: string }> = ({ isCompact, type = 'robot' }) => {
-  const [blink, setBlink] = useState(false);
+  const [expression, setExpression] = useState<'normal' | 'blink' | 'look-left' | 'look-right' | 'happy' | 'wink'>('normal');
+  const [isInteracting, setIsInteracting] = useState(false);
+  const [catTwitch, setCatTwitch] = useState(false);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setBlink(true);
-      setTimeout(() => setBlink(false), 240);
-    }, 3600);
-    return () => clearInterval(timer);
+    // Dynamic organic expression state machine
+    const expressionSequence: Array<'normal' | 'blink' | 'normal' | 'look-left' | 'normal' | 'look-right' | 'happy' | 'blink' | 'wink' | 'normal'> = [
+      'normal',
+      'blink',
+      'normal',
+      'look-left',
+      'normal',
+      'look-right',
+      'happy',
+      'blink',
+      'wink',
+      'normal',
+    ];
+    let idx = 0;
+
+    const interval = setInterval(() => {
+      idx = (idx + 1) % expressionSequence.length;
+      const nextExp = expressionSequence[idx];
+      setExpression(nextExp);
+      setCatTwitch(nextExp === 'happy' || nextExp === 'wink');
+
+      // Return smoothly to normal after momentary micro-expressions
+      if (nextExp === 'blink' || nextExp === 'wink') {
+        setTimeout(() => setExpression('normal'), 240);
+      } else if (nextExp === 'look-left' || nextExp === 'look-right') {
+        setTimeout(() => setExpression('normal'), 900);
+      } else if (nextExp === 'happy') {
+        setTimeout(() => setExpression('normal'), 1200);
+      }
+    }, 2800);
+
+    return () => clearInterval(interval);
   }, []);
 
+  const handleMascotClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setExpression('happy');
+    setIsInteracting(true);
+    setTimeout(() => {
+      setIsInteracting(false);
+      setExpression('normal');
+    }, 1400);
+  };
+
   if (type === 'cat') {
+    const isCatHappy = expression === 'happy' || isInteracting;
     return (
       <motion.div
-        animate={{ y: [0, -1.2, 0] }}
-        transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
-        style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+        animate={{
+          y: isInteracting ? [-2, 1, -2] : [0, -0.8, 0],
+        }}
+        transition={{ duration: isInteracting ? 0.35 : 2.6, repeat: Infinity, ease: 'easeInOut' }}
+        onClick={handleMascotClick}
+        title="Pet Mochi!"
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer', lineHeight: 1, userSelect: 'none' }}
       >
-        <svg width={isCompact ? 16 : 18} height={isCompact ? 14 : 16} viewBox="0 0 20 18" fill="none">
-          {/* Ears */}
-          <polygon points="3,7 1,2 7,5" fill="#F472B6" />
-          <polygon points="17,7 19,2 13,5" fill="#F472B6" />
+        <svg width={isCompact ? 16 : 18} height={isCompact ? 14 : 16} viewBox="0 0 20 18" fill="none" style={{ display: 'block' }}>
+          {/* Ears with interactive twitch */}
+          <motion.polygon
+            points="3,7 1,2 7,5"
+            fill="#F472B6"
+            animate={{ rotate: catTwitch ? [-8, 4, 0] : 0 }}
+            transition={{ duration: 0.3 }}
+          />
+          <motion.polygon
+            points="17,7 19,2 13,5"
+            fill="#F472B6"
+            animate={{ rotate: catTwitch ? [8, -4, 0] : 0 }}
+            transition={{ duration: 0.3 }}
+          />
           {/* Head */}
           <circle cx="10" cy="10" r="7" fill="#FDF2F8" stroke="#F472B6" strokeWidth="1.2" />
-          {/* Cheeks */}
-          <circle cx="6" cy="11.5" r="1.2" fill="#FDA4AF" />
-          <circle cx="14" cy="11.5" r="1.2" fill="#FDA4AF" />
-          {/* Eyes */}
-          {blink ? (
+          {/* Blushing Cheeks with Soft Glow */}
+          <motion.circle
+            cx="6"
+            cy="11.5"
+            r="1.2"
+            fill="#FDA4AF"
+            animate={{ opacity: isCatHappy ? [0.7, 1, 0.7] : 0.8 }}
+            transition={{ duration: 1.5, repeat: Infinity }}
+          />
+          <motion.circle
+            cx="14"
+            cy="11.5"
+            r="1.2"
+            fill="#FDA4AF"
+            animate={{ opacity: isCatHappy ? [0.7, 1, 0.7] : 0.8 }}
+            transition={{ duration: 1.5, repeat: Infinity }}
+          />
+          {/* Eyes with Blinking & Joy Expressions */}
+          {expression === 'blink' ? (
             <>
               <line x1="6.5" y1="9.5" x2="8.5" y2="9.5" stroke="#831843" strokeWidth="1" strokeLinecap="round" />
               <line x1="11.5" y1="9.5" x2="13.5" y2="9.5" stroke="#831843" strokeWidth="1" strokeLinecap="round" />
+            </>
+          ) : isCatHappy ? (
+            <>
+              <path d="M 6.5,10.5 Q 7.5,8.5 8.5,10.5" stroke="#831843" strokeWidth="1.2" strokeLinecap="round" fill="none" />
+              <path d="M 11.5,10.5 Q 12.5,8.5 13.5,10.5" stroke="#831843" strokeWidth="1.2" strokeLinecap="round" fill="none" />
             </>
           ) : (
             <>
               <circle cx="7.5" cy="9.5" r="1.2" fill="#831843" />
               <circle cx="12.5" cy="9.5" r="1.2" fill="#831843" />
+              <circle cx="7.8" cy="9.2" r="0.4" fill="#FFFFFF" />
+              <circle cx="12.8" cy="9.2" r="0.4" fill="#FFFFFF" />
             </>
           )}
           {/* Nose */}
           <circle cx="10" cy="11" r="0.8" fill="#F43F5E" />
         </svg>
-        <span style={{ fontSize: isCompact ? '10px' : '11px', fontWeight: 700, color: '#FDA4AF' }}>MOCHI</span>
+        <span style={{ fontSize: isCompact ? '10px' : '11px', fontWeight: 700, color: '#FDA4AF', lineHeight: 1, display: 'inline-block' }}>MOCHI</span>
       </motion.div>
     );
   }
 
   if (type === 'quantum') {
     return (
-      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, lineHeight: 1 }}>
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ duration: 6, repeat: Infinity, ease: 'linear' }}
@@ -64,7 +139,7 @@ export const IslandBrandMascot: React.FC<{ isCompact?: boolean; type?: string }>
           <div style={{ width: 14, height: 14, borderRadius: '50%', border: '1.5px dashed var(--nova-cyan)' }} />
           <div style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: 'var(--nova-blue)', position: 'absolute' }} />
         </motion.div>
-        <span style={{ fontSize: isCompact ? '10px' : '11px', fontWeight: 700, letterSpacing: '0.04em', color: 'var(--nova-cyan)' }}>CORE</span>
+        <span style={{ fontSize: isCompact ? '10px' : '11px', fontWeight: 700, letterSpacing: '0.04em', color: 'var(--nova-cyan)', lineHeight: 1, display: 'inline-block' }}>CORE</span>
       </div>
     );
   }
@@ -72,30 +147,30 @@ export const IslandBrandMascot: React.FC<{ isCompact?: boolean; type?: string }>
   if (type === 'pixel-alien') {
     return (
       <motion.div
-        animate={{ y: [0, -1.5, 0] }}
+        animate={{ y: [0, -1, 0] }}
         transition={{ duration: 1.6, repeat: Infinity }}
-        style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 4, lineHeight: 1 }}
       >
-        <svg width={isCompact ? 15 : 17} height={isCompact ? 13 : 15} viewBox="0 0 16 14" fill="none">
+        <svg width={isCompact ? 15 : 17} height={isCompact ? 13 : 15} viewBox="0 0 16 14" fill="none" style={{ display: 'block' }}>
           <rect x="2" y="2" width="2" height="2" fill="var(--nova-warning)" />
           <rect x="12" y="2" width="2" height="2" fill="var(--nova-warning)" />
           <rect x="4" y="4" width="8" height="6" fill="var(--nova-warning)" />
           <rect x="2" y="6" width="12" height="4" fill="var(--nova-warning)" />
-          {blink ? null : (
+          {expression === 'blink' ? null : (
             <>
               <rect x="5" y="6" width="2" height="2" fill="#000" />
               <rect x="9" y="6" width="2" height="2" fill="#000" />
             </>
           )}
         </svg>
-        <span style={{ fontSize: isCompact ? '10px' : '11px', fontWeight: 700, color: 'var(--nova-warning)' }}>BYTE</span>
+        <span style={{ fontSize: isCompact ? '10px' : '11px', fontWeight: 700, color: 'var(--nova-warning)', lineHeight: 1, display: 'inline-block' }}>BYTE</span>
       </motion.div>
     );
   }
 
   if (type === 'text') {
     return (
-      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, lineHeight: 1 }}>
         <motion.span
           animate={{ scale: [1, 1.3, 1], opacity: [0.7, 1, 0.7] }}
           transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
@@ -108,50 +183,120 @@ export const IslandBrandMascot: React.FC<{ isCompact?: boolean; type?: string }>
             display: 'inline-block',
           }}
         />
-        <span style={{ fontSize: isCompact ? '10px' : '11px', fontWeight: 700, letterSpacing: '0.06em', color: 'var(--nova-text-primary)' }}>
+        <span style={{ fontSize: isCompact ? '10px' : '11px', fontWeight: 700, letterSpacing: '0.06em', color: 'var(--nova-text-primary)', lineHeight: 1, display: 'inline-block' }}>
           NOVA
         </span>
       </div>
     );
   }
 
-  // Default: Cute Astro Robot
+  // Default: Dynamic Expressive Astro Robot
+  const isBlinking = expression === 'blink';
+  const isLookingLeft = expression === 'look-left';
+  const isLookingRight = expression === 'look-right';
+  const isHappy = expression === 'happy' || isInteracting;
+  const isWinking = expression === 'wink';
+
+  // Eye tracking offsets
+  const leftEyeX = isLookingLeft ? 7.2 : isLookingRight ? 9.8 : 8.5;
+  const rightEyeX = isLookingLeft ? 12.2 : isLookingRight ? 14.8 : 13.5;
+  const eyeY = 11.2;
+
   return (
     <motion.div
-      animate={{ y: [0, -1.8, 0] }}
-      transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
-      style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
+      animate={{
+        y: isInteracting ? [-2, 1, -2] : [0, -1, 0],
+      }}
+      transition={{ duration: isInteracting ? 0.35 : 2.8, repeat: Infinity, ease: 'easeInOut' }}
+      onClick={handleMascotClick}
+      title="Click Astro!"
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 5,
+        cursor: 'pointer',
+        lineHeight: 1,
+        userSelect: 'none',
+      }}
     >
-      <svg width={isCompact ? 16 : 19} height={isCompact ? 14 : 17} viewBox="0 0 22 20" fill="none">
-        {/* Antenna */}
-        <line x1="11" y1="4.5" x2="11" y2="1.5" stroke="var(--nova-blue)" strokeWidth="1.6" strokeLinecap="round" />
-        <circle cx="11" cy="1.5" r="1.3" fill="var(--nova-cyan)" />
-        {/* Head */}
-        <rect x="3" y="4.5" width="16" height="13" rx="4" fill="#0B132B" stroke="var(--nova-blue)" strokeWidth="1.3" />
-        {/* Visor Screen */}
-        <rect x="5.5" y="7" width="11" height="8" rx="2" fill="#1C2541" />
-        {/* Glowing Eyes */}
-        {blink ? (
-          <>
-            <line x1="7" y1="11" x2="9.5" y2="11" stroke="var(--nova-cyan)" strokeWidth="1.4" strokeLinecap="round" />
-            <line x1="12.5" y1="11" x2="15" y2="11" stroke="var(--nova-cyan)" strokeWidth="1.4" strokeLinecap="round" />
-          </>
-        ) : (
-          <>
-            <circle cx="8.5" cy="11" r="1.4" fill="var(--nova-cyan)" />
-            <circle cx="13.5" cy="11" r="1.4" fill="var(--nova-cyan)" />
-          </>
-        )}
-        {/* Ear Bolts */}
-        <rect x="1" y="8.5" width="1.8" height="5" rx="0.9" fill="var(--nova-cyan)" />
-        <rect x="19.2" y="8.5" width="1.8" height="5" rx="0.9" fill="var(--nova-cyan)" />
-      </svg>
+      <div style={{ position: 'relative', width: isCompact ? 16 : 19, height: isCompact ? 14 : 17, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <svg
+          width={isCompact ? 16 : 19}
+          height={isCompact ? 14 : 17}
+          viewBox="0 0 22 20"
+          fill="none"
+          style={{ display: 'block', overflow: 'visible' }}
+        >
+          {/* Signal Beacon Wave Pulse from Antenna */}
+          <motion.circle
+            cx="11"
+            cy="1.5"
+            r="1.8"
+            animate={{ scale: [1, 2.2, 1], opacity: [0.85, 0, 0.85] }}
+            transition={{ duration: 2.2, repeat: Infinity, ease: 'easeOut' }}
+            stroke="var(--nova-cyan)"
+            strokeWidth="0.8"
+            fill="none"
+          />
+
+          {/* Antenna */}
+          <line x1="11" y1="4.5" x2="11" y2="1.5" stroke="var(--nova-blue)" strokeWidth="1.6" strokeLinecap="round" />
+          <circle cx="11" cy="1.5" r="1.3" fill="var(--nova-cyan)" />
+
+          {/* Head Fuselage */}
+          <rect x="3" y="4.5" width="16" height="13" rx="4" fill="#0B132B" stroke="var(--nova-blue)" strokeWidth="1.3" />
+
+          {/* Visor Screen */}
+          <rect x="5.5" y="7" width="11" height="8" rx="2" fill="#1C2541" />
+
+          {/* Visor Cyber Scanline */}
+          <line x1="6" y1="9" x2="16" y2="9" stroke="rgba(56, 189, 248, 0.15)" strokeWidth="0.6" />
+
+          {/* Expressive Visor Eyes */}
+          {isHappy ? (
+            /* Joyful ^ ^ eyes with glowing pink cheeks */
+            <>
+              <path d="M 7,12 Q 8.5,9.5 10,12" stroke="var(--nova-cyan)" strokeWidth="1.4" strokeLinecap="round" fill="none" />
+              <path d="M 12,12 Q 13.5,9.5 15,12" stroke="var(--nova-cyan)" strokeWidth="1.4" strokeLinecap="round" fill="none" />
+              <circle cx="6.5" cy="13" r="0.9" fill="#FDA4AF" />
+              <circle cx="15.5" cy="13" r="0.9" fill="#FDA4AF" />
+            </>
+          ) : isBlinking ? (
+            /* Blinking Eyelid Lines */
+            <>
+              <line x1="7" y1={eyeY} x2="9.8" y2={eyeY} stroke="var(--nova-cyan)" strokeWidth="1.4" strokeLinecap="round" />
+              <line x1="12.2" y1={eyeY} x2="15" y2={eyeY} stroke="var(--nova-cyan)" strokeWidth="1.4" strokeLinecap="round" />
+            </>
+          ) : isWinking ? (
+            /* Wink Expression */
+            <>
+              <path d="M 7,12 Q 8.5,9.5 10,12" stroke="var(--nova-cyan)" strokeWidth="1.4" strokeLinecap="round" fill="none" />
+              <circle cx="13.5" cy={eyeY} r="1.4" fill="var(--nova-cyan)" />
+              <circle cx="13.9" cy={eyeY - 0.4} r="0.4" fill="#FFFFFF" />
+            </>
+          ) : (
+            /* Natural Cyber LED Eyes with Pupil Glint & Looking Direction */
+            <>
+              <circle cx={leftEyeX} cy={eyeY} r="1.4" fill="var(--nova-cyan)" />
+              <circle cx={leftEyeX + 0.4} cy={eyeY - 0.4} r="0.4" fill="#FFFFFF" />
+              <circle cx={rightEyeX} cy={eyeY} r="1.4" fill="var(--nova-cyan)" />
+              <circle cx={rightEyeX + 0.4} cy={eyeY - 0.4} r="0.4" fill="#FFFFFF" />
+            </>
+          )}
+
+          {/* Ear Bolts with Subtle Glow */}
+          <rect x="1" y="8.5" width="1.8" height="5" rx="0.9" fill="var(--nova-cyan)" />
+          <rect x="19.2" y="8.5" width="1.8" height="5" rx="0.9" fill="var(--nova-cyan)" />
+        </svg>
+      </div>
       <span
         style={{
           fontSize: isCompact ? '10px' : '11px',
           fontWeight: 700,
           letterSpacing: '0.04em',
           color: 'var(--nova-cyan)',
+          lineHeight: 1,
+          display: 'inline-block',
         }}
       >
         ASTRO
@@ -485,26 +630,43 @@ export const IslandPillContent: React.FC<{ isCompact?: boolean }> = ({ isCompact
       ) : pillContentMode === 'clock-weather' ? (
         <div
           style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr auto 1fr',
+            position: 'relative',
+            display: 'flex',
             alignItems: 'center',
+            justifyContent: 'space-between',
             width: '100%',
+            height: '100%',
           }}
         >
           {/* Left: Brand Mascot */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', zIndex: 1, lineHeight: 1 }}>
             <IslandBrandMascot isCompact={isCompact} type={settings.pillBrandBadge || 'robot'} />
           </div>
 
           {/* Center: Perfectly Centered Clock */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div
+            style={{
+              position: 'absolute',
+              left: '50%',
+              top: '50%',
+              transform: 'translate(-50%, -50%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              pointerEvents: 'none',
+              zIndex: 2,
+              lineHeight: 1,
+            }}
+          >
             <span
               style={{
                 fontSize: isCompact ? '10px' : '11.5px',
                 fontWeight: 600,
                 color: 'var(--nova-text-primary)',
                 fontFamily: 'var(--font-mono)',
-                letterSpacing: '0.02em',
+                letterSpacing: '0.03em',
+                lineHeight: 1,
+                display: 'inline-block',
               }}
             >
               {time}
@@ -520,35 +682,54 @@ export const IslandPillContent: React.FC<{ isCompact?: boolean }> = ({ isCompact
               gap: 4,
               fontSize: '10px',
               color: 'var(--nova-text-secondary)',
+              zIndex: 1,
+              lineHeight: 1,
             }}
           >
             <span>☀️ 22°C</span>
           </div>
         </div>
       ) : (
-        /* Default and minimal-zen: Balanced 3-Column Layout */
+        /* Default and minimal-zen: Straight-Line Perfectly Aligned Layout */
         <div
           style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr auto 1fr',
+            position: 'relative',
+            display: 'flex',
             alignItems: 'center',
+            justifyContent: 'space-between',
             width: '100%',
+            height: '100%',
           }}
         >
           {/* Left: Brand Mascot (Astro, Mochi, Quantum, Pixel, Text) */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', zIndex: 1, lineHeight: 1 }}>
             <IslandBrandMascot isCompact={isCompact} type={settings.pillBrandBadge || 'robot'} />
           </div>
 
           {/* Center: Dedicated Centered Clock - Always Dead-Centered */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div
+            style={{
+              position: 'absolute',
+              left: '50%',
+              top: '50%',
+              transform: 'translate(-50%, -50%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              pointerEvents: 'none',
+              zIndex: 2,
+              lineHeight: 1,
+            }}
+          >
             <span
               style={{
                 fontSize: isCompact ? '10px' : '11.5px',
                 fontWeight: 600,
                 color: 'var(--nova-text-primary)',
                 fontFamily: 'var(--font-mono)',
-                letterSpacing: '0.02em',
+                letterSpacing: '0.03em',
+                lineHeight: 1,
+                display: 'inline-block',
               }}
             >
               {time}
@@ -556,7 +737,7 @@ export const IslandPillContent: React.FC<{ isCompact?: boolean }> = ({ isCompact
           </div>
 
           {/* Right: Live Hardware Telemetry or Subtle Status Dot */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, zIndex: 1, lineHeight: 1 }}>
             {!isCompact && pillContentMode !== 'minimal-zen' ? (
               <div
                 style={{
@@ -566,13 +747,14 @@ export const IslandPillContent: React.FC<{ isCompact?: boolean }> = ({ isCompact
                   fontSize: '10px',
                   color: 'var(--nova-text-secondary)',
                   fontFamily: 'var(--font-mono)',
+                  lineHeight: 1,
                 }}
               >
-                <span style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 2, lineHeight: 1 }}>
                   <Cpu size={10} style={{ color: 'var(--nova-blue)' }} />
                   {metrics.cpuUsagePercent}%
                 </span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 2, lineHeight: 1 }}>
                   <Activity size={10} style={{ color: 'var(--nova-cyan)' }} />
                   {metrics.ramUsagePercent}%
                 </span>

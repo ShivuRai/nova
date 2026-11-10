@@ -242,7 +242,7 @@ export const IslandContainer: React.FC = () => {
     ? 270
     : settings.pillDisplayContent === 'telemetry'
     ? 260
-    : settings.pillWidth;
+    : Math.max(250, settings.pillWidth || 250);
   const effectivePillHeight = isCompact ? 32 : settings.pillHeight;
 
   const currentWidth = isExpanded ? settings.expandedWidth : effectivePillWidth;

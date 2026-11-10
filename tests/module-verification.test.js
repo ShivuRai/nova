@@ -361,11 +361,11 @@ test('Verification 14: Dynamic Wing, Chamfered Notch, Split Capsule Twin-Pod, Ce
   assert.strictEqual(containerContent.includes('customEdgeLightingColor'), true, 'customEdgeLightingColor must be supported');
   assert.strictEqual(containerContent.includes('resolvedEdgeBackground'), true, 'resolvedEdgeBackground must resolve custom color');
 
-  // 4. Split Capsule twin-pod architecture in IslandPill
+  // 4. Split Capsule twin-pod architecture in IslandPill & dead-centered clock
   const pillPath = path.join(projectRoot, 'src', 'components', 'island', 'IslandPill.tsx');
   const pillContent = fs.readFileSync(pillPath, 'utf8');
   assert.strictEqual(pillContent.includes('isSplitCapsule'), true, 'isSplitCapsule twin-pod check must exist');
-  assert.strictEqual(pillContent.includes("gridTemplateColumns: '1fr auto 1fr'"), true, 'Clock must be dead-centered in a 3-zone grid layout');
+  assert.strictEqual(pillContent.includes("left: '50%'") && pillContent.includes("transform: 'translate(-50%, -50%)'"), true, 'Clock must be dead-centered with absolute transform positioning');
 
   // 5. Fixed + Category and Manage buttons in IslandExpanded
   const expandedPath = path.join(projectRoot, 'src', 'components', 'island', 'IslandExpanded.tsx');
@@ -373,4 +373,21 @@ test('Verification 14: Dynamic Wing, Chamfered Notch, Split Capsule Twin-Pod, Ce
   assert.strictEqual(expandedContent.includes('Pinned Action Controls'), true, 'Pinned action controls must be present');
   assert.strictEqual(expandedContent.includes('SlidersHorizontal'), true, 'Manage action button must be present');
   assert.strictEqual(expandedContent.includes('isAddingCategory'), true, 'isAddingCategory must be present');
+});
+
+test('Verification 15: Compact Proportioned HomeView and Dynamic Expressive Mascot Engine', () => {
+  // 1. HomeView must be sleek and compact
+  const homePath = path.join(projectRoot, 'src', 'modules', 'home', 'HomeView.tsx');
+  const homeContent = fs.readFileSync(homePath, 'utf8');
+  assert.strictEqual(homeContent.includes('Search apps, files, or run command...'), true, 'Compact search bar exists');
+  assert.strictEqual(homeContent.includes('WORKFLOW ESSENTIALS'), true, 'Workflow essentials section exists');
+  assert.strictEqual(homeContent.includes('System Vitals'), true, 'System vitals exists');
+
+  // 2. Dynamic Astro mascot engine
+  const pillPath = path.join(projectRoot, 'src', 'components', 'island', 'IslandPill.tsx');
+  const pillContent = fs.readFileSync(pillPath, 'utf8');
+  assert.strictEqual(pillContent.includes('expressionSequence'), true, 'Expression state machine sequence exists');
+  assert.strictEqual(pillContent.includes('Signal Beacon Wave Pulse'), true, 'Antenna beacon wave pulse exists');
+  assert.strictEqual(pillContent.includes('isHappy'), true, 'Happy smile eye expression exists');
+  assert.strictEqual(pillContent.includes('handleMascotClick'), true, 'Interactive mascot click handler exists');
 });
