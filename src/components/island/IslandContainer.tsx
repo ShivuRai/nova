@@ -13,15 +13,24 @@ export const IslandContainer: React.FC = () => {
     toggleExpanded,
     isPinned,
     isInteracting,
+    setActiveModule,
   } = useIslandStore();
   const { settings } = useThemeStore();
 
   const hoverTimerRef = useRef<number | null>(null);
   const collapseTimerRef = useRef<number | null>(null);
+  const windowResizeTimerRef = useRef<number | null>(null);
 
   // Sync window size & position when expanded state or position changes
   useEffect(() => {
+    // Clear any pending collapse window shrink
+    if (windowResizeTimerRef.current) {
+      window.clearTimeout(windowResizeTimerRef.current);
+      windowResizeTimerRef.current = null;
+    }
+
     if (isExpanded) {
+      // Expand window immediately so the blooming animation has full space
       resizeDesktopWindow(
         true,
         settings.expandedWidth,
@@ -30,14 +39,23 @@ export const IslandContainer: React.FC = () => {
         settings.notchStyle
       );
     } else {
-      resizeDesktopWindow(
-        false,
-        settings.pillWidth,
-        settings.pillHeight,
-        settings.screenPosition,
-        settings.notchStyle
-      );
+      // Delay window shrink until after the spring morph animation completes (320ms)
+      windowResizeTimerRef.current = window.setTimeout(() => {
+        resizeDesktopWindow(
+          false,
+          settings.pillWidth,
+          settings.pillHeight,
+          settings.screenPosition,
+          settings.notchStyle
+        );
+      }, 320);
     }
+
+    return () => {
+      if (windowResizeTimerRef.current) {
+        window.clearTimeout(windowResizeTimerRef.current);
+      }
+    };
   }, [
     isExpanded,
     settings.expandedWidth,
@@ -48,19 +66,28 @@ export const IslandContainer: React.FC = () => {
     settings.notchStyle,
   ]);
 
-  // Global hotkey listener from Electron IPC
+  // Global hotkey & IPC listeners from Electron
   useEffect(() => {
     if (typeof window !== 'undefined' && (window as any).require) {
       try {
         const { ipcRenderer } = (window as any).require('electron');
         const handleToggle = () => toggleExpanded();
+        const handleOpenModule = (_event: any, moduleId: string) => {
+          if (moduleId) {
+            setActiveModule(moduleId);
+          }
+          setExpanded(true);
+        };
+
         ipcRenderer.on('toggle-island', handleToggle);
+        ipcRenderer.on('open-module', handleOpenModule);
         return () => {
           ipcRenderer.removeListener('toggle-island', handleToggle);
+          ipcRenderer.removeListener('open-module', handleOpenModule);
         };
       } catch (e) {}
     }
-  }, [toggleExpanded]);
+  }, [toggleExpanded, setActiveModule, setExpanded]);
 
   // Global Escape key handler
   useEffect(() => {
@@ -122,8 +149,6 @@ export const IslandContainer: React.FC = () => {
 
   return (
     <div
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
       style={{
         display: 'flex',
         justifyContent,
@@ -137,8 +162,12 @@ export const IslandContainer: React.FC = () => {
         pointerEvents: 'none', // pass through outside clicks
       }}
     >
-      <div style={{ pointerEvents: 'auto' }}>
-        <AnimatePresence mode="wait">
+      <div
+        style={{ pointerEvents: 'auto' }}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+      >
+        <AnimatePresence initial={false}>
           {!isExpanded ? (
             <IslandPill
               key="pill"

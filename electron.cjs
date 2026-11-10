@@ -30,7 +30,7 @@ function createWindow() {
     transparent: true,
     backgroundColor: '#00000000',
     alwaysOnTop: true,
-    skipTaskbar: false, // Make sure it appears in the taskbar!
+    skipTaskbar: true, // Hide from the main taskbar; live in the Windows system tray / hidden icons area
     resizable: false,
     hasShadow: false,
     show: true, // Show immediately!
@@ -44,6 +44,100 @@ function createWindow() {
   });
 
   mainWindow.setAlwaysOnTop(true, 'screen-saver');
+
+  // Create Windows Notification Area System Tray Icon ("Hidden Icons" section)
+  try {
+    let trayIcon = null;
+    if (fs.existsSync(iconPath)) {
+      trayIcon = nativeImage.createFromPath(iconPath);
+    } else {
+      trayIcon = nativeImage.createEmpty();
+    }
+
+    if (!tray) {
+      tray = new Tray(trayIcon);
+      tray.setToolTip('NOVA - Dynamic Island Companion');
+
+      const contextMenu = Menu.buildFromTemplate([
+        {
+          label: 'NOVA Dynamic Island',
+          enabled: false,
+        },
+        { type: 'separator' },
+        {
+          label: 'Show / Toggle Island',
+          accelerator: 'Alt+Space',
+          click: () => {
+            if (mainWindow) {
+              if (!mainWindow.isVisible()) {
+                mainWindow.show();
+              }
+              mainWindow.focus();
+              mainWindow.webContents.send('toggle-island');
+            }
+          },
+        },
+        {
+          label: 'Open Settings',
+          click: () => {
+            if (mainWindow) {
+              if (!mainWindow.isVisible()) {
+                mainWindow.show();
+              }
+              mainWindow.focus();
+              mainWindow.webContents.send('open-module', 'settings');
+            }
+          },
+        },
+        {
+          label: 'Open RGB & Glow',
+          click: () => {
+            if (mainWindow) {
+              if (!mainWindow.isVisible()) {
+                mainWindow.show();
+              }
+              mainWindow.focus();
+              mainWindow.webContents.send('open-module', 'rgb');
+            }
+          },
+        },
+        { type: 'separator' },
+        {
+          label: 'Quit NOVA',
+          accelerator: 'CmdOrCtrl+Q',
+          click: () => {
+            app.isQuitting = true;
+            app.quit();
+          },
+        },
+      ]);
+
+      tray.setContextMenu(contextMenu);
+
+      // Left click or double-click on tray icon toggles the Island
+      tray.on('click', () => {
+        if (mainWindow) {
+          if (!mainWindow.isVisible()) {
+            mainWindow.show();
+          }
+          mainWindow.focus();
+          mainWindow.webContents.send('toggle-island');
+        }
+      });
+
+      tray.on('double-click', () => {
+        if (mainWindow) {
+          if (!mainWindow.isVisible()) {
+            mainWindow.show();
+          }
+          mainWindow.focus();
+          mainWindow.webContents.send('toggle-island');
+        }
+      });
+    }
+  } catch (err) {
+    console.error('[NOVA] Failed to create system tray icon:', err);
+  }
 
   // Load self-contained local build
   let indexPath = path.join(__dirname, 'dist', 'index.html');
@@ -180,6 +274,12 @@ app.on('will-quit', () => {
   try {
     globalShortcut.unregisterAll();
   } catch (e) {}
+  if (tray) {
+    try {
+      tray.destroy();
+    } catch (e) {}
+    tray = null;
+  }
 });
 
 app.on('window-all-closed', () => {

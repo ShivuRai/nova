@@ -171,15 +171,19 @@ export const IslandExpanded: React.FC<IslandExpandedProps> = ({ onCollapse }) =>
   return (
     <motion.div
       layoutId="nova-island-body"
+      initial={{ opacity: 0, scale: 0.95, y: -6 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95, y: -6 }}
       style={{
         width: settings.expandedWidth,
         maxHeight: settings.expandedHeight,
-        borderRadius: 'var(--nova-radius-card)',
+        borderRadius: settings.notchStyle === 'notch-attached' ? '0 0 26px 26px' : 'var(--nova-radius-card)',
         backgroundColor: 'var(--nova-surface-glass)',
         boxShadow: 'var(--nova-shadow-card)',
         border: isRgb
           ? '1px solid rgba(96, 165, 250, 0.55)'
           : '1px solid var(--nova-border)',
+        borderTop: settings.notchStyle === 'notch-attached' ? 'none' : undefined,
         backdropFilter: 'blur(30px) saturate(180%) contrast(105%)',
         WebkitBackdropFilter: 'blur(30px) saturate(180%) contrast(105%)',
         display: 'flex',
@@ -190,9 +194,9 @@ export const IslandExpanded: React.FC<IslandExpandedProps> = ({ onCollapse }) =>
       className={isRgb ? 'rgb-border' : ''}
       transition={{
         type: 'spring',
-        stiffness: 420,
-        damping: 32,
-        mass: 0.85,
+        stiffness: 360,
+        damping: 30,
+        mass: 0.75,
       }}
     >
       {/* Specular top light streak for ultra-luxurious glass look */}

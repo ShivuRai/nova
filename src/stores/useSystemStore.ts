@@ -24,12 +24,12 @@ const DEFAULT_METRICS: SystemMetrics = {
 };
 
 const DEFAULT_MEDIA: MediaState = {
-  title: 'Starboy',
-  artist: 'The Weeknd, Daft Punk',
-  album: 'Starboy',
-  isPlaying: true,
-  progressPercent: 42,
-  durationSeconds: 230,
+  title: '',
+  artist: '',
+  album: '',
+  isPlaying: false,
+  progressPercent: 0,
+  durationSeconds: 0,
 };
 
 export const useSystemStore = create<SystemState>((set) => ({

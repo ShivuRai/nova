@@ -117,6 +117,9 @@ export const IslandPill: React.FC<IslandPillProps> = ({
         onClick={onClick}
         whileHover={{ scale: isNotch ? 1.01 : 1.025, y: isNotch ? 0 : -1 }}
         whileTap={{ scale: 0.98 }}
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
         style={{
           width: effectiveWidth,
           height: effectiveHeight,
@@ -141,9 +144,9 @@ export const IslandPill: React.FC<IslandPillProps> = ({
         className={isRgb ? 'rgb-border' : ''}
         transition={{
           type: 'spring',
-          stiffness: 420,
-          damping: 32,
-          mass: 0.8,
+          stiffness: 360,
+          damping: 30,
+          mass: 0.75,
         }}
       >
         {/* Specular top light streak for ultra-realistic glass look */}
