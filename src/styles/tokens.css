@@ -16,6 +16,10 @@
   --nova-violet: #818CF8;
   --nova-cyan: #22D3EE;
 
+  /* Natural Ambient Glow Radiance */
+  --nova-glow-rgb: 56, 189, 248;
+  --nova-glow-color: rgba(56, 189, 248, 0.40);
+
   /* Semantic Feedback */
   --nova-success: #34D399;
   --nova-warning: #FBBF24;
@@ -56,6 +60,9 @@
   --nova-violet: #2DD4BF;
   --nova-cyan: #38BDF8;
 
+  --nova-glow-rgb: 16, 185, 129;
+  --nova-glow-color: rgba(16, 185, 129, 0.45);
+
   --nova-border: rgba(52, 211, 153, 0.35);
   --nova-border-hover: rgba(52, 211, 153, 0.60);
   --nova-shadow-pill: 0 12px 32px -4px rgba(0, 0, 0, 0.7), 0 0 20px rgba(16, 185, 129, 0.35), inset 0 1px 1px 0 rgba(255, 255, 255, 0.30);
@@ -77,6 +84,9 @@
   --nova-blue: #EC4899;
   --nova-violet: #D946EF;
   --nova-cyan: #06B6D4;
+
+  --nova-glow-rgb: 236, 72, 153;
+  --nova-glow-color: rgba(236, 72, 153, 0.45);
 
   --nova-border: rgba(236, 72, 153, 0.40);
   --nova-border-hover: rgba(6, 182, 212, 0.70);
@@ -100,6 +110,9 @@
   --nova-violet: #6366F1;
   --nova-cyan: #38BDF8;
 
+  --nova-glow-rgb: 59, 130, 246;
+  --nova-glow-color: rgba(59, 130, 246, 0.40);
+
   --nova-border: rgba(59, 130, 246, 0.35);
   --nova-border-hover: rgba(59, 130, 246, 0.60);
   --nova-shadow-pill: 0 12px 32px -4px rgba(0, 0, 0, 0.7), 0 0 22px rgba(59, 130, 246, 0.35), inset 0 1px 1px 0 rgba(255, 255, 255, 0.30);
@@ -121,6 +134,9 @@
   --nova-blue: #F59E0B;
   --nova-violet: #F43F5E;
   --nova-cyan: #FB923C;
+
+  --nova-glow-rgb: 245, 158, 11;
+  --nova-glow-color: rgba(245, 158, 11, 0.45);
 
   --nova-border: rgba(245, 158, 11, 0.35);
   --nova-border-hover: rgba(244, 63, 94, 0.60);
@@ -144,6 +160,9 @@
   --nova-violet: #A855F7;
   --nova-cyan: #06B6D4;
 
+  --nova-glow-rgb: 139, 92, 246;
+  --nova-glow-color: rgba(139, 92, 246, 0.45);
+
   --nova-border: rgba(139, 92, 246, 0.40);
   --nova-border-hover: rgba(139, 92, 246, 0.65);
   --nova-shadow-pill: 0 12px 32px -4px rgba(0, 0, 0, 0.7), 0 0 22px rgba(139, 92, 246, 0.38), inset 0 1px 1px 0 rgba(255, 255, 255, 0.30);
@@ -166,6 +185,9 @@
   --nova-violet: #7C3AED;
   --nova-cyan: #0284C7;
 
+  --nova-glow-rgb: 37, 99, 235;
+  --nova-glow-color: rgba(37, 99, 235, 0.30);
+
   --nova-border: rgba(0, 0, 0, 0.12);
   --nova-border-hover: rgba(0, 0, 0, 0.25);
   --nova-shadow-pill: 0 12px 32px -4px rgba(0, 0, 0, 0.16), 0 2px 6px rgba(0, 0, 0, 0.08), inset 0 1px 1px 0 rgba(255, 255, 255, 0.95);
@@ -174,6 +196,8 @@
 
 /* 7. RGB Gaming Mode */
 [data-theme='rgb'] {
+  --nova-glow-rgb: 96, 165, 250;
+  --nova-glow-color: rgba(96, 165, 250, 0.45);
   --nova-border: rgba(96, 165, 250, 0.40);
   --nova-shadow-pill: 0 12px 32px -4px rgba(0, 0, 0, 0.70), 0 0 24px rgba(96, 165, 250, 0.45), inset 0 1px 1px 0 rgba(255, 255, 255, 0.30);
   --nova-shadow-card: 0 24px 64px -8px rgba(0, 0, 0, 0.85), 0 0 36px rgba(167, 139, 250, 0.35), inset 0 1px 1px 0 rgba(255, 255, 255, 0.22);

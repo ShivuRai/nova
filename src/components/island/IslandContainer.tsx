@@ -130,10 +130,10 @@ export const IslandContainer: React.FC = () => {
         alignItems,
         width: '100vw',
         height: '100vh',
-        paddingTop: !isBottom && settings.notchStyle !== 'notch-attached' ? 8 : 0,
-        paddingBottom: isBottom ? 10 : 0,
-        paddingLeft: isLeft ? 14 : 0,
-        paddingRight: isRight ? 14 : 0,
+        paddingTop: !isBottom && settings.notchStyle !== 'notch-attached' ? 18 : 0,
+        paddingBottom: isBottom ? 18 : 0,
+        paddingLeft: isLeft ? 18 : 0,
+        paddingRight: isRight ? 18 : 0,
         pointerEvents: 'none', // pass through outside clicks
       }}
     >

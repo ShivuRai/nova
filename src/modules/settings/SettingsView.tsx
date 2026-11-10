@@ -24,6 +24,13 @@ const POSITIONS: Array<{ id: ScreenPosition; label: string; desc: string }> = [
   { id: 'bottom-right', label: 'Bottom Right', desc: 'Floating widget lower-right' },
 ];
 
+const NOTCH_OPTIONS: Array<{ id: NotchStyle; label: string; desc: string }> = [
+  { id: 'floating-pill', label: 'Floating Pill', desc: 'Curved island floating below screen edge' },
+  { id: 'notch-attached', label: 'Notch Attached', desc: 'MacBook bezel notch with organic inverse curves' },
+  { id: 'squircle-bar', label: 'Squircle Bar', desc: 'Aerodynamic rounded rectangular status bar' },
+  { id: 'compact-badge', label: 'Compact Badge', desc: 'Ultra-minimal slim unobtrusive badge' },
+];
+
 export const SettingsView: React.FC = () => {
   const { settings, updateSettings } = useThemeStore();
   const [autoStart, setAutoStart] = useState<boolean>(false);
@@ -52,7 +59,7 @@ export const SettingsView: React.FC = () => {
             <span>GLASS THEMES & COLOR PALETTES</span>
           </div>
           <button
-            onClick={() => updateSettings({ themeMode: 'minimal', enableRgbBorder: false, enableGlow: true })}
+            onClick={() => updateSettings({ themeMode: 'minimal', enableRgbBorder: false, enableGlow: true, notchStyle: 'floating-pill', rgbPreset: 'rainbow' })}
             style={{
               fontSize: '10px',
               padding: '3px 8px',
@@ -61,6 +68,7 @@ export const SettingsView: React.FC = () => {
               border: '1px solid var(--nova-border)',
               color: 'var(--nova-cyan)',
               fontWeight: 600,
+              cursor: 'pointer',
             }}
             title="Reset theme and colors back to original default"
           >
@@ -178,29 +186,35 @@ export const SettingsView: React.FC = () => {
           <span>CAPSULE GEOMETRY & SIZING</span>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-          {(['floating-pill', 'notch-attached', 'extended-island'] as NotchStyle[]).map((style) => (
-            <button
-              key={style}
-              onClick={() => updateSettings({ notchStyle: style })}
-              style={{
-                padding: '8px 10px',
-                borderRadius: 'var(--nova-radius-input)',
-                backgroundColor:
-                  settings.notchStyle === style ? 'rgba(167, 139, 250, 0.2)' : 'var(--nova-surface)',
-                border:
-                  settings.notchStyle === style
-                    ? '1px solid var(--nova-violet)'
-                    : '1px solid var(--nova-border)',
-                color: settings.notchStyle === style ? 'var(--nova-violet)' : 'var(--nova-text-secondary)',
-                fontSize: '11px',
-                fontWeight: 600,
-                textTransform: 'capitalize',
-              }}
-            >
-              {style.replace('-', ' ')}
-            </button>
-          ))}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+          {NOTCH_OPTIONS.map((opt) => {
+            const isSelected = (settings.notchStyle || 'floating-pill') === opt.id;
+            return (
+              <button
+                key={opt.id}
+                onClick={() => updateSettings({ notchStyle: opt.id })}
+                style={{
+                  padding: '8px 10px',
+                  borderRadius: 'var(--nova-radius-input)',
+                  backgroundColor: isSelected ? 'rgba(167, 139, 250, 0.22)' : 'var(--nova-surface)',
+                  border: isSelected ? '1px solid var(--nova-violet)' : '1px solid var(--nova-border)',
+                  color: isSelected ? 'var(--nova-violet)' : 'var(--nova-text-secondary)',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 3,
+                  alignItems: 'flex-start',
+                  textAlign: 'left',
+                }}
+              >
+                <span>{opt.label}</span>
+                <span style={{ fontSize: '9px', color: 'var(--nova-text-muted)', fontWeight: 400 }}>
+                  {opt.desc}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 4 }}>

@@ -82,9 +82,9 @@ function createWindow() {
       const currentDisplay = screen.getPrimaryDisplay();
       const { width: screenWidth, height: screenHeight } = currentDisplay.workAreaSize;
 
-      // Provide generous breathing room around the window so shadows and rounded corners are never clipped
-      const padX = expanded ? 40 : 48;
-      const padY = expanded ? 40 : 32;
+      // Provide generous breathing room around the window so ambient glow and rounded corners are never clipped
+      const padX = expanded ? 60 : 120;
+      const padY = expanded ? 60 : 80;
       const winW = Math.round(width + padX);
       const winH = Math.round(height + padY);
 
@@ -95,23 +95,23 @@ function createWindow() {
       switch (pos) {
         case 'top-left':
           targetX = margin;
-          targetY = margin;
+          targetY = notchStyle === 'notch-attached' ? 0 : margin;
           break;
         case 'top-right':
           targetX = screenWidth - winW - margin;
-          targetY = margin;
+          targetY = notchStyle === 'notch-attached' ? 0 : margin;
           break;
         case 'bottom-center':
           targetX = Math.round((screenWidth - winW) / 2);
-          targetY = screenHeight - winH - margin;
+          targetY = screenHeight - winH;
           break;
         case 'bottom-left':
           targetX = margin;
-          targetY = screenHeight - winH - margin;
+          targetY = screenHeight - winH;
           break;
         case 'bottom-right':
           targetX = screenWidth - winW - margin;
-          targetY = screenHeight - winH - margin;
+          targetY = screenHeight - winH;
           break;
         case 'top-center':
         default:

@@ -89,3 +89,23 @@ input, textarea, select {
   background-clip: padding-box, border-box !important;
   animation: rgb-flow 8s linear infinite;
 }
+
+[data-rgb-preset='cyberpunk'] .rgb-border {
+  background-image: linear-gradient(var(--nova-pill-bg), var(--nova-pill-bg)),
+                    linear-gradient(90deg, #F43F5E, #D946EF, #06B6D4, #F43F5E) !important;
+}
+
+[data-rgb-preset='sunset'] .rgb-border {
+  background-image: linear-gradient(var(--nova-pill-bg), var(--nova-pill-bg)),
+                    linear-gradient(90deg, #F59E0B, #F43F5E, #9333EA, #F59E0B) !important;
+}
+
+[data-rgb-preset='oceanic'] .rgb-border {
+  background-image: linear-gradient(var(--nova-pill-bg), var(--nova-pill-bg)),
+                    linear-gradient(90deg, #06B6D4, #10B981, #3B82F6, #06B6D4) !important;
+}
+
+[data-rgb-preset='aurora'] .rgb-border {
+  background-image: linear-gradient(var(--nova-pill-bg), var(--nova-pill-bg)),
+                    linear-gradient(90deg, #10B981, #2DD4BF, #8B5CF6, #10B981) !important;
+}

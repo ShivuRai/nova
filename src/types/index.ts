@@ -99,7 +99,7 @@ export type ThemeMode =
   | 'sunset'
   | 'vivid';
 
-export type NotchStyle = 'floating-pill' | 'notch-attached' | 'extended-island';
+export type NotchStyle = 'floating-pill' | 'notch-attached' | 'squircle-bar' | 'compact-badge';
 
 export type ScreenPosition =
   | 'top-center'
@@ -109,12 +109,15 @@ export type ScreenPosition =
   | 'bottom-left'
   | 'bottom-right';
 
+export type RgbPreset = 'rainbow' | 'cyberpunk' | 'sunset' | 'oceanic' | 'aurora';
+
 export interface AppearanceSettings {
   themeMode: ThemeMode;
   notchStyle: NotchStyle;
   screenPosition: ScreenPosition;
   enableRgbBorder: boolean;
   enableGlow: boolean;
+  rgbPreset?: RgbPreset;
   pillWidth: number;
   pillHeight: number;
   expandedWidth: number;
