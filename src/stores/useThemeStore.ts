@@ -17,6 +17,8 @@ const DEFAULT_SETTINGS: AppearanceSettings = {
   edgeLightingColor: 'cyan-pulse',
   edgeLightingSpeed: 'normal',
   pillDisplayContent: 'smart-auto',
+  topOffset: 0,
+  sideMargin: 16,
   pillWidth: 230,
   pillHeight: 38,
   expandedWidth: 640,

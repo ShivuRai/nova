@@ -154,6 +154,8 @@ export interface AppearanceSettings {
   edgeLightingColor?: EdgeLightingColor;
   edgeLightingSpeed?: EdgeLightingSpeed;
   pillDisplayContent?: PillDisplayContent;
+  topOffset?: number;
+  sideMargin?: number;
   pillWidth: number;
   pillHeight: number;
   expandedWidth: number;

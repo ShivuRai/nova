@@ -16,6 +16,7 @@ export const IslandContainer: React.FC = () => {
     isInteracting,
     setActiveModule,
     liveActivity,
+    activeModule,
   } = useIslandStore();
   const { media, updateMedia } = useSystemStore();
   const { settings } = useThemeStore();
@@ -23,6 +24,35 @@ export const IslandContainer: React.FC = () => {
   const hoverTimerRef = useRef<number | null>(null);
   const collapseTimerRef = useRef<number | null>(null);
   const windowResizeTimerRef = useRef<number | null>(null);
+
+  const MODULE_HEIGHTS: Record<string, number> = {
+    home: 295,
+    timers: 330,
+    pet: 330,
+    clock: 330,
+    drop: 345,
+    'screen-time': 345,
+    notes: 350,
+    clipboard: 345,
+    shelf: 345,
+    system: 360,
+    launcher: 360,
+    units: 360,
+    converter: 355,
+    calendar: 360,
+    message: 360,
+    'quick-settings': 350,
+    'file-tools': 350,
+    links: 350,
+    analytics: 355,
+    revenue: 355,
+    weather: 385,
+    rgb: 385,
+    settings: 410,
+    'ai-coding': 415,
+  };
+
+  const targetExpandedHeight = MODULE_HEIGHTS[activeModule] || 360;
 
   // Sync window size & position when expanded state or position changes
   useEffect(() => {
@@ -37,9 +67,11 @@ export const IslandContainer: React.FC = () => {
       resizeDesktopWindow(
         true,
         settings.expandedWidth,
-        settings.expandedHeight,
+        targetExpandedHeight,
         settings.screenPosition,
-        settings.notchStyle
+        settings.notchStyle,
+        settings.topOffset ?? 0,
+        settings.sideMargin ?? 16
       );
     } else {
       // Delay window shrink until after the spring morph animation completes (350ms)
@@ -49,7 +81,9 @@ export const IslandContainer: React.FC = () => {
           settings.pillWidth,
           settings.pillHeight,
           settings.screenPosition,
-          settings.notchStyle
+          settings.notchStyle,
+          settings.topOffset ?? 0,
+          settings.sideMargin ?? 16
         );
       }, 350);
     }
@@ -61,12 +95,15 @@ export const IslandContainer: React.FC = () => {
     };
   }, [
     isExpanded,
+    targetExpandedHeight,
+    activeModule,
     settings.expandedWidth,
-    settings.expandedHeight,
     settings.pillWidth,
     settings.pillHeight,
     settings.screenPosition,
     settings.notchStyle,
+    settings.topOffset,
+    settings.sideMargin,
   ]);
 
   // Global hotkey & IPC listeners from Electron
@@ -174,14 +211,14 @@ export const IslandContainer: React.FC = () => {
   const effectivePillHeight = isCompact ? 32 : settings.pillHeight;
 
   const currentWidth = isExpanded ? settings.expandedWidth : effectivePillWidth;
-  const currentHeight = isExpanded ? settings.expandedHeight : effectivePillHeight;
+  const currentHeight = isExpanded ? targetExpandedHeight : effectivePillHeight;
 
   // Use explicit matching pixel strings so Framer Motion interpolates cleanly without getting stuck in an oval
   let currentRadius = '20px';
   if (isChamfered) {
     currentRadius = isExpanded ? '24px' : '0 0 16px 16px';
   } else if (isNotch) {
-    currentRadius = isExpanded ? '0 0 24px 24px' : '0 0 20px 20px';
+    currentRadius = isExpanded ? '24px' : '0 0 20px 20px';
   } else if (isSquircle) {
     currentRadius = isExpanded ? '24px' : '14px';
   } else if (isCompact) {
@@ -219,6 +256,9 @@ export const IslandContainer: React.FC = () => {
     'chromatic': 'linear-gradient(90deg, #60A5FA, #A78BFA, #F43F5E, #38BDF8, #34D399, #60A5FA)',
   };
 
+  const topGap = typeof settings.topOffset === 'number' ? settings.topOffset : (isNotch ? 0 : 8);
+  const sideGap = typeof settings.sideMargin === 'number' ? settings.sideMargin : 16;
+
   const justifyContent = isLeft ? 'flex-start' : isRight ? 'flex-end' : 'center';
   const alignItems = isBottom ? 'flex-end' : 'flex-start';
 
@@ -230,10 +270,10 @@ export const IslandContainer: React.FC = () => {
         alignItems,
         width: '100vw',
         height: '100vh',
-        paddingTop: !isBottom && settings.notchStyle !== 'notch-attached' ? 18 : 0,
-        paddingBottom: isBottom ? 18 : 0,
-        paddingLeft: isLeft ? 18 : 0,
-        paddingRight: isRight ? 18 : 0,
+        paddingTop: !isBottom ? topGap : 0,
+        paddingBottom: isBottom ? topGap : 0,
+        paddingLeft: isLeft ? sideGap : 0,
+        paddingRight: isRight ? sideGap : 0,
         pointerEvents: 'none', // pass through clicks on transparent canvas
       }}
     >
@@ -279,7 +319,7 @@ export const IslandContainer: React.FC = () => {
         )}
 
         {/* Left Notch Bezel Ear (Curved) */}
-        {settings.notchStyle === 'notch-attached' && !isBottom && (
+        {settings.notchStyle === 'notch-attached' && !isBottom && topGap === 0 && (
           <svg
             width="16"
             height="16"
@@ -301,7 +341,7 @@ export const IslandContainer: React.FC = () => {
         )}
 
         {/* Right Notch Bezel Ear (Curved) */}
-        {settings.notchStyle === 'notch-attached' && !isBottom && (
+        {settings.notchStyle === 'notch-attached' && !isBottom && topGap === 0 && (
           <svg
             width="16"
             height="16"
@@ -323,7 +363,7 @@ export const IslandContainer: React.FC = () => {
         )}
 
         {/* Chamfered Notch Ears */}
-        {isChamfered && !isBottom && (
+        {isChamfered && !isBottom && topGap === 0 && (
           <>
             <svg
               width="16"

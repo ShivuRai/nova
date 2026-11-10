@@ -163,4 +163,18 @@ test('Verification 8: Extended 8 Notch Styles and Minimalistic Edge Lightings ch
   assert.strictEqual(typesContent.includes('continuous'), true);
   assert.strictEqual(typesContent.includes('center-outward'), true);
   assert.strictEqual(typesContent.includes('PillDisplayContent'), true);
+  assert.strictEqual(typesContent.includes('topOffset'), true);
+  assert.strictEqual(typesContent.includes('sideMargin'), true);
+});
+
+test('Verification 9: Real Screen Time script and NOVA Drop checks', () => {
+  const stScript = path.join(projectRoot, 'scripts', 'get-screen-time.ps1');
+  assert.strictEqual(fs.existsSync(stScript), true, 'scripts/get-screen-time.ps1 must exist');
+
+  const electronPath = path.join(projectRoot, 'electron.cjs');
+  const electronContent = fs.readFileSync(electronPath, 'utf8');
+  assert.strictEqual(electronContent.includes('get-screen-time'), true);
+  assert.strictEqual(electronContent.includes('NOVA Drop'), true);
+  assert.strictEqual(electronContent.includes('drop-file-received'), true);
+  assert.strictEqual(electronContent.includes('open-drop-folder'), true);
 });

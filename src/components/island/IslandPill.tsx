@@ -67,8 +67,8 @@ export const IslandPillContent: React.FC<{ isCompact?: boolean }> = ({ isCompact
             {liveActivity.title}
           </span>
         </div>
-      ) : pillContentMode === 'media-priority' ||
-        (pillContentMode === 'smart-auto' && (media.isPlaying || media.title)) ? (
+      ) : (pillContentMode === 'media-priority' && media.title) ||
+        (pillContentMode === 'smart-auto' && media.isPlaying) ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}>
           <div
             style={{

@@ -191,6 +191,194 @@ export const SettingsView: React.FC = () => {
         </div>
       </div>
 
+      {/* Real-Time Edge & Corner Spacing Adjuster */}
+      <div
+        style={{
+          padding: '12px 14px',
+          backgroundColor: 'var(--nova-surface)',
+          border: '1px solid var(--nova-border)',
+          borderRadius: 'var(--nova-radius-widget)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 12,
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--nova-text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Move size={12} style={{ color: 'var(--nova-cyan)' }} />
+            <span>EDGE & CORNER SPACING ADJUSTER</span>
+          </div>
+          <span style={{ fontSize: '9px', color: 'var(--nova-cyan)', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>
+            Real-Time Live Positioning
+          </span>
+        </div>
+
+        {/* Top Edge Offset / Gap */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10.5px' }}>
+            <span style={{ color: 'var(--nova-text-secondary)', fontWeight: 500 }}>
+              Top Edge Gap / Notch Spacing
+            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <button
+                onClick={() => updateSettings({ topOffset: Math.max(0, (settings.topOffset ?? 0) - 2) })}
+                style={{
+                  padding: '1px 6px',
+                  borderRadius: 3,
+                  backgroundColor: 'rgba(255,255,255,0.08)',
+                  border: '1px solid var(--nova-border)',
+                  color: 'var(--nova-text-primary)',
+                  cursor: 'pointer',
+                  fontSize: '11px',
+                }}
+              >
+                -
+              </button>
+              <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--nova-cyan)', fontWeight: 600 }}>
+                {settings.topOffset ?? 0} px
+              </span>
+              <button
+                onClick={() => updateSettings({ topOffset: Math.min(48, (settings.topOffset ?? 0) + 2) })}
+                style={{
+                  padding: '1px 6px',
+                  borderRadius: 3,
+                  backgroundColor: 'rgba(255,255,255,0.08)',
+                  border: '1px solid var(--nova-border)',
+                  color: 'var(--nova-text-primary)',
+                  cursor: 'pointer',
+                  fontSize: '11px',
+                }}
+              >
+                +
+              </button>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: 4 }}>
+            {[
+              { label: '0px Flush Notch', val: 0 },
+              { label: '8px Floating', val: 8 },
+              { label: '16px Relaxed', val: 16 },
+              { label: '24px Deep', val: 24 },
+            ].map((p) => {
+              const active = (settings.topOffset ?? 0) === p.val;
+              return (
+                <button
+                  key={p.val}
+                  onClick={() => updateSettings({ topOffset: p.val })}
+                  style={{
+                    flex: 1,
+                    padding: '4px 6px',
+                    borderRadius: 4,
+                    fontSize: '9.5px',
+                    fontWeight: 600,
+                    backgroundColor: active ? 'var(--nova-cyan)' : 'rgba(255,255,255,0.04)',
+                    color: active ? '#0B0D12' : 'var(--nova-text-secondary)',
+                    border: active ? '1px solid var(--nova-cyan)' : '1px solid var(--nova-border)',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  {p.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <input
+            type="range"
+            min={0}
+            max={48}
+            step={1}
+            value={settings.topOffset ?? 0}
+            onChange={(e) => updateSettings({ topOffset: Number(e.target.value) })}
+            style={{ width: '100%', accentColor: 'var(--nova-cyan)', marginTop: 2 }}
+          />
+        </div>
+
+        {/* Side Corner Margin */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 8 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10.5px' }}>
+            <span style={{ color: 'var(--nova-text-secondary)', fontWeight: 500 }}>
+              Corner Side Margin (Left / Right)
+            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <button
+                onClick={() => updateSettings({ sideMargin: Math.max(8, (settings.sideMargin ?? 16) - 2) })}
+                style={{
+                  padding: '1px 6px',
+                  borderRadius: 3,
+                  backgroundColor: 'rgba(255,255,255,0.08)',
+                  border: '1px solid var(--nova-border)',
+                  color: 'var(--nova-text-primary)',
+                  cursor: 'pointer',
+                  fontSize: '11px',
+                }}
+              >
+                -
+              </button>
+              <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--nova-blue)', fontWeight: 600 }}>
+                {settings.sideMargin ?? 16} px
+              </span>
+              <button
+                onClick={() => updateSettings({ sideMargin: Math.min(64, (settings.sideMargin ?? 16) + 2) })}
+                style={{
+                  padding: '1px 6px',
+                  borderRadius: 3,
+                  backgroundColor: 'rgba(255,255,255,0.08)',
+                  border: '1px solid var(--nova-border)',
+                  color: 'var(--nova-text-primary)',
+                  cursor: 'pointer',
+                  fontSize: '11px',
+                }}
+              >
+                +
+              </button>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: 4 }}>
+            {[
+              { label: '12px Tight', val: 12 },
+              { label: '20px Balanced', val: 20 },
+              { label: '32px Wide', val: 32 },
+            ].map((p) => {
+              const active = (settings.sideMargin ?? 16) === p.val;
+              return (
+                <button
+                  key={p.val}
+                  onClick={() => updateSettings({ sideMargin: p.val })}
+                  style={{
+                    flex: 1,
+                    padding: '4px 6px',
+                    borderRadius: 4,
+                    fontSize: '9.5px',
+                    fontWeight: 600,
+                    backgroundColor: active ? 'var(--nova-blue)' : 'rgba(255,255,255,0.04)',
+                    color: active ? '#ffffff' : 'var(--nova-text-secondary)',
+                    border: active ? '1px solid var(--nova-blue)' : '1px solid var(--nova-border)',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  {p.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <input
+            type="range"
+            min={8}
+            max={64}
+            step={1}
+            value={settings.sideMargin ?? 16}
+            onChange={(e) => updateSettings({ sideMargin: Number(e.target.value) })}
+            style={{ width: '100%', accentColor: 'var(--nova-blue)', marginTop: 2 }}
+          />
+        </div>
+      </div>
+
       {/* Section 3: Capsule Geometry & Dimensions */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--nova-text-secondary)', display: 'flex', alignItems: 'center', gap: 6 }}>

@@ -13,13 +13,23 @@ export const resizeDesktopWindow = async (
   width: number,
   height: number,
   position: string = 'top-center',
-  notchStyle: string = 'floating-pill'
+  notchStyle: string = 'floating-pill',
+  topOffset: number = 0,
+  sideMargin: number = 16
 ): Promise<void> => {
   try {
     if (isElectron()) {
       const { ipcRenderer } = (window as any).require('electron');
       if (ipcRenderer) {
-        ipcRenderer.send('set-island-state', { expanded, width, height, position, notchStyle });
+        ipcRenderer.send('set-island-state', {
+          expanded,
+          width,
+          height,
+          position,
+          notchStyle,
+          topOffset,
+          sideMargin,
+        });
         return;
       }
     }
