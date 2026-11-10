@@ -107,7 +107,13 @@ export type NotchStyle =
   | 'chamfered-notch'
   | 'dynamic-wing'
   | 'teardrop-capsule'
-  | 'hex-pill';
+  | 'hex-pill'
+  | 'stealth-blade'
+  | 'cyber-diamond'
+  | 'liquid-droplet'
+  | 'split-capsule';
+
+export type PillBrandBadge = 'robot' | 'cat' | 'quantum' | 'pixel-alien' | 'text';
 
 export type ScreenPosition =
   | 'top-center'
@@ -155,6 +161,7 @@ export interface AppearanceSettings {
   edgeLightingColor?: EdgeLightingColor;
   edgeLightingSpeed?: EdgeLightingSpeed;
   pillDisplayContent?: PillDisplayContent;
+  pillBrandBadge?: PillBrandBadge;
   topOffset?: number;
   sideMargin?: number;
   customAccentColor?: string;

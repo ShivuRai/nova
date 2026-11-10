@@ -204,6 +204,10 @@ export const IslandContainer: React.FC = () => {
   const isDynamicWing = settings.notchStyle === 'dynamic-wing';
   const isTeardrop = settings.notchStyle === 'teardrop-capsule';
   const isHexPill = settings.notchStyle === 'hex-pill';
+  const isBlade = settings.notchStyle === 'stealth-blade';
+  const isDiamond = settings.notchStyle === 'cyber-diamond';
+  const isDroplet = settings.notchStyle === 'liquid-droplet';
+  const isSplit = settings.notchStyle === 'split-capsule';
   const isRgb = settings.enableRgbBorder || settings.themeMode === 'rgb';
 
   const effectivePillWidth = isCompact
@@ -232,6 +236,14 @@ export const IslandContainer: React.FC = () => {
     currentRadius = isExpanded ? '24px' : '22px 8px 22px 18px';
   } else if (isHexPill) {
     currentRadius = isExpanded ? '24px' : '12px';
+  } else if (isBlade) {
+    currentRadius = isExpanded ? '24px' : '18px 4px 18px 4px';
+  } else if (isDiamond) {
+    currentRadius = isExpanded ? '24px' : '8px 24px 8px 24px';
+  } else if (isDroplet) {
+    currentRadius = isExpanded ? '24px' : '24px 24px 24px 8px';
+  } else if (isSplit) {
+    currentRadius = isExpanded ? '24px' : '20px';
   } else {
     // Floating Pill: 20px when collapsed (perfect pill), 24px when expanded (crisp modern card)
     currentRadius = isExpanded ? '24px' : '20px';
@@ -248,6 +260,14 @@ export const IslandContainer: React.FC = () => {
     glowRadius = isExpanded ? '28px' : '24px 12px 24px 20px';
   } else if (isHexPill) {
     glowRadius = isExpanded ? '28px' : '16px';
+  } else if (isBlade) {
+    glowRadius = isExpanded ? '28px' : '20px 6px 20px 6px';
+  } else if (isDiamond) {
+    glowRadius = isExpanded ? '28px' : '10px 28px 10px 28px';
+  } else if (isDroplet) {
+    glowRadius = isExpanded ? '28px' : '28px 28px 28px 10px';
+  } else if (isSplit) {
+    glowRadius = isExpanded ? '28px' : '24px';
   } else {
     glowRadius = isExpanded ? '28px' : '24px';
   }

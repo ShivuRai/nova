@@ -27,6 +27,7 @@ import {
   DollarSign,
   Smile,
   Sparkles,
+  Palette,
   Settings,
   Pin,
   X,
@@ -89,7 +90,7 @@ export const IslandExpandedContent: React.FC<IslandExpandedProps> = ({ onCollaps
     analytics: TrendingUp,
     revenue: DollarSign,
     pet: Smile,
-    rgb: Sparkles,
+    rgb: Palette,
     settings: Settings,
   };
 

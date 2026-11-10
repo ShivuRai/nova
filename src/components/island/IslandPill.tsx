@@ -6,6 +6,160 @@ import { useThemeStore } from '../../stores/useThemeStore';
 import { useTimerStore } from '../../stores/useTimerStore';
 import { Music, Activity, Battery, Timer, Cpu, QrCode, ChevronDown, Wifi } from 'lucide-react';
 
+export const IslandBrandMascot: React.FC<{ isCompact?: boolean; type?: string }> = ({ isCompact, type = 'robot' }) => {
+  const [blink, setBlink] = useState(false);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setBlink(true);
+      setTimeout(() => setBlink(false), 240);
+    }, 3600);
+    return () => clearInterval(timer);
+  }, []);
+
+  if (type === 'cat') {
+    return (
+      <motion.div
+        animate={{ y: [0, -1.2, 0] }}
+        transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+      >
+        <svg width={isCompact ? 16 : 18} height={isCompact ? 14 : 16} viewBox="0 0 20 18" fill="none">
+          {/* Ears */}
+          <polygon points="3,7 1,2 7,5" fill="#F472B6" />
+          <polygon points="17,7 19,2 13,5" fill="#F472B6" />
+          {/* Head */}
+          <circle cx="10" cy="10" r="7" fill="#FDF2F8" stroke="#F472B6" strokeWidth="1.2" />
+          {/* Cheeks */}
+          <circle cx="6" cy="11.5" r="1.2" fill="#FDA4AF" />
+          <circle cx="14" cy="11.5" r="1.2" fill="#FDA4AF" />
+          {/* Eyes */}
+          {blink ? (
+            <>
+              <line x1="6.5" y1="9.5" x2="8.5" y2="9.5" stroke="#831843" strokeWidth="1" strokeLinecap="round" />
+              <line x1="11.5" y1="9.5" x2="13.5" y2="9.5" stroke="#831843" strokeWidth="1" strokeLinecap="round" />
+            </>
+          ) : (
+            <>
+              <circle cx="7.5" cy="9.5" r="1.2" fill="#831843" />
+              <circle cx="12.5" cy="9.5" r="1.2" fill="#831843" />
+            </>
+          )}
+          {/* Nose */}
+          <circle cx="10" cy="11" r="0.8" fill="#F43F5E" />
+        </svg>
+        <span style={{ fontSize: isCompact ? '10px' : '11px', fontWeight: 700, color: '#FDA4AF' }}>MOCHI</span>
+      </motion.div>
+    );
+  }
+
+  if (type === 'quantum') {
+    return (
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 6, repeat: Infinity, ease: 'linear' }}
+          style={{ width: 14, height: 14, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        >
+          <div style={{ width: 14, height: 14, borderRadius: '50%', border: '1.5px dashed var(--nova-cyan)' }} />
+          <div style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: 'var(--nova-blue)', position: 'absolute' }} />
+        </motion.div>
+        <span style={{ fontSize: isCompact ? '10px' : '11px', fontWeight: 700, letterSpacing: '0.04em', color: 'var(--nova-cyan)' }}>CORE</span>
+      </div>
+    );
+  }
+
+  if (type === 'pixel-alien') {
+    return (
+      <motion.div
+        animate={{ y: [0, -1.5, 0] }}
+        transition={{ duration: 1.6, repeat: Infinity }}
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+      >
+        <svg width={isCompact ? 15 : 17} height={isCompact ? 13 : 15} viewBox="0 0 16 14" fill="none">
+          <rect x="2" y="2" width="2" height="2" fill="var(--nova-warning)" />
+          <rect x="12" y="2" width="2" height="2" fill="var(--nova-warning)" />
+          <rect x="4" y="4" width="8" height="6" fill="var(--nova-warning)" />
+          <rect x="2" y="6" width="12" height="4" fill="var(--nova-warning)" />
+          {blink ? null : (
+            <>
+              <rect x="5" y="6" width="2" height="2" fill="#000" />
+              <rect x="9" y="6" width="2" height="2" fill="#000" />
+            </>
+          )}
+        </svg>
+        <span style={{ fontSize: isCompact ? '10px' : '11px', fontWeight: 700, color: 'var(--nova-warning)' }}>BYTE</span>
+      </motion.div>
+    );
+  }
+
+  if (type === 'text') {
+    return (
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+        <motion.span
+          animate={{ scale: [1, 1.3, 1], opacity: [0.7, 1, 0.7] }}
+          transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
+          style={{
+            width: 6,
+            height: 6,
+            borderRadius: '50%',
+            backgroundColor: 'var(--nova-blue)',
+            boxShadow: '0 0 8px var(--nova-blue)',
+            display: 'inline-block',
+          }}
+        />
+        <span style={{ fontSize: isCompact ? '10px' : '11px', fontWeight: 700, letterSpacing: '0.06em', color: 'var(--nova-text-primary)' }}>
+          NOVA
+        </span>
+      </div>
+    );
+  }
+
+  // Default: Cute Astro Robot
+  return (
+    <motion.div
+      animate={{ y: [0, -1.8, 0] }}
+      transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+      style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
+    >
+      <svg width={isCompact ? 16 : 19} height={isCompact ? 14 : 17} viewBox="0 0 22 20" fill="none">
+        {/* Antenna */}
+        <line x1="11" y1="4.5" x2="11" y2="1.5" stroke="var(--nova-blue)" strokeWidth="1.6" strokeLinecap="round" />
+        <circle cx="11" cy="1.5" r="1.3" fill="var(--nova-cyan)" />
+        {/* Head */}
+        <rect x="3" y="4.5" width="16" height="13" rx="4" fill="#0B132B" stroke="var(--nova-blue)" strokeWidth="1.3" />
+        {/* Visor Screen */}
+        <rect x="5.5" y="7" width="11" height="8" rx="2" fill="#1C2541" />
+        {/* Glowing Eyes */}
+        {blink ? (
+          <>
+            <line x1="7" y1="11" x2="9.5" y2="11" stroke="var(--nova-cyan)" strokeWidth="1.4" strokeLinecap="round" />
+            <line x1="12.5" y1="11" x2="15" y2="11" stroke="var(--nova-cyan)" strokeWidth="1.4" strokeLinecap="round" />
+          </>
+        ) : (
+          <>
+            <circle cx="8.5" cy="11" r="1.4" fill="var(--nova-cyan)" />
+            <circle cx="13.5" cy="11" r="1.4" fill="var(--nova-cyan)" />
+          </>
+        )}
+        {/* Ear Bolts */}
+        <rect x="1" y="8.5" width="1.8" height="5" rx="0.9" fill="var(--nova-cyan)" />
+        <rect x="19.2" y="8.5" width="1.8" height="5" rx="0.9" fill="var(--nova-cyan)" />
+      </svg>
+      <span
+        style={{
+          fontSize: isCompact ? '10px' : '11px',
+          fontWeight: 700,
+          letterSpacing: '0.04em',
+          color: 'var(--nova-cyan)',
+        }}
+      >
+        ASTRO
+      </span>
+    </motion.div>
+  );
+};
+
 export const IslandPillContent: React.FC<{ isCompact?: boolean }> = ({ isCompact = false }) => {
   const { liveActivity } = useIslandStore();
   const { media, metrics } = useSystemStore();
@@ -228,9 +382,7 @@ export const IslandPillContent: React.FC<{ isCompact?: boolean }> = ({ isCompact
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--nova-text-primary)' }}>
-              NOVA
-            </span>
+            <IslandBrandMascot isCompact={isCompact} type={settings.pillBrandBadge || 'robot'} />
             <span
               style={{
                 fontSize: '11px',
@@ -264,30 +416,9 @@ export const IslandPillContent: React.FC<{ isCompact?: boolean }> = ({ isCompact
             width: '100%',
           }}
         >
-          {/* Left Brand Badge with Breathing Light Dot */}
+          {/* Left Brand Badge with Animated Mascot or Logo */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <motion.span
-              animate={{ scale: [1, 1.3, 1], opacity: [0.7, 1, 0.7] }}
-              transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
-              style={{
-                width: 7,
-                height: 7,
-                borderRadius: '50%',
-                backgroundColor: 'var(--nova-blue)',
-                boxShadow: '0 0 8px var(--nova-blue)',
-                display: 'inline-block',
-              }}
-            />
-            <span
-              style={{
-                fontSize: isCompact ? '10px' : '11px',
-                fontWeight: 700,
-                letterSpacing: '0.06em',
-                color: 'var(--nova-text-primary)',
-              }}
-            >
-              NOVA
-            </span>
+            <IslandBrandMascot isCompact={isCompact} type={settings.pillBrandBadge || 'robot'} />
             <span
               style={{
                 fontSize: isCompact ? '10px' : '11px',

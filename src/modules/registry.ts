@@ -232,13 +232,13 @@ export const MODULE_REGISTRY: NovaModule[] = [
   },
   {
     id: 'rgb',
-    name: 'RGB Engine',
-    category: 'specialist',
-    iconName: 'Sparkles',
+    name: 'Customization Studio',
+    category: 'desktop',
+    iconName: 'Palette',
     version: '1.0.0',
     enabledByDefault: true,
     permissions: [],
-    description: 'Customizable animated RGB border gradients and music-synced glow.',
+    description: 'Themes, glassmorphism, 12 notch shapes, edge lighting, and animated mascots.',
   },
   {
     id: 'settings',

@@ -17,6 +17,7 @@ const DEFAULT_SETTINGS: AppearanceSettings = {
   edgeLightingColor: 'cyan-pulse',
   edgeLightingSpeed: 'normal',
   pillDisplayContent: 'smart-auto',
+  pillBrandBadge: 'robot',
   topOffset: 0,
   sideMargin: 16,
   customAccentColor: '#38BDF8',
@@ -42,6 +43,10 @@ const VALID_NOTCH_STYLES: NotchStyle[] = [
   'dynamic-wing',
   'teardrop-capsule',
   'hex-pill',
+  'stealth-blade',
+  'cyber-diamond',
+  'liquid-droplet',
+  'split-capsule',
 ];
 
 const applyCustomStyles = (settings: AppearanceSettings) => {

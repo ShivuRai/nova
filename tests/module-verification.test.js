@@ -261,3 +261,43 @@ test('Verification 11: Real Quick Actions, File Shelf, File Tools, Launcher, Ana
   assert.strictEqual(petContent.includes('handleFeed'), true);
   assert.strictEqual(petContent.includes('handlePlay'), true);
 });
+
+test('Verification 12: Customization Studio, 12 Notch Shapes, and Animated Mascot Brand Badges', () => {
+  const typesPath = path.join(projectRoot, 'src', 'types', 'index.ts');
+  const typesContent = fs.readFileSync(typesPath, 'utf8');
+
+  // Verify new 4 notch shapes (12 total)
+  assert.strictEqual(typesContent.includes('stealth-blade'), true);
+  assert.strictEqual(typesContent.includes('cyber-diamond'), true);
+  assert.strictEqual(typesContent.includes('liquid-droplet'), true);
+  assert.strictEqual(typesContent.includes('split-capsule'), true);
+
+  // Verify PillBrandBadge options
+  assert.strictEqual(typesContent.includes('PillBrandBadge'), true);
+  assert.strictEqual(typesContent.includes("'robot'"), true);
+  assert.strictEqual(typesContent.includes("'cat'"), true);
+  assert.strictEqual(typesContent.includes("'quantum'"), true);
+
+  // Verify IslandBrandMascot in IslandPill.tsx
+  const pillPath = path.join(projectRoot, 'src', 'components', 'island', 'IslandPill.tsx');
+  const pillContent = fs.readFileSync(pillPath, 'utf8');
+  assert.strictEqual(pillContent.includes('IslandBrandMascot'), true);
+  assert.strictEqual(pillContent.includes('ASTRO'), true);
+  assert.strictEqual(pillContent.includes('MOCHI'), true);
+
+  // Verify Customization Studio in registry and RgbView.tsx
+  const regPath = path.join(projectRoot, 'src', 'modules', 'registry.ts');
+  const regContent = fs.readFileSync(regPath, 'utf8');
+  assert.strictEqual(regContent.includes('Customization Studio'), true);
+
+  const studioPath = path.join(projectRoot, 'src', 'modules', 'rgb', 'RgbView.tsx');
+  const studioContent = fs.readFileSync(studioPath, 'utf8');
+  assert.strictEqual(studioContent.includes('CUSTOMIZATION STUDIO'), true);
+  assert.strictEqual(studioContent.includes('GLASSMORPHISM & CUSTOM COLORS'), true);
+  assert.strictEqual(studioContent.includes('Astro Robot'), true);
+
+  // Verify Streamlined Settings
+  const settingsPath = path.join(projectRoot, 'src', 'modules', 'settings', 'SettingsView.tsx');
+  const settingsContent = fs.readFileSync(settingsPath, 'utf8');
+  assert.strictEqual(settingsContent.includes('Open Customization Studio'), true);
+});
