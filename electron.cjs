@@ -88,6 +88,30 @@ function createWindow() {
     }
   });
 
+  // Windows Auto-Start / Login Item IPC
+  ipcMain.handle('get-autostart-status', () => {
+    try {
+      const settings = app.getLoginItemSettings();
+      return settings.openAtLogin;
+    } catch (e) {
+      return false;
+    }
+  });
+
+  ipcMain.handle('set-autostart-status', (event, enable) => {
+    try {
+      app.setLoginItemSettings({
+        openAtLogin: enable,
+        path: process.execPath,
+        args: ['--autostart'],
+      });
+      return app.getLoginItemSettings().openAtLogin;
+    } catch (e) {
+      console.error('[NOVA] Error updating autostart:', e);
+      return false;
+    }
+  });
+
   // Global hotkey: Alt+Space toggles window
   try {
     globalShortcut.register('Alt+Space', () => {

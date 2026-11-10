@@ -27,6 +27,13 @@ test('Verification 1: Project structure and critical files exist', () => {
     'docs/DATABASE.md',
     'docs/DESIGN_SYSTEM.md',
     'docs/MODULES.md',
+    'SECURITY_AND_VERIFICATION.md',
+    'NOVA.exe',
+    'NOVA-Certificate.cer',
+    'Install-Certificate.bat',
+    'Enable-AutoStart.bat',
+    'Disable-AutoStart.bat',
+    'Verify-Signatures.bat',
     'docs/TESTING.md',
     'docs/RELEASE.md',
     'docs/IMPLEMENTATION_STATUS.md',
@@ -99,6 +106,23 @@ test('Verification 4: Hashes checksum determinism check', () => {
 });
 
 test('Verification 5: Desktop Shortcut check', () => {
-  const desktopShortcut = path.join(process.env.USERPROFILE || 'C:\\Users\\shivu', 'Desktop', 'NOVA.lnk');
-  assert.strictEqual(fs.existsSync(desktopShortcut), true, 'Desktop shortcut NOVA.lnk must exist on user Desktop');
+  const userProfile = process.env.USERPROFILE || 'C:\\Users\\shivu';
+  const desktopShortcut = path.join(userProfile, 'Desktop', 'NOVA.lnk');
+  const onedriveShortcut = path.join(userProfile, 'OneDrive', 'Desktop', 'NOVA.lnk');
+  const exists = fs.existsSync(desktopShortcut) || fs.existsSync(onedriveShortcut);
+  assert.strictEqual(exists, true, 'Desktop shortcut NOVA.lnk must exist on user Desktop');
+});
+
+test('Verification 6: Desktop Executable and Security Manifest check', () => {
+  const userProfile = process.env.USERPROFILE || 'C:\\Users\\shivu';
+  const desktopExe = path.join(userProfile, 'Desktop', 'NOVA.exe');
+  const onedriveExe = path.join(userProfile, 'OneDrive', 'Desktop', 'NOVA.exe');
+  const exeExists = fs.existsSync(desktopExe) || fs.existsSync(onedriveExe);
+  assert.strictEqual(exeExists, true, 'Desktop executable NOVA.exe must exist on user Desktop');
+
+  const certPath = path.join(projectRoot, 'NOVA-Certificate.cer');
+  assert.strictEqual(fs.existsSync(certPath), true, 'NOVA-Certificate.cer must exist');
+
+  const secDoc = path.join(projectRoot, 'SECURITY_AND_VERIFICATION.md');
+  assert.strictEqual(fs.existsSync(secDoc), true, 'SECURITY_AND_VERIFICATION.md must exist');
 });

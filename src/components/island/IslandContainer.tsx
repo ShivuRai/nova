@@ -2,26 +2,15 @@ import React, { useRef, useEffect } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { useIslandStore } from '../../stores/useIslandStore';
 import { useThemeStore } from '../../stores/useThemeStore';
+import { resizeDesktopWindow } from '../../services/platformService';
 import { IslandPill } from './IslandPill';
 import { IslandExpanded } from './IslandExpanded';
-
-// Native Tauri Window IPC helper
-const resizeTauriWindow = async (expanded: boolean, width: number, height: number) => {
-  try {
-    // Check if running inside Tauri
-    if (typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window) {
-      const { invoke } = await import('@tauri-apps/api/core');
-      await invoke('set_island_state', { expanded, width, height });
-    }
-  } catch (err) {
-    // Fallback for browser preview
-  }
-};
 
 export const IslandContainer: React.FC = () => {
   const {
     isExpanded,
     setExpanded,
+    toggleExpanded,
     isPinned,
     isInteracting,
   } = useIslandStore();
@@ -33,11 +22,25 @@ export const IslandContainer: React.FC = () => {
   // Sync window size when expanded state changes
   useEffect(() => {
     if (isExpanded) {
-      resizeTauriWindow(true, settings.expandedWidth, settings.expandedHeight);
+      resizeDesktopWindow(true, settings.expandedWidth, settings.expandedHeight);
     } else {
-      resizeTauriWindow(false, settings.pillWidth, settings.pillHeight);
+      resizeDesktopWindow(false, settings.pillWidth, settings.pillHeight);
     }
   }, [isExpanded, settings.expandedWidth, settings.expandedHeight, settings.pillWidth, settings.pillHeight]);
+
+  // Global hotkey listener from Electron IPC
+  useEffect(() => {
+    if (typeof window !== 'undefined' && (window as any).require) {
+      try {
+        const { ipcRenderer } = (window as any).require('electron');
+        const handleToggle = () => toggleExpanded();
+        ipcRenderer.on('toggle-island', handleToggle);
+        return () => {
+          ipcRenderer.removeListener('toggle-island', handleToggle);
+        };
+      } catch (e) {}
+    }
+  }, [toggleExpanded]);
 
   // Global Escape key handler
   useEffect(() => {

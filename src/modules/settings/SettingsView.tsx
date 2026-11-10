@@ -1,10 +1,26 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useThemeStore } from '../../stores/useThemeStore';
 import { ThemeMode, NotchStyle } from '../../types';
-import { Palette, Shield, Sliders, Monitor, Sparkles } from 'lucide-react';
+import { Palette, Shield, Sliders, Monitor, Sparkles, Power, CheckCircle2 } from 'lucide-react';
+import { getAutoStartStatus, setAutoStartStatus } from '../../services/platformService';
 
 export const SettingsView: React.FC = () => {
   const { settings, updateSettings } = useThemeStore();
+  const [autoStart, setAutoStart] = useState<boolean>(false);
+  const [statusMsg, setStatusMsg] = useState<string>('');
+
+  useEffect(() => {
+    getAutoStartStatus().then((status) => {
+      setAutoStart(status);
+    });
+  }, []);
+
+  const handleToggleAutoStart = async (enabled: boolean) => {
+    setAutoStart(enabled);
+    await setAutoStartStatus(enabled);
+    setStatusMsg(enabled ? 'Enabled: Starts with Windows' : 'Disabled: Manual launch only');
+    setTimeout(() => setStatusMsg(''), 3000);
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxHeight: 310, overflowY: 'auto', paddingRight: 6 }}>
@@ -171,6 +187,49 @@ export const SettingsView: React.FC = () => {
           >
             Clear Local Cache
           </button>
+        </div>
+      </div>
+
+      {/* Section 5: System & Windows Startup */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--nova-text-secondary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Power size={13} style={{ color: '#4ade80' }} />
+          <span>SYSTEM & WINDOWS STARTUP</span>
+        </div>
+
+        <div
+          style={{
+            padding: 12,
+            backgroundColor: 'var(--nova-surface)',
+            border: '1px solid var(--nova-border)',
+            borderRadius: 'var(--nova-radius-input)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 8,
+          }}
+        >
+          <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--nova-text-primary)' }}>
+                Start NOVA automatically on system boot
+              </span>
+              <span style={{ fontSize: '10px', color: 'var(--nova-text-muted)' }}>
+                Launches your desktop companion directly when Windows boots or restarts.
+              </span>
+            </div>
+            <input
+              type="checkbox"
+              checked={autoStart}
+              onChange={(e) => handleToggleAutoStart(e.target.checked)}
+              style={{ width: 16, height: 16, accentColor: 'var(--nova-blue)', cursor: 'pointer' }}
+            />
+          </label>
+          {statusMsg && (
+            <div style={{ fontSize: '10px', color: '#4ade80', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <CheckCircle2 size={11} />
+              <span>{statusMsg}</span>
+            </div>
+          )}
         </div>
       </div>
     </div>
