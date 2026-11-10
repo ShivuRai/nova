@@ -130,4 +130,15 @@ export const runComputeFileHash = async (filePath: string, algorithm = 'sha256')
   return { success: false, error: 'IPC unavailable' };
 };
 
+export const getWallpaperPalette = async (): Promise<{ accent: string; glow: string; tint: string }> => {
+  const ipc = getIpc();
+  if (ipc) {
+    try {
+      return await ipc.invoke('get-wallpaper-palette');
+    } catch (e) {}
+  }
+  return { accent: '#38BDF8', glow: 'rgba(56, 189, 248, 0.25)', tint: 'rgba(56, 189, 248, 0.08)' };
+};
+
+
 

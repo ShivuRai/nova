@@ -31,7 +31,11 @@ import {
   Settings,
   Pin,
   X,
+  Plus,
+  Trash2,
+  Check,
 } from 'lucide-react';
+import { playClickSound } from '../../services/soundService';
 
 import { HomeView } from '../../modules/home/HomeView';
 import { ClipboardView } from '../../modules/clipboard/ClipboardView';
@@ -66,7 +70,97 @@ export const IslandExpandedContent: React.FC<IslandExpandedProps> = ({ onCollaps
   const { activeModule, setActiveModule, isPinned, setPinned } = useIslandStore();
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
-  // Map icons
+  const DEFAULT_CATEGORIES = [
+    { id: 'all', label: 'All' },
+    { id: 'everyday', label: 'Everyday' },
+    { id: 'files', label: 'Files' },
+    { id: 'time', label: 'Time' },
+    { id: 'desktop', label: 'Desktop' },
+    { id: 'specialist', label: 'Specialist' },
+  ];
+
+  const [customCategories, setCustomCategories] = useState<Array<{ id: string; label: string }>>(() => {
+    try {
+      const stored = localStorage.getItem('nova_custom_categories_v2');
+      if (stored) return JSON.parse(stored);
+    } catch (e) {}
+    return [];
+  });
+
+  const [categoryModuleMap, setCategoryModuleMap] = useState<Record<string, string[]>>(() => {
+    try {
+      const stored = localStorage.getItem('nova_custom_category_modules_v2');
+      if (stored) return JSON.parse(stored);
+    } catch (e) {}
+    return {};
+  });
+
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [isManagingModules, setIsManagingModules] = useState(false);
+
+  const handleCreateCategory = () => {
+    const trimmed = newCategoryName.trim();
+    if (!trimmed) {
+      setIsAddingCategory(false);
+      return;
+    }
+    playClickSound();
+    const newId = `custom_${Date.now()}`;
+    const updatedCategories = [...customCategories, { id: newId, label: trimmed }];
+    setCustomCategories(updatedCategories);
+    try {
+      localStorage.setItem('nova_custom_categories_v2', JSON.stringify(updatedCategories));
+    } catch (e) {}
+
+    // Pre-populate with current active module
+    const updatedMap = { ...categoryModuleMap, [newId]: [activeModule] };
+    setCategoryModuleMap(updatedMap);
+    try {
+      localStorage.setItem('nova_custom_category_modules_v2', JSON.stringify(updatedMap));
+    } catch (e) {}
+
+    setSelectedCategory(newId);
+    setNewCategoryName('');
+    setIsAddingCategory(false);
+  };
+
+  const handleDeleteCategory = (catId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    playClickSound();
+    const updatedCategories = customCategories.filter((c) => c.id !== catId);
+    setCustomCategories(updatedCategories);
+    try {
+      localStorage.setItem('nova_custom_categories_v2', JSON.stringify(updatedCategories));
+    } catch (e) {}
+
+    const updatedMap = { ...categoryModuleMap };
+    delete updatedMap[catId];
+    setCategoryModuleMap(updatedMap);
+    try {
+      localStorage.setItem('nova_custom_category_modules_v2', JSON.stringify(updatedMap));
+    } catch (e) {}
+
+    if (selectedCategory === catId) {
+      setSelectedCategory('all');
+    }
+  };
+
+  const toggleModuleInCustomCategory = (moduleId: string) => {
+    playClickSound();
+    const currentList = categoryModuleMap[selectedCategory] || [];
+    const exists = currentList.includes(moduleId);
+    const updatedList = exists
+      ? currentList.filter((id) => id !== moduleId)
+      : [...currentList, moduleId];
+
+    const updatedMap = { ...categoryModuleMap, [selectedCategory]: updatedList };
+    setCategoryModuleMap(updatedMap);
+    try {
+      localStorage.setItem('nova_custom_category_modules_v2', JSON.stringify(updatedMap));
+    } catch (e) {}
+  };
+
   const iconMap: Record<string, React.ComponentType<{ size?: number }>> = {
     home: LayoutGrid,
     clipboard: ClipboardCopy,
@@ -94,18 +188,14 @@ export const IslandExpandedContent: React.FC<IslandExpandedProps> = ({ onCollaps
     settings: Settings,
   };
 
-  const categories = [
-    { id: 'all', label: 'All' },
-    { id: 'everyday', label: 'Everyday' },
-    { id: 'files', label: 'Files' },
-    { id: 'time', label: 'Time' },
-    { id: 'desktop', label: 'Desktop' },
-    { id: 'specialist', label: 'Specialist' },
-  ];
+  const categories = [...DEFAULT_CATEGORIES, ...customCategories];
+  const isCustomCategory = selectedCategory.startsWith('custom_');
 
-  const visibleModules = MODULE_REGISTRY.filter(
-    (m) => selectedCategory === 'all' || m.category === selectedCategory
-  );
+  const visibleModules = isCustomCategory
+    ? MODULE_REGISTRY.filter((m) => (categoryModuleMap[selectedCategory] || []).includes(m.id))
+    : MODULE_REGISTRY.filter(
+        (m) => selectedCategory === 'all' || m.category === selectedCategory
+      );
 
   const renderModuleContent = () => {
     switch (activeModule) {
@@ -248,10 +338,11 @@ export const IslandExpandedContent: React.FC<IslandExpandedProps> = ({ onCollaps
         </div>
       </div>
 
-      {/* Category Tabs - Sliding active pill with smooth micro-interaction */}
+      {/* Category Tabs - Sliding active pill with custom category creation */}
       <div
         style={{
           display: 'flex',
+          alignItems: 'center',
           gap: 4,
           padding: '6px 14px',
           borderBottom: '1px solid var(--nova-border)',
@@ -261,11 +352,16 @@ export const IslandExpandedContent: React.FC<IslandExpandedProps> = ({ onCollaps
       >
         {categories.map((cat) => {
           const isSelected = selectedCategory === cat.id;
+          const isCustom = cat.id.startsWith('custom_');
           return (
             <motion.button
               key={cat.id}
-              onClick={() => setSelectedCategory(cat.id)}
-              whileHover={{ scale: 1.05 }}
+              onClick={() => {
+                playClickSound();
+                setSelectedCategory(cat.id);
+                setIsManagingModules(false);
+              }}
+              whileHover={{ scale: 1.04 }}
               whileTap={{ scale: 0.96 }}
               style={{
                 fontSize: '10.5px',
@@ -278,6 +374,9 @@ export const IslandExpandedContent: React.FC<IslandExpandedProps> = ({ onCollaps
                 border: 'none',
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
               }}
             >
               {isSelected && (
@@ -294,16 +393,119 @@ export const IslandExpandedContent: React.FC<IslandExpandedProps> = ({ onCollaps
                   transition={{ type: 'spring', stiffness: 420, damping: 30 }}
                 />
               )}
-              {cat.label}
+              <span>{cat.label}</span>
+              {isCustom && (
+                <span
+                  onClick={(e) => handleDeleteCategory(cat.id, e)}
+                  title="Delete category"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 13,
+                    height: 13,
+                    borderRadius: '50%',
+                    backgroundColor: 'rgba(255,255,255,0.1)',
+                    color: 'var(--nova-text-muted)',
+                    marginLeft: 2,
+                  }}
+                >
+                  <X size={9} />
+                </span>
+              )}
             </motion.button>
           );
         })}
+
+        {/* Plus / Add Custom Category Button */}
+        {isAddingCategory ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 2 }}>
+            <input
+              type="text"
+              autoFocus
+              placeholder="Category name..."
+              value={newCategoryName}
+              onChange={(e) => setNewCategoryName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleCreateCategory();
+                if (e.key === 'Escape') setIsAddingCategory(false);
+              }}
+              style={{
+                fontSize: '10px',
+                padding: '2px 7px',
+                borderRadius: 'var(--nova-radius-pill)',
+                backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                border: '1px solid var(--nova-cyan)',
+                color: '#fff',
+                outline: 'none',
+                width: 95,
+              }}
+            />
+            <button
+              onClick={handleCreateCategory}
+              style={{
+                background: 'var(--nova-cyan)',
+                color: '#000',
+                border: 'none',
+                borderRadius: 'var(--nova-radius-pill)',
+                padding: '2px 7px',
+                fontSize: '9.5px',
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              Add
+            </button>
+            <button
+              onClick={() => {
+                setIsAddingCategory(false);
+                setNewCategoryName('');
+              }}
+              style={{
+                background: 'none',
+                color: 'var(--nova-text-muted)',
+                border: 'none',
+                cursor: 'pointer',
+                padding: 1,
+              }}
+            >
+              <X size={11} />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => {
+              playClickSound();
+              setIsAddingCategory(true);
+            }}
+            title="Create custom category"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 3,
+              fontSize: '10px',
+              fontWeight: 600,
+              padding: '2px 7px',
+              borderRadius: 'var(--nova-radius-pill)',
+              color: 'var(--nova-cyan)',
+              backgroundColor: 'rgba(56, 189, 248, 0.08)',
+              border: '1px dashed rgba(56, 189, 248, 0.35)',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              marginLeft: 2,
+            }}
+          >
+            <Plus size={11} />
+            <span>New</span>
+          </button>
+        )}
       </div>
 
       {/* Module Strip Bar - Interactive sliding selection with hover spring */}
       <div
         style={{
           display: 'flex',
+          alignItems: 'center',
           gap: 4,
           padding: '6px 14px',
           borderBottom: '1px solid var(--nova-border)',
@@ -311,13 +513,66 @@ export const IslandExpandedContent: React.FC<IslandExpandedProps> = ({ onCollaps
           scrollbarWidth: 'none',
         }}
       >
+        {isCustomCategory && (
+          <button
+            onClick={() => {
+              playClickSound();
+              setIsManagingModules(!isManagingModules);
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              padding: '3px 8px',
+              borderRadius: 'var(--nova-radius-pill)',
+              fontSize: '10px',
+              fontWeight: 600,
+              backgroundColor: isManagingModules ? 'var(--nova-cyan)' : 'rgba(56, 189, 248, 0.12)',
+              color: isManagingModules ? '#000' : 'var(--nova-cyan)',
+              border: '1px solid rgba(56, 189, 248, 0.3)',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              marginRight: 4,
+            }}
+          >
+            <Plus size={11} />
+            <span>{isManagingModules ? 'Done Editing' : 'Edit Apps'}</span>
+          </button>
+        )}
+
+        {visibleModules.length === 0 && !isManagingModules && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '10px', color: 'var(--nova-text-muted)', padding: '2px 4px' }}>
+            <span>No apps in this category yet.</span>
+            <button
+              onClick={() => {
+                playClickSound();
+                setIsManagingModules(true);
+              }}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--nova-blue)',
+                cursor: 'pointer',
+                fontWeight: 600,
+                textDecoration: 'underline',
+                fontSize: '10px',
+              }}
+            >
+              Choose apps
+            </button>
+          </div>
+        )}
+
         {visibleModules.map((mod) => {
           const Icon = iconMap[mod.id] || LayoutGrid;
           const isActive = activeModule === mod.id;
           return (
             <motion.button
               key={mod.id}
-              onClick={() => setActiveModule(mod.id)}
+              onClick={() => {
+                playClickSound();
+                setActiveModule(mod.id);
+              }}
               whileHover={{ scale: 1.05, y: -1 }}
               whileTap={{ scale: 0.95 }}
               style={{
@@ -356,6 +611,47 @@ export const IslandExpandedContent: React.FC<IslandExpandedProps> = ({ onCollaps
           );
         })}
       </div>
+
+      {/* Module Manager Tray for Custom Categories */}
+      {isCustomCategory && isManagingModules && (
+        <div
+          style={{
+            padding: '6px 14px',
+            backgroundColor: 'rgba(0,0,0,0.25)',
+            borderBottom: '1px solid var(--nova-border)',
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 4,
+            maxHeight: 70,
+            overflowY: 'auto',
+          }}
+        >
+          {MODULE_REGISTRY.map((m) => {
+            const isIncluded = (categoryModuleMap[selectedCategory] || []).includes(m.id);
+            return (
+              <button
+                key={m.id}
+                onClick={() => toggleModuleInCustomCategory(m.id)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 3,
+                  fontSize: '9.5px',
+                  padding: '2px 6px',
+                  borderRadius: 4,
+                  backgroundColor: isIncluded ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255,255,255,0.03)',
+                  border: isIncluded ? '1px solid var(--nova-cyan)' : '1px solid var(--nova-border)',
+                  color: isIncluded ? 'var(--nova-cyan)' : 'var(--nova-text-muted)',
+                  cursor: 'pointer',
+                }}
+              >
+                {isIncluded && <Check size={10} />}
+                <span>{m.name}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Main View Area - Fluid crossfade transition on module switch, zero wasted space */}
       <div style={{ padding: '10px 14px', overflowY: 'auto', flex: 1 }}>

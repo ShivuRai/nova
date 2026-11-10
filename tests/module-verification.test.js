@@ -301,3 +301,46 @@ test('Verification 12: Customization Studio, 12 Notch Shapes, and Animated Masco
   const settingsContent = fs.readFileSync(settingsPath, 'utf8');
   assert.strictEqual(settingsContent.includes('Open Customization Studio'), true);
 });
+
+test('Verification 13: Single-Instance Resilience, EADDRINUSE Prevention, Custom Categories, Sub-tab Persistence, and 4 Flagship Features', () => {
+  const electronPath = path.join(projectRoot, 'electron.cjs');
+  const electronContent = fs.readFileSync(electronPath, 'utf8');
+
+  // Verify Single-Instance Lock and ErrorBox suppression
+  assert.strictEqual(electronContent.includes('dialog.showErrorBox'), true, 'dialog.showErrorBox must be suppressed');
+  assert.strictEqual(electronContent.includes('Quitting duplicate process immediately'), true, 'Must exit immediately on lock failure');
+  assert.strictEqual(electronContent.includes('startDropServer(0)'), true, 'Must fallback to port 0 on EADDRINUSE');
+  assert.strictEqual(electronContent.includes("'get-wallpaper-palette'"), true, 'get-wallpaper-palette IPC handler must exist');
+
+  // Verify Custom Categories in IslandExpanded.tsx
+  const expandedPath = path.join(projectRoot, 'src', 'components', 'island', 'IslandExpanded.tsx');
+  const expandedContent = fs.readFileSync(expandedPath, 'utf8');
+  assert.strictEqual(expandedContent.includes('nova_custom_categories_v2'), true, 'Must store custom categories in localStorage');
+  assert.strictEqual(expandedContent.includes('handleCreateCategory'), true, 'handleCreateCategory must exist');
+  assert.strictEqual(expandedContent.includes('handleDeleteCategory'), true, 'handleDeleteCategory must exist');
+  assert.strictEqual(expandedContent.includes('toggleModuleInCustomCategory'), true, 'Module curation in custom categories must exist');
+
+  // Verify Studio Tab Persistence in RgbView.tsx
+  const rgbPath = path.join(projectRoot, 'src', 'modules', 'rgb', 'RgbView.tsx');
+  const rgbContent = fs.readFileSync(rgbPath, 'utf8');
+  assert.strictEqual(rgbContent.includes('nova_active_studio_tab'), true, 'Active tab must be stored in localStorage');
+  assert.strictEqual(rgbContent.includes('Dynamic Wallpaper-Reactive Tinting'), true, 'Wallpaper tinting toggle must exist');
+  assert.strictEqual(rgbContent.includes('Audio-Reactive Equalizer Edge Lighting'), true, 'Audio reactive edge lighting must exist');
+  assert.strictEqual(rgbContent.includes('SEASONAL AMBIENT PARTICLES'), true, 'Ambient particles selector must exist');
+  assert.strictEqual(rgbContent.includes('Tactile Sound Effects & Acoustic Feedback'), true, 'Sound effects toggle must exist');
+
+  // Verify Sound Service and Ambient Particles files
+  const soundServicePath = path.join(projectRoot, 'src', 'services', 'soundService.ts');
+  assert.strictEqual(fs.existsSync(soundServicePath), true, 'soundService.ts must exist');
+
+  const particlesPath = path.join(projectRoot, 'src', 'components', 'island', 'AmbientParticles.tsx');
+  assert.strictEqual(fs.existsSync(particlesPath), true, 'AmbientParticles.tsx must exist');
+
+  // Verify IslandContainer integration
+  const containerPath = path.join(projectRoot, 'src', 'components', 'island', 'IslandContainer.tsx');
+  const containerContent = fs.readFileSync(containerPath, 'utf8');
+  assert.strictEqual(containerContent.includes('AmbientParticles'), true, 'AmbientParticles must be rendered');
+  assert.strictEqual(containerContent.includes('currentClipPath'), true, 'currentClipPath must be applied');
+  assert.strictEqual(containerContent.includes('playHoverSound'), true, 'playHoverSound must be called');
+  assert.strictEqual(containerContent.includes('enableAudioReactiveLighting'), true, 'Audio reactive lighting must be handled');
+});

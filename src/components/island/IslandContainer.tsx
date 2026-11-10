@@ -1,11 +1,18 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useIslandStore } from '../../stores/useIslandStore';
 import { useSystemStore } from '../../stores/useSystemStore';
 import { useThemeStore } from '../../stores/useThemeStore';
-import { resizeDesktopWindow } from '../../services/platformService';
+import { resizeDesktopWindow, getWallpaperPalette } from '../../services/platformService';
 import { IslandPillContent } from './IslandPill';
 import { IslandExpandedContent } from './IslandExpanded';
+import { AmbientParticles } from './AmbientParticles';
+import {
+  playHoverSound,
+  playClickSound,
+  playExpandSound,
+  playCollapseSound,
+} from '../../services/soundService';
 
 export const IslandContainer: React.FC = () => {
   const {
@@ -20,6 +27,18 @@ export const IslandContainer: React.FC = () => {
   } = useIslandStore();
   const { media, updateMedia } = useSystemStore();
   const { settings } = useThemeStore();
+
+  const [wallpaperPalette, setWallpaperPalette] = useState<{ accent: string; glow: string; tint: string } | null>(null);
+
+  useEffect(() => {
+    if (settings.enableWallpaperTinting) {
+      getWallpaperPalette().then((pal) => {
+        if (pal) setWallpaperPalette(pal);
+      });
+    } else {
+      setWallpaperPalette(null);
+    }
+  }, [settings.enableWallpaperTinting]);
 
   const hoverTimerRef = useRef<number | null>(null);
   const collapseTimerRef = useRef<number | null>(null);
@@ -157,6 +176,7 @@ export const IslandContainer: React.FC = () => {
   }, [isExpanded, setExpanded]);
 
   const handleMouseEnter = () => {
+    playHoverSound();
     if (collapseTimerRef.current) {
       window.clearTimeout(collapseTimerRef.current);
       collapseTimerRef.current = null;
@@ -164,6 +184,7 @@ export const IslandContainer: React.FC = () => {
 
     if (!isExpanded) {
       hoverTimerRef.current = window.setTimeout(() => {
+        playExpandSound();
         setExpanded(true);
       }, settings.hoverDelayMs);
     }
@@ -177,6 +198,7 @@ export const IslandContainer: React.FC = () => {
 
     if (isExpanded && !isPinned && !isInteracting) {
       collapseTimerRef.current = window.setTimeout(() => {
+        playCollapseSound();
         setExpanded(false);
       }, settings.collapseDelayMs);
     }
@@ -184,11 +206,15 @@ export const IslandContainer: React.FC = () => {
 
   const handleManualExpand = () => {
     if (hoverTimerRef.current) window.clearTimeout(hoverTimerRef.current);
+    playClickSound();
+    playExpandSound();
     setExpanded(true);
   };
 
   const handleManualCollapse = () => {
     if (collapseTimerRef.current) window.clearTimeout(collapseTimerRef.current);
+    playClickSound();
+    playCollapseSound();
     setExpanded(false);
   };
 
@@ -271,6 +297,26 @@ export const IslandContainer: React.FC = () => {
   } else {
     glowRadius = isExpanded ? '28px' : '24px';
   }
+
+  // Explicit clip-path for faceted geometric notch shapes
+  let currentClipPath = 'none';
+  if (!isExpanded) {
+    if (isBlade) {
+      currentClipPath = 'polygon(0% 0%, 100% 0%, calc(100% - 10px) 100%, 10px 100%)';
+    } else if (isDiamond) {
+      currentClipPath = 'polygon(12px 0%, calc(100% - 12px) 0%, 100% 50%, calc(100% - 12px) 100%, 12px 100%, 0% 50%)';
+    } else if (isHexPill) {
+      currentClipPath = 'polygon(8px 0%, calc(100% - 8px) 0%, 100% 50%, calc(100% - 8px) 100%, 8px 100%, 0% 50%)';
+    }
+  }
+
+  const dynamicBg = wallpaperPalette && settings.enableWallpaperTinting
+    ? (isExpanded ? 'rgba(15, 23, 42, 0.88)' : 'rgba(11, 13, 18, 0.92)')
+    : (isExpanded ? 'var(--nova-surface-glass)' : 'var(--nova-pill-bg)');
+
+  const dynamicGlow = wallpaperPalette && settings.enableWallpaperTinting
+    ? wallpaperPalette.glow
+    : 'var(--nova-glow-color)';
 
   const EDGE_GRADIENTS: Record<string, string> = {
     'cyan-pulse': 'linear-gradient(90deg, #38BDF8, #3B82F6, #60A5FA, #38BDF8)',
@@ -483,14 +529,17 @@ export const IslandContainer: React.FC = () => {
             mass: 0.8,
           }}
           style={{
-            backgroundColor: isExpanded ? 'var(--nova-surface-glass)' : 'var(--nova-pill-bg)',
+            backgroundColor: dynamicBg,
             boxShadow: isExpanded ? 'var(--nova-shadow-card)' : 'var(--nova-shadow-pill)',
             border: isRgb
               ? '1.5px solid rgba(96, 165, 250, 0.6)'
+              : wallpaperPalette && settings.enableWallpaperTinting
+              ? `1.5px solid ${wallpaperPalette.accent}70`
               : `1px solid rgba(255, 255, 255, ${Math.max(0.05, ((settings.glassmorphismBorderGlow ?? 35) / 100) * 0.45)})`,
             borderTop: isNotch ? 'none' : undefined,
             backdropFilter: `blur(${settings.glassmorphismBlur ?? 28}px) saturate(180%)`,
             WebkitBackdropFilter: `blur(${settings.glassmorphismBlur ?? 28}px) saturate(180%)`,
+            clipPath: currentClipPath,
             position: 'relative',
             overflow: 'hidden',
             zIndex: 2,
@@ -498,6 +547,51 @@ export const IslandContainer: React.FC = () => {
           }}
           className={isRgb ? 'rgb-border' : ''}
         >
+          {/* Seasonal Ambient Particles Engine */}
+          <AmbientParticles mode={settings.ambientParticles} width={currentWidth} height={currentHeight} />
+
+          {/* Audio-Reactive Equalizer Edge Lighting Pulse */}
+          {settings.enableAudioReactiveLighting && media.isPlaying && (
+            <motion.div
+              animate={{
+                opacity: [0.35, 0.95, 0.35],
+                boxShadow: [
+                  'inset 0 0 8px rgba(56, 189, 248, 0.3), 0 0 12px rgba(56, 189, 248, 0.35)',
+                  'inset 0 0 18px rgba(56, 189, 248, 0.7), 0 0 24px rgba(56, 189, 248, 0.75)',
+                  'inset 0 0 8px rgba(56, 189, 248, 0.3), 0 0 12px rgba(56, 189, 248, 0.35)',
+                ],
+              }}
+              transition={{
+                duration: 0.85,
+                repeat: Infinity,
+                ease: 'easeInOut',
+              }}
+              style={{
+                position: 'absolute',
+                inset: 0,
+                borderRadius: currentRadius,
+                pointerEvents: 'none',
+                zIndex: 1,
+              }}
+            />
+          )}
+
+          {/* Split Capsule Center Seam */}
+          {isSplit && !isExpanded && (
+            <div
+              style={{
+                position: 'absolute',
+                top: 8,
+                bottom: 8,
+                left: '50%',
+                width: 1,
+                backgroundColor: 'rgba(255, 255, 255, 0.12)',
+                pointerEvents: 'none',
+                zIndex: 3,
+              }}
+            />
+          )}
+
           {/* Minimalistic Edge Lighting Overlay */}
           {settings.edgeLightingMode && settings.edgeLightingMode !== 'off' && (
             <div

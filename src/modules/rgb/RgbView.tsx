@@ -16,6 +16,10 @@ import {
   SlidersHorizontal,
   Monitor,
   RotateCcw,
+  Volume2,
+  VolumeX,
+  Music,
+  Radio,
 } from 'lucide-react';
 import { useThemeStore } from '../../stores/useThemeStore';
 import {
@@ -28,6 +32,7 @@ import {
   ThemeMode,
   PillDisplayContent,
   PillBrandBadge,
+  AmbientParticleMode,
 } from '../../types';
 
 type StudioTab = 'themes' | 'shapes' | 'edge' | 'mascot' | 'display';
@@ -101,9 +106,33 @@ const PILL_DISPLAY_OPTIONS: Array<{ id: PillDisplayContent; label: string; desc:
   { id: 'minimal-zen', label: 'Minimal Zen', desc: 'Subtle breathing beacon with system clock only', icon: '🧘' },
 ];
 
+const PARTICLE_OPTIONS: Array<{ id: AmbientParticleMode; label: string; icon: string }> = [
+  { id: 'off', label: 'Off', icon: '🚫' },
+  { id: 'snow', label: 'Snowfall', icon: '❄️' },
+  { id: 'sakura', label: 'Sakura', icon: '🌸' },
+  { id: 'stardust', label: 'Stardust', icon: '✨' },
+  { id: 'bubbles', label: 'Bubbles', icon: '🫧' },
+  { id: 'matrix', label: 'Matrix', icon: '🟢' },
+];
+
 export const RgbView: React.FC = () => {
   const { settings, updateSettings } = useThemeStore();
-  const [activeTab, setActiveTab] = useState<StudioTab>('themes');
+  const [activeTab, setActiveTabState] = useState<StudioTab>(() => {
+    try {
+      const saved = localStorage.getItem('nova_active_studio_tab') as StudioTab;
+      if (saved && ['themes', 'shapes', 'edge', 'mascot', 'display'].includes(saved)) {
+        return saved;
+      }
+    } catch (e) {}
+    return 'themes';
+  });
+
+  const setActiveTab = (tab: StudioTab) => {
+    setActiveTabState(tab);
+    try {
+      localStorage.setItem('nova_active_studio_tab', tab);
+    } catch (e) {}
+  };
 
   const isRgbActive = settings.enableRgbBorder || settings.themeMode === 'rgb';
 
@@ -285,6 +314,142 @@ export const RgbView: React.FC = () => {
                 />
               </div>
             </div>
+
+            {/* Dynamic Wallpaper Tinting Toggle */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 4, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+              <div>
+                <div style={{ fontSize: '10px', fontWeight: 600, color: 'var(--nova-text-primary)' }}>
+                  Dynamic Wallpaper-Reactive Tinting
+                </div>
+                <div style={{ fontSize: '9px', color: 'var(--nova-text-muted)' }}>
+                  Samples Windows desktop background color to dynamically tint the frosted glass
+                </div>
+              </div>
+              <button
+                onClick={() => updateSettings({ enableWallpaperTinting: !settings.enableWallpaperTinting })}
+                style={{
+                  padding: '3px 9px',
+                  borderRadius: 'var(--nova-radius-pill)',
+                  backgroundColor: settings.enableWallpaperTinting ? 'var(--nova-blue)' : 'rgba(255,255,255,0.06)',
+                  color: settings.enableWallpaperTinting ? '#fff' : 'var(--nova-text-muted)',
+                  fontSize: '9px',
+                  fontWeight: 600,
+                  border: 'none',
+                  cursor: 'pointer',
+                }}
+              >
+                {settings.enableWallpaperTinting ? 'Active' : 'Off'}
+              </button>
+            </div>
+          </div>
+
+          {/* Seasonal Ambient Particles Studio */}
+          <div
+            style={{
+              padding: '10px 12px',
+              backgroundColor: 'var(--nova-surface)',
+              border: '1px solid var(--nova-border)',
+              borderRadius: 'var(--nova-radius-widget)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 8,
+            }}
+          >
+            <div style={{ fontSize: '10px', fontWeight: 600, color: 'var(--nova-text-secondary)', display: 'flex', justifyContent: 'space-between' }}>
+              <span>SEASONAL AMBIENT PARTICLES</span>
+              <span style={{ fontSize: '9px', color: 'var(--nova-blue)' }}>
+                {settings.ambientParticles && settings.ambientParticles !== 'off' ? `Active: ${settings.ambientParticles}` : 'Disabled'}
+              </span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 4 }}>
+              {PARTICLE_OPTIONS.map((part) => {
+                const isSelected = (settings.ambientParticles || 'off') === part.id;
+                return (
+                  <button
+                    key={part.id}
+                    onClick={() => updateSettings({ ambientParticles: part.id })}
+                    style={{
+                      padding: '5px 2px',
+                      backgroundColor: isSelected ? 'rgba(56, 189, 248, 0.16)' : 'rgba(255,255,255,0.02)',
+                      border: isSelected ? '1px solid var(--nova-cyan)' : '1px solid var(--nova-border)',
+                      borderRadius: 6,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: 2,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <span style={{ fontSize: '14px' }}>{part.icon}</span>
+                    <span style={{ fontSize: '8.5px', color: isSelected ? 'var(--nova-cyan)' : 'var(--nova-text-secondary)', fontWeight: isSelected ? 700 : 400 }}>
+                      {part.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Procedural Sound FX & Haptic Audio Feedback */}
+          <div
+            style={{
+              padding: '10px 12px',
+              backgroundColor: 'var(--nova-surface)',
+              border: '1px solid var(--nova-border)',
+              borderRadius: 'var(--nova-radius-widget)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 8,
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                {settings.enableSoundEffects !== false ? (
+                  <Volume2 size={13} style={{ color: 'var(--nova-blue)' }} />
+                ) : (
+                  <VolumeX size={13} style={{ color: 'var(--nova-text-muted)' }} />
+                )}
+                <div>
+                  <div style={{ fontSize: '10px', fontWeight: 600, color: 'var(--nova-text-primary)' }}>
+                    Tactile Sound Effects & Acoustic Feedback
+                  </div>
+                  <div style={{ fontSize: '9px', color: 'var(--nova-text-muted)' }}>
+                    Procedural audio clicks on interactions, soft glass chimes on expand/collapse
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => updateSettings({ enableSoundEffects: settings.enableSoundEffects === false ? true : false })}
+                style={{
+                  padding: '3px 9px',
+                  borderRadius: 'var(--nova-radius-pill)',
+                  backgroundColor: settings.enableSoundEffects !== false ? 'var(--nova-blue)' : 'rgba(255,255,255,0.06)',
+                  color: settings.enableSoundEffects !== false ? '#fff' : 'var(--nova-text-muted)',
+                  fontSize: '9px',
+                  fontWeight: 600,
+                  border: 'none',
+                  cursor: 'pointer',
+                }}
+              >
+                {settings.enableSoundEffects !== false ? 'Enabled' : 'Muted'}
+              </button>
+            </div>
+
+            {settings.enableSoundEffects !== false && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 4 }}>
+                <span style={{ fontSize: '9px', color: 'var(--nova-text-muted)', whiteSpace: 'nowrap' }}>
+                  Volume: {settings.soundVolume ?? 70}%
+                </span>
+                <input
+                  type="range"
+                  min={10}
+                  max={100}
+                  value={settings.soundVolume ?? 70}
+                  onChange={(e) => updateSettings({ soundVolume: Number(e.target.value) })}
+                  style={{ flex: 1 }}
+                />
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -541,6 +706,47 @@ export const RgbView: React.FC = () => {
                 })}
               </div>
             </div>
+          </div>
+
+          {/* Audio-Reactive Equalizer Edge Lighting */}
+          <div
+            style={{
+              padding: '10px 12px',
+              backgroundColor: settings.enableAudioReactiveLighting ? 'rgba(56, 189, 248, 0.12)' : 'var(--nova-surface)',
+              border: settings.enableAudioReactiveLighting ? '1px solid var(--nova-cyan)' : '1px solid var(--nova-border)',
+              borderRadius: 'var(--nova-radius-widget)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Music size={14} style={{ color: settings.enableAudioReactiveLighting ? 'var(--nova-cyan)' : 'var(--nova-text-muted)' }} />
+              <div>
+                <div style={{ fontSize: '10px', fontWeight: 600, color: 'var(--nova-text-primary)' }}>
+                  Audio-Reactive Equalizer Edge Lighting
+                </div>
+                <div style={{ fontSize: '9px', color: 'var(--nova-text-muted)' }}>
+                  Glow pulses rhythmically and casts dynamic equalizer light waves when YouTube or music is playing
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => updateSettings({ enableAudioReactiveLighting: !settings.enableAudioReactiveLighting })}
+              style={{
+                padding: '3px 9px',
+                borderRadius: 'var(--nova-radius-pill)',
+                backgroundColor: settings.enableAudioReactiveLighting ? 'var(--nova-cyan)' : 'rgba(255,255,255,0.06)',
+                color: settings.enableAudioReactiveLighting ? '#000' : 'var(--nova-text-muted)',
+                fontSize: '9px',
+                fontWeight: 700,
+                border: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              {settings.enableAudioReactiveLighting ? 'Active' : 'Off'}
+            </button>
           </div>
         </div>
       )}

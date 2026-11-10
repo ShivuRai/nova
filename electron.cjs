@@ -2,7 +2,12 @@ if (process.env.ELECTRON_RUN_AS_NODE) {
   delete process.env.ELECTRON_RUN_AS_NODE;
 }
 
-const { app, BrowserWindow, screen, ipcMain, Tray, Menu, nativeImage, globalShortcut, shell, clipboard } = require('electron');
+for (const k of Object.keys(process.env)) {
+  if (k.toUpperCase() === 'ELECTRON_RUN_AS_NODE') {
+    delete process.env[k];
+  }
+}
+
 const path = require('path');
 const fs = require('fs');
 
@@ -12,7 +17,7 @@ const debugLog = (msg) => {
     fs.appendFileSync(debugLogPath, `[${new Date().toISOString()}] ${msg}\n`);
   } catch (e) {}
 };
-debugLog('Process started. PID: ' + process.pid + ', args: ' + process.argv.join(' '));
+debugLog('Process started. PID: ' + process.pid + ', execPath: ' + process.execPath + ', args: ' + process.argv.join(' '));
 
 // Global safety handler: Suppress uncaught exception dialogs to prevent scary modal popups
 process.on('uncaughtException', (err) => {
@@ -27,6 +32,59 @@ process.on('exit', (code) => {
   debugLog('Process on exit event called with code: ' + code);
 });
 
+let electronModule = null;
+try {
+  electronModule = require('electron');
+} catch (e) {
+  debugLog('Failed to require electron: ' + e.message);
+}
+
+// Self-healing guard: If launched in plain Node mode or with ELECTRON_RUN_AS_NODE, respawn as GUI process
+if (!electronModule || typeof electronModule !== 'object' || !electronModule.app) {
+  debugLog('Detected plain Node mode / ELECTRON_RUN_AS_NODE. Re-spawning cleanly with stripped environment...');
+  try {
+    const { spawn } = require('child_process');
+    const cleanEnv = { ...process.env };
+    for (const k of Object.keys(cleanEnv)) {
+      if (k.toUpperCase() === 'ELECTRON_RUN_AS_NODE') {
+        delete cleanEnv[k];
+      }
+    }
+    let targetBinary = process.execPath;
+    let targetArgs = [__filename];
+    const appNovaExe = path.join(__dirname, '..', '..', 'NOVA.exe');
+    if (fs.existsSync(appNovaExe)) {
+      targetBinary = appNovaExe;
+      targetArgs = [path.join(__dirname, '..', '..', 'resources', 'app')];
+    } else {
+      const electronLocal = path.join(__dirname, 'node_modules', 'electron', 'dist', 'electron.exe');
+      if (fs.existsSync(electronLocal)) {
+        targetBinary = electronLocal;
+        targetArgs = [__filename];
+      }
+    }
+    debugLog(`Spawning GUI process: ${targetBinary} with args: ${targetArgs.join(' ')}`);
+    const child = spawn(targetBinary, targetArgs, {
+      env: cleanEnv,
+      detached: true,
+      stdio: 'ignore',
+      cwd: path.dirname(targetBinary),
+    });
+    child.unref();
+  } catch (err) {
+    debugLog('Failed to auto-respawn: ' + err.message);
+  }
+  process.exit(0);
+}
+
+const { app, BrowserWindow, screen, ipcMain, Tray, Menu, nativeImage, globalShortcut, shell, clipboard, dialog } = electronModule;
+
+if (dialog && dialog.showErrorBox) {
+  dialog.showErrorBox = (title, content) => {
+    debugLog(`[Suppressed ErrorBox] ${title}: ${content}`);
+  };
+}
+
 let mainWindow = null;
 let tray = null;
 let dropServerInstance = null;
@@ -36,47 +94,24 @@ let activeDropPort = 5980;
 const gotTheLock = app.requestSingleInstanceLock();
 debugLog('gotTheLock value: ' + gotTheLock);
 
-let shouldQuit = false;
 if (!gotTheLock) {
-  debugLog('gotTheLock is false. Checking if another NOVA process is actually alive in Windows...');
-  let isAnotherInstanceActuallyRunning = false;
-  try {
-    const { execSync } = require('child_process');
-    const checkCmd = `powershell -NoProfile -Command "@(Get-Process -Name NOVA -ErrorAction SilentlyContinue | Where-Object { $_.Id -ne ${process.pid} }).Count"`;
-    const countStr = execSync(checkCmd, { timeout: 2000, windowsHide: true }).toString().trim();
-    const count = parseInt(countStr, 10) || 0;
-    debugLog('Active other NOVA process count: ' + count);
-    if (count > 0) {
-      isAnotherInstanceActuallyRunning = true;
-    }
-  } catch (e) {
-    debugLog('Process check exception: ' + e.message);
-  }
-
-  if (isAnotherInstanceActuallyRunning) {
-    debugLog('Another NOVA instance is verified running. Quitting duplicate.');
-    shouldQuit = true;
-  } else {
-    debugLog('No other NOVA process is running! Stale lock detected, bypassing lock and launching NOVA.');
-    shouldQuit = false;
-  }
-}
-
-if (shouldQuit) {
+  debugLog('Another instance of NOVA is already running. Quitting duplicate process immediately.');
   app.quit();
-} else {
-  app.on('second-instance', () => {
-    if (mainWindow) {
-      if (mainWindow.isMinimized()) mainWindow.restore();
-      if (!mainWindow.isVisible()) mainWindow.show();
-      mainWindow.focus();
-      mainWindow.setAlwaysOnTop(true, 'screen-saver');
-      mainWindow.webContents.send('bring-to-front');
-    }
-  });
-
-  app.whenReady().then(createWindow);
+  process.exit(0);
 }
+
+app.on('second-instance', () => {
+  debugLog('Second instance launched; focusing and expanding existing NOVA window.');
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    if (!mainWindow.isVisible()) mainWindow.show();
+    mainWindow.focus();
+    mainWindow.setAlwaysOnTop(true, 'screen-saver');
+    mainWindow.webContents.send('bring-to-front');
+  }
+});
+
+app.whenReady().then(createWindow);
 
 function createWindow() {
   debugLog('createWindow started');
@@ -679,56 +714,46 @@ function uploadFiles() {
       res.end('Not Found');
     }
 
-    function startDropServer() {
-      const tester = net.createServer();
-      tester.once('error', (err) => {
-        try { tester.close(); } catch (e) {}
-        debugLog(`Port 5980 occupied (${err.code}), starting NOVA Drop on ephemeral free port...`);
-        try {
-          const fbServer = http.createServer(handleDropRequest);
-          fbServer.on('error', (fbErr) => {
-            debugLog('[NOVA Drop] Fallback server error: ' + fbErr.message);
-          });
-          fbServer.listen(0, '0.0.0.0', () => {
-            activeDropPort = fbServer.address().port;
-            dropServerInstance = fbServer;
-            debugLog(`[NOVA Drop] Wi-Fi file server active on fallback port ${activeDropPort}`);
-          });
-        } catch (e) {
-          debugLog('Error starting fallback server: ' + e.message);
+    let dropServer = null;
+
+    function startDropServer(portToTry = 5980) {
+      try {
+        if (dropServer) {
+          try { dropServer.close(); } catch (e) {}
+          dropServer = null;
         }
-      });
-      tester.once('listening', () => {
-        tester.close(() => {
-          try {
-            const server = http.createServer(handleDropRequest);
-            server.on('error', (sErr) => {
-              debugLog('[NOVA Drop] Server error: ' + sErr.message);
-              if (sErr.code === 'EADDRINUSE') {
-                const fbServer = http.createServer(handleDropRequest);
-                fbServer.listen(0, '0.0.0.0', () => {
-                  activeDropPort = fbServer.address().port;
-                  dropServerInstance = fbServer;
-                });
-              }
-            });
-            server.listen(5980, '0.0.0.0', () => {
-              activeDropPort = 5980;
-              dropServerInstance = server;
-              debugLog('NOVA Drop listening on port 5980');
-            });
-          } catch (e) {
-            debugLog('Error starting server on 5980: ' + e.message);
+
+        const server = http.createServer(handleDropRequest);
+
+        server.on('error', (err) => {
+          debugLog(`[NOVA Drop] Server notice on port ${portToTry}: ${err.code || err.message}`);
+          if (err.code === 'EADDRINUSE') {
+            if (portToTry === 5980) {
+              debugLog('[NOVA Drop] Port 5980 in use, binding to ephemeral dynamic port (port 0)...');
+              startDropServer(0);
+            } else {
+              debugLog('[NOVA Drop] Fallback server port error: ' + err.message);
+            }
           }
         });
-      });
-      try {
-        tester.listen(5980, '0.0.0.0');
+
+        server.listen(portToTry, '0.0.0.0', () => {
+          try {
+            const addr = server.address();
+            activeDropPort = typeof addr === 'object' && addr ? addr.port : portToTry;
+            dropServer = server;
+            dropServerInstance = server;
+            debugLog(`[NOVA Drop] Wi-Fi file server active and listening on port ${activeDropPort}`);
+          } catch (e) {
+            debugLog('[NOVA Drop] Port resolution error: ' + e.message);
+          }
+        });
       } catch (err) {
-        debugLog('Tester listen exception: ' + err.message);
+        debugLog('[NOVA Drop] Exception in startDropServer: ' + err.message);
       }
     }
-    startDropServer();
+
+    startDropServer(5980);
 
   // NOVA Drop IPC
   ipcMain.handle('get-drop-info', () => {
@@ -740,6 +765,23 @@ function uploadFiles() {
       url: `http://${ip}:${activeDropPort}`,
       dropDir,
     };
+  });
+
+  // Windows Wallpaper & Accent Color IPC for Dynamic Wallpaper Tinting
+  ipcMain.handle('get-wallpaper-palette', async () => {
+    try {
+      const { execSync } = require('child_process');
+      const cmd = `powershell -NoProfile -Command "try { $c = (Get-ItemProperty -Path 'HKCU:\\Software\\Microsoft\\Windows\\DWM' -Name ColorizationColor -ErrorAction SilentlyContinue).ColorizationColor; if ($c) { $hex = ('{0:X8}' -f $c); ('#' + $hex.Substring(2)) } else { '#38BDF8' } } catch { '#38BDF8' }"`;
+      const stdout = execSync(cmd, { timeout: 1500, windowsHide: true }).toString().trim();
+      const accent = stdout.startsWith('#') && stdout.length === 7 ? stdout : '#38BDF8';
+      return {
+        accent,
+        glow: `${accent}40`,
+        tint: `${accent}18`,
+      };
+    } catch (e) {
+      return { accent: '#38BDF8', glow: 'rgba(56,189,248,0.25)', tint: 'rgba(56,189,248,0.08)' };
+    }
   });
 
   ipcMain.handle('open-drop-folder', () => {

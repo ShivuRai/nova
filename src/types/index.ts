@@ -150,6 +150,8 @@ export type PillDisplayContent =
   | 'network-speed'
   | 'minimal-zen';
 
+export type AmbientParticleMode = 'off' | 'snow' | 'sakura' | 'stardust' | 'bubbles' | 'matrix';
+
 export interface AppearanceSettings {
   themeMode: ThemeMode;
   notchStyle: NotchStyle;
@@ -169,6 +171,11 @@ export interface AppearanceSettings {
   glassmorphismBlur?: number;
   glassmorphismOpacity?: number;
   glassmorphismBorderGlow?: number;
+  enableWallpaperTinting?: boolean;
+  enableAudioReactiveLighting?: boolean;
+  enableSoundEffects?: boolean;
+  soundVolume?: number;
+  ambientParticles?: AmbientParticleMode;
   pillWidth: number;
   pillHeight: number;
   expandedWidth: number;
