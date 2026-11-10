@@ -68,57 +68,12 @@ function createWindow() {
     console.error('[NOVA] Failed to load:', errorCode, errorDescription);
   });
 
-  mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
-    console.log(`[Renderer Console] ${message}`);
+  mainWindow.webContents.on('console-message', (event) => {
+    const msg = typeof event === 'object' && event.message ? event.message : event;
+    console.log(`[Renderer Console] ${msg}`);
   });
 
-  // Tray Icon Setup (optional, wrapped in safe try/catch)
-  try {
-    let trayIconFile = path.join(__dirname, 'src-tauri', 'icons', '32x32.png');
-    if (!fs.existsSync(trayIconFile)) {
-      trayIconFile = path.join(__dirname, '..', 'src-tauri', 'icons', '32x32.png');
-    }
-    if (fs.existsSync(trayIconFile)) {
-      const trayIcon = nativeImage.createFromPath(trayIconFile);
-      tray = new Tray(trayIcon);
-      const contextMenu = Menu.buildFromTemplate([
-        {
-          label: 'Show NOVA',
-          click: () => {
-            if (mainWindow) {
-              mainWindow.show();
-              mainWindow.focus();
-            }
-          },
-        },
-        {
-          label: 'Toggle Expand/Collapse',
-          click: () => {
-            if (mainWindow) {
-              mainWindow.webContents.send('toggle-island');
-            }
-          },
-        },
-        { type: 'separator' },
-        {
-          label: 'Exit NOVA',
-          click: () => {
-            app.quit();
-          },
-        },
-      ]);
-      tray.setToolTip('NOVA - Desktop Companion');
-      tray.setContextMenu(contextMenu);
-      tray.on('click', () => {
-        if (mainWindow) {
-          mainWindow.show();
-          mainWindow.focus();
-        }
-      });
-    }
-  } catch (err) {
-    console.warn('[NOVA] Status tray initialization skipped:', err.message);
-  }
+  // Window is ready and visible
 
   // Dynamic sizing IPC
   ipcMain.on('set-island-state', (event, { expanded, width, height }) => {
@@ -164,6 +119,6 @@ app.on('will-quit', () => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
-    app.quit();
+    app.exit(0);
   }
 });
