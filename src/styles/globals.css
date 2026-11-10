@@ -109,3 +109,87 @@ input, textarea, select {
   background-image: linear-gradient(var(--nova-pill-bg), var(--nova-pill-bg)),
                     linear-gradient(90deg, #10B981, #2DD4BF, #8B5CF6, #10B981) !important;
 }
+
+/* Minimalistic Edge Lighting Engine */
+@keyframes edge-flow-continuous {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+@keyframes edge-flow-corners-inward {
+  0% {
+    background-position: 0% 50%, 100% 50%;
+    opacity: 0.6;
+  }
+  50% {
+    background-position: 50% 50%, 50% 50%;
+    opacity: 1;
+  }
+  100% {
+    background-position: 0% 50%, 100% 50%;
+    opacity: 0.6;
+  }
+}
+
+@keyframes edge-flow-center-outward {
+  0% {
+    background-size: 20% 100%;
+    background-position: 50% 50%;
+    opacity: 0.3;
+  }
+  60% {
+    background-size: 100% 100%;
+    background-position: 50% 50%;
+    opacity: 1;
+  }
+  100% {
+    background-size: 140% 100%;
+    background-position: 50% 50%;
+    opacity: 0.2;
+  }
+}
+
+@keyframes edge-flow-breathing {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.95; }
+}
+
+.edge-lighting-trail {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 4;
+  padding: 1.5px;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  transition: opacity 0.3s ease;
+}
+
+.edge-lighting-trail.mode-continuous {
+  background-size: 200% 200%;
+  animation: edge-flow-continuous 4s linear infinite;
+}
+
+.edge-lighting-trail.mode-corners-inward {
+  background-size: 200% 100%;
+  animation: edge-flow-corners-inward 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.edge-lighting-trail.mode-center-outward {
+  animation: edge-flow-center-outward 2.6s ease-in-out infinite;
+}
+
+.edge-lighting-trail.mode-breathing-glow {
+  animation: edge-flow-breathing 2.4s ease-in-out infinite;
+}
+
+.edge-lighting-trail.speed-slow {
+  animation-duration: 6.5s !important;
+}
+
+.edge-lighting-trail.speed-fast {
+  animation-duration: 1.8s !important;
+}
+

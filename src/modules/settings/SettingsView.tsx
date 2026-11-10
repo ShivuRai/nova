@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useThemeStore } from '../../stores/useThemeStore';
-import { ThemeMode, NotchStyle, ScreenPosition } from '../../types';
-import { Palette, Shield, Sliders, Monitor, Sparkles, Power, CheckCircle2, Move, LayoutGrid } from 'lucide-react';
+import { ThemeMode, NotchStyle, ScreenPosition, PillDisplayContent } from '../../types';
+import { Palette, Shield, Sliders, Monitor, Sparkles, Power, CheckCircle2, Move, LayoutGrid, Eye, Check } from 'lucide-react';
 import { getAutoStartStatus, setAutoStartStatus } from '../../services/platformService';
 
 const THEMES: Array<{ id: ThemeMode; label: string; primary: string; secondary: string; bg: string }> = [
@@ -27,8 +27,20 @@ const POSITIONS: Array<{ id: ScreenPosition; label: string; desc: string }> = [
 const NOTCH_OPTIONS: Array<{ id: NotchStyle; label: string; desc: string }> = [
   { id: 'floating-pill', label: 'Floating Pill', desc: 'Curved island floating below screen edge' },
   { id: 'notch-attached', label: 'Notch Attached', desc: 'MacBook bezel notch with organic inverse curves' },
+  { id: 'chamfered-notch', label: 'Chamfered Notch', desc: 'Futuristic 45° beveled cyber notch' },
+  { id: 'dynamic-wing', label: 'Dynamic Wing', desc: 'Sculpted aero winglets expanding on sides' },
+  { id: 'teardrop-capsule', label: 'Teardrop Capsule', desc: 'Fluid asymmetric organic contour' },
+  { id: 'hex-pill', label: 'Hex HUD Pill', desc: 'Angular hexagonal sci-fi profile' },
   { id: 'squircle-bar', label: 'Squircle Bar', desc: 'Aerodynamic rounded rectangular status bar' },
   { id: 'compact-badge', label: 'Compact Badge', desc: 'Ultra-minimal slim unobtrusive badge' },
+];
+
+const PILL_DISPLAY_OPTIONS: Array<{ id: PillDisplayContent; label: string; desc: string; icon: string }> = [
+  { id: 'smart-auto', label: 'Smart Contextual (Auto)', desc: 'Switches to YouTube/media when playing, live tasks, or system clock', icon: '⚡' },
+  { id: 'media-priority', label: 'Media & YouTube Focus', desc: 'Always displays active track, artist & audio visualizer on collapsed pill', icon: '🎵' },
+  { id: 'telemetry', label: 'Hardware Telemetry Monitor', desc: 'Real-time CPU %, RAM %, and thermals right on the capsule', icon: '📊' },
+  { id: 'clock-weather', label: 'Clock & Weather Zen', desc: 'Minimalist clock with real-time temperature and sky conditions', icon: '⛅' },
+  { id: 'minimal-zen', label: 'Minimal Zen Indicator', desc: 'Subtle breathing beacon with system clock only', icon: '🧘' },
 ];
 
 export const SettingsView: React.FC = () => {
@@ -252,7 +264,48 @@ export const SettingsView: React.FC = () => {
         </div>
       </div>
 
-      {/* Section 4: Hover Physics & Timing */}
+      {/* Section 4: Collapsed Capsule Display on Hover-Off */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--nova-text-secondary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Eye size={13} style={{ color: 'var(--nova-cyan)' }} />
+          <span>COLLAPSED CAPSULE DISPLAY (WHEN HOVERED OFF)</span>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(1, 1fr)', gap: 6 }}>
+          {PILL_DISPLAY_OPTIONS.map((opt) => {
+            const isSelected = (settings.pillDisplayContent || 'smart-auto') === opt.id;
+            return (
+              <button
+                key={opt.id}
+                onClick={() => updateSettings({ pillDisplayContent: opt.id })}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: 'var(--nova-radius-input)',
+                  backgroundColor: isSelected ? 'rgba(56, 189, 248, 0.16)' : 'var(--nova-surface)',
+                  border: isSelected ? '1px solid var(--nova-cyan)' : '1px solid var(--nova-border)',
+                  color: isSelected ? 'var(--nova-text-primary)' : 'var(--nova-text-secondary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                  <span style={{ fontSize: '14px' }}>{opt.icon}</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <span style={{ fontSize: '11px', fontWeight: 600 }}>{opt.label}</span>
+                    <span style={{ fontSize: '9px', color: 'var(--nova-text-muted)' }}>{opt.desc}</span>
+                  </div>
+                </div>
+                {isSelected && <Check size={13} style={{ color: 'var(--nova-cyan)', flexShrink: 0 }} />}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Section 5: Hover Physics & Timing */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--nova-text-secondary)', display: 'flex', alignItems: 'center', gap: 6 }}>
           <Sliders size={13} style={{ color: 'var(--nova-blue)' }} />

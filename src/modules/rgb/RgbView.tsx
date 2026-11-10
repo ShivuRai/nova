@@ -1,7 +1,7 @@
 import React from 'react';
-import { Sparkles, Sliders, Power, Check, ShieldCheck, Palette, Layers } from 'lucide-react';
+import { Sparkles, Sliders, Power, Check, ShieldCheck, Palette, Layers, Zap, Gauge } from 'lucide-react';
 import { useThemeStore } from '../../stores/useThemeStore';
-import { RgbPreset, NotchStyle } from '../../types';
+import { RgbPreset, NotchStyle, EdgeLightingMode, EdgeLightingColor, EdgeLightingSpeed } from '../../types';
 
 interface PresetItem {
   id: RgbPreset;
@@ -23,12 +23,42 @@ const NOTCH_STYLES: Array<{ id: NotchStyle; label: string; desc: string }> = [
   { id: 'notch-attached', label: 'Notch Attached', desc: 'MacBook bezel notch with organic curves' },
   { id: 'squircle-bar', label: 'Squircle Bar', desc: 'Modern curved rectangular bar' },
   { id: 'compact-badge', label: 'Compact Badge', desc: 'Minimalist slim status badge' },
+  { id: 'chamfered-notch', label: 'Chamfered Notch', desc: 'Futuristic 45° beveled cyber notch' },
+  { id: 'dynamic-wing', label: 'Dynamic Wing', desc: 'Sculpted aero winglets on sides' },
+  { id: 'teardrop-capsule', label: 'Teardrop Capsule', desc: 'Fluid asymmetric organic contour' },
+  { id: 'hex-pill', label: 'Hex HUD Pill', desc: 'Angular hexagonal sci-fi profile' },
+];
+
+const EDGE_MODES: Array<{ id: EdgeLightingMode; label: string; desc: string }> = [
+  { id: 'continuous', label: 'Continuous Stream', desc: 'Perpetual perimeter border flow around edges' },
+  { id: 'corners-inward', label: 'Corners Inward', desc: 'Dual beams sweeping from both corners inward' },
+  { id: 'center-outward', label: 'Center Outward', desc: 'Central radiant pulse flowing outward to corners' },
+  { id: 'breathing-glow', label: 'Breathing Rim', desc: 'Gentle organic breathing illumination' },
+  { id: 'off', label: 'Edge Light Off', desc: 'Clean minimal border without animation' },
+];
+
+const EDGE_COLORS: Array<{ id: EdgeLightingColor; label: string; dot: string }> = [
+  { id: 'cyan-pulse', label: 'Cyber Cyan', dot: '#38BDF8' },
+  { id: 'emerald-beam', label: 'Emerald Mint', dot: '#10B981' },
+  { id: 'sunset-flare', label: 'Sunset Amber', dot: '#F59E0B' },
+  { id: 'violet-aurora', label: 'Electric Violet', dot: '#8B5CF6' },
+  { id: 'pure-white', label: 'Platinum White', dot: '#FFFFFF' },
+  { id: 'chromatic', label: 'Chromatic', dot: 'linear-gradient(135deg, #60A5FA, #F43F5E, #34D399)' },
+];
+
+const EDGE_SPEEDS: Array<{ id: EdgeLightingSpeed; label: string }> = [
+  { id: 'slow', label: 'Calm (Slow)' },
+  { id: 'normal', label: 'Smooth (Normal)' },
+  { id: 'fast', label: 'Vibrant (Fast)' },
 ];
 
 export const RgbView: React.FC = () => {
   const { settings, updateSettings } = useThemeStore();
   const isRgbActive = settings.enableRgbBorder || settings.themeMode === 'rgb';
   const currentPreset = settings.rgbPreset || 'rainbow';
+  const currentEdgeMode = settings.edgeLightingMode || 'continuous';
+  const currentEdgeColor = settings.edgeLightingColor || 'cyan-pulse';
+  const currentEdgeSpeed = settings.edgeLightingSpeed || 'normal';
 
   const handleToggleRgb = (enable: boolean) => {
     if (enable) {
@@ -122,11 +152,131 @@ export const RgbView: React.FC = () => {
         </div>
       </div>
 
+      {/* Minimalistic Edge Lightings Section */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ fontSize: '11px', color: 'var(--nova-text-secondary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Zap size={12} style={{ color: 'var(--nova-blue)' }} />
+          <span>MINIMALISTIC EDGE LIGHTING ANIMATIONS</span>
+        </div>
+
+        {/* Edge Animation Style Picker */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+          {EDGE_MODES.map((em) => {
+            const isSelected = currentEdgeMode === em.id;
+            return (
+              <button
+                key={em.id}
+                onClick={() => updateSettings({ edgeLightingMode: em.id })}
+                style={{
+                  padding: '8px 10px',
+                  borderRadius: 'var(--nova-radius-input)',
+                  backgroundColor: isSelected ? 'rgba(56, 189, 248, 0.18)' : 'var(--nova-surface)',
+                  border: isSelected ? '1px solid var(--nova-cyan)' : '1px solid var(--nova-border)',
+                  color: isSelected ? 'var(--nova-cyan)' : 'var(--nova-text-secondary)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 2,
+                  alignItems: 'flex-start',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 600 }}>{em.label}</span>
+                  {isSelected && <Check size={11} style={{ color: 'var(--nova-cyan)' }} />}
+                </div>
+                <span style={{ fontSize: '9px', color: 'var(--nova-text-muted)' }}>{em.desc}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Edge Color & Speed Row */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 4 }}>
+          {/* Edge Colors */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <span style={{ fontSize: '10px', color: 'var(--nova-text-muted)', fontWeight: 600 }}>
+              EDGE ILLUMINATION COLOR
+            </span>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
+              {EDGE_COLORS.map((ec) => {
+                const isSelected = currentEdgeColor === ec.id;
+                return (
+                  <button
+                    key={ec.id}
+                    onClick={() => updateSettings({ edgeLightingColor: ec.id })}
+                    style={{
+                      padding: '4px 6px',
+                      borderRadius: 6,
+                      backgroundColor: isSelected ? 'rgba(255, 255, 255, 0.12)' : 'var(--nova-surface)',
+                      border: isSelected ? '1px solid var(--nova-blue)' : '1px solid var(--nova-border)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 5,
+                      cursor: 'pointer',
+                      fontSize: '9px',
+                      color: 'var(--nova-text-secondary)',
+                    }}
+                    title={ec.label}
+                  >
+                    <span
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: '50%',
+                        background: ec.dot,
+                        flexShrink: 0,
+                      }}
+                    />
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {ec.label.split(' ')[0]}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Edge Speed */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <span style={{ fontSize: '10px', color: 'var(--nova-text-muted)', fontWeight: 600 }}>
+              BEAM ANIMATION SPEED
+            </span>
+            <div style={{ display: 'flex', gap: 4 }}>
+              {EDGE_SPEEDS.map((es) => {
+                const isSelected = currentEdgeSpeed === es.id;
+                return (
+                  <button
+                    key={es.id}
+                    onClick={() => updateSettings({ edgeLightingSpeed: es.id })}
+                    style={{
+                      flex: 1,
+                      padding: '5px 4px',
+                      borderRadius: 6,
+                      backgroundColor: isSelected ? 'var(--nova-blue)' : 'var(--nova-surface)',
+                      color: isSelected ? '#fff' : 'var(--nova-text-secondary)',
+                      border: isSelected ? '1px solid var(--nova-blue)' : '1px solid var(--nova-border)',
+                      fontSize: '9px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      textAlign: 'center',
+                    }}
+                  >
+                    {es.label.split(' ')[0]}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Colorway Presets Grid */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         <div style={{ fontSize: '11px', color: 'var(--nova-text-secondary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
           <Palette size={12} style={{ color: 'var(--nova-cyan)' }} />
-          <span>COLORWAY SPECTRUM PRESETS</span>
+          <span>FULL SPECTRUM RGB PRESETS</span>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
           {PRESETS.map((p) => {
@@ -178,7 +328,7 @@ export const RgbView: React.FC = () => {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         <div style={{ fontSize: '11px', color: 'var(--nova-text-secondary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
           <Layers size={12} style={{ color: 'var(--nova-violet)' }} />
-          <span>CAPSULE SHAPE & BEZEL ATTACHMENT</span>
+          <span>CAPSULE SHAPE & BEZEL ATTACHMENT (8 SHAPES)</span>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
           {NOTCH_STYLES.map((ns) => {
@@ -199,9 +349,13 @@ export const RgbView: React.FC = () => {
                   alignItems: 'flex-start',
                   textAlign: 'left',
                   cursor: 'pointer',
+                  transition: 'all 0.15s ease',
                 }}
               >
-                <span style={{ fontSize: '11px', fontWeight: 600 }}>{ns.label}</span>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 600 }}>{ns.label}</span>
+                  {isSelected && <Check size={11} style={{ color: 'var(--nova-violet)' }} />}
+                </div>
                 <span style={{ fontSize: '9px', color: 'var(--nova-text-muted)' }}>{ns.desc}</span>
               </button>
             );

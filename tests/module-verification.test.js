@@ -126,3 +126,41 @@ test('Verification 6: Desktop Executable and Security Manifest check', () => {
   const secDoc = path.join(projectRoot, 'SECURITY_AND_VERIFICATION.md');
   assert.strictEqual(fs.existsSync(secDoc), true, 'SECURITY_AND_VERIFICATION.md must exist');
 });
+
+test('Verification 7: Media inspector and control scripts check', () => {
+  const mediaScript = path.join(projectRoot, 'scripts', 'get-media.ps1');
+  const controlScript = path.join(projectRoot, 'scripts', 'control-media.ps1');
+  assert.strictEqual(fs.existsSync(mediaScript), true, 'scripts/get-media.ps1 must exist');
+  assert.strictEqual(fs.existsSync(controlScript), true, 'scripts/control-media.ps1 must exist');
+
+  const content = fs.readFileSync(mediaScript, 'utf8');
+  assert.strictEqual(content.includes('GlobalSystemMediaTransportControlsSessionManager'), true);
+  assert.strictEqual(content.includes('MakeGenericMethod'), true);
+});
+
+test('Verification 8: Extended 8 Notch Styles and Minimalistic Edge Lightings check', () => {
+  const typesPath = path.join(projectRoot, 'src', 'types', 'index.ts');
+  const typesContent = fs.readFileSync(typesPath, 'utf8');
+
+  // Verify all 8 shapes
+  const expectedShapes = [
+    'floating-pill',
+    'notch-attached',
+    'squircle-bar',
+    'compact-badge',
+    'chamfered-notch',
+    'dynamic-wing',
+    'teardrop-capsule',
+    'hex-pill',
+  ];
+  for (const s of expectedShapes) {
+    assert.strictEqual(typesContent.includes(`'${s}'`), true, `Notch style ${s} must be defined`);
+  }
+
+  // Verify edge lighting types
+  assert.strictEqual(typesContent.includes('EdgeLightingMode'), true);
+  assert.strictEqual(typesContent.includes('corners-inward'), true);
+  assert.strictEqual(typesContent.includes('continuous'), true);
+  assert.strictEqual(typesContent.includes('center-outward'), true);
+  assert.strictEqual(typesContent.includes('PillDisplayContent'), true);
+});

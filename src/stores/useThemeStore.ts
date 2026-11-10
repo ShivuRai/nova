@@ -13,6 +13,10 @@ const DEFAULT_SETTINGS: AppearanceSettings = {
   enableRgbBorder: false,
   enableGlow: true,
   rgbPreset: 'rainbow',
+  edgeLightingMode: 'continuous',
+  edgeLightingColor: 'cyan-pulse',
+  edgeLightingSpeed: 'normal',
+  pillDisplayContent: 'smart-auto',
   pillWidth: 230,
   pillHeight: 38,
   expandedWidth: 640,
@@ -22,7 +26,16 @@ const DEFAULT_SETTINGS: AppearanceSettings = {
 };
 
 // Valid notch styles for sanitation
-const VALID_NOTCH_STYLES: NotchStyle[] = ['floating-pill', 'notch-attached', 'squircle-bar', 'compact-badge'];
+const VALID_NOTCH_STYLES: NotchStyle[] = [
+  'floating-pill',
+  'notch-attached',
+  'squircle-bar',
+  'compact-badge',
+  'chamfered-notch',
+  'dynamic-wing',
+  'teardrop-capsule',
+  'hex-pill',
+];
 
 // Load saved settings if present
 const getSavedSettings = (): AppearanceSettings => {

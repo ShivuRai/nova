@@ -21,7 +21,11 @@ export const IslandPillContent: React.FC<{ isCompact?: boolean }> = ({ isCompact
     return () => clearInterval(timer);
   }, []);
 
-  const isNotch = settings.notchStyle === 'notch-attached';
+  const isNotch =
+    (settings.notchStyle === 'notch-attached' || settings.notchStyle === 'chamfered-notch') &&
+    !settings.screenPosition?.startsWith('bottom');
+
+  const pillContentMode = settings.pillDisplayContent || 'smart-auto';
 
   return (
     <>
@@ -40,8 +44,8 @@ export const IslandPillContent: React.FC<{ isCompact?: boolean }> = ({ isCompact
         />
       )}
 
-      {/* Live Activity or Media or Default Status */}
-      {liveActivity ? (
+      {/* Render based on user-configured pillDisplayContent mode */}
+      {liveActivity && pillContentMode !== 'minimal-zen' ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}>
           <div style={{ color: 'var(--nova-blue)' }}>
             {liveActivity.type === 'music' && <Music size={14} />}
@@ -63,43 +67,149 @@ export const IslandPillContent: React.FC<{ isCompact?: boolean }> = ({ isCompact
             {liveActivity.title}
           </span>
         </div>
-      ) : media.isPlaying ? (
+      ) : pillContentMode === 'media-priority' ||
+        (pillContentMode === 'smart-auto' && (media.isPlaying || media.title)) ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}>
-          <div style={{ color: 'var(--nova-cyan)', display: 'flex', alignItems: 'center' }}>
-            <Music size={13} style={{ marginRight: 4 }} />
-            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 10 }}>
-              <motion.span
-                animate={{ height: ['4px', '11px', '4px'] }}
-                transition={{ duration: 0.7, repeat: Infinity }}
-                style={{ width: 2, backgroundColor: 'var(--nova-cyan)', borderRadius: 1 }}
-              />
-              <motion.span
-                animate={{ height: ['9px', '3px', '9px'] }}
-                transition={{ duration: 0.5, repeat: Infinity }}
-                style={{ width: 2, backgroundColor: 'var(--nova-blue)', borderRadius: 1 }}
-              />
-              <motion.span
-                animate={{ height: ['3px', '10px', '3px'] }}
-                transition={{ duration: 0.6, repeat: Infinity }}
-                style={{ width: 2, backgroundColor: 'var(--nova-violet)', borderRadius: 1 }}
-              />
-            </div>
-          </div>
-          <span
+          <div
             style={{
-              fontSize: '11px',
-              fontWeight: 500,
-              color: 'var(--nova-text-primary)',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              maxWidth: 160,
+              color: media.isPlaying ? 'var(--nova-cyan)' : 'var(--nova-text-muted)',
+              display: 'flex',
+              alignItems: 'center',
             }}
           >
-            {media.title}
-          </span>
+            <Music size={13} style={{ marginRight: 4 }} />
+            {media.isPlaying ? (
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 10 }}>
+                <motion.span
+                  animate={{ height: ['4px', '11px', '4px'] }}
+                  transition={{ duration: 0.7, repeat: Infinity }}
+                  style={{ width: 2, backgroundColor: 'var(--nova-cyan)', borderRadius: 1 }}
+                />
+                <motion.span
+                  animate={{ height: ['9px', '3px', '9px'] }}
+                  transition={{ duration: 0.5, repeat: Infinity }}
+                  style={{ width: 2, backgroundColor: 'var(--nova-blue)', borderRadius: 1 }}
+                />
+                <motion.span
+                  animate={{ height: ['3px', '10px', '3px'] }}
+                  transition={{ duration: 0.6, repeat: Infinity }}
+                  style={{ width: 2, backgroundColor: 'var(--nova-violet)', borderRadius: 1 }}
+                />
+              </div>
+            ) : (
+              <span style={{ fontSize: '9px', opacity: 0.8 }}>⏸</span>
+            )}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', maxWidth: 175 }}>
+            <span
+              style={{
+                fontSize: '11px',
+                fontWeight: 600,
+                color: media.isPlaying ? 'var(--nova-text-primary)' : 'var(--nova-text-secondary)',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              {media.title || 'Ready for YouTube / Media'}
+            </span>
+            {media.title && (
+              <span
+                style={{
+                  fontSize: '9px',
+                  color: 'var(--nova-text-muted)',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                {media.isPlaying ? (media.artist || 'Web Media') : `(Paused) ${media.artist || ''}`}
+              </span>
+            )}
+          </div>
+        </div>
+      ) : pillContentMode === 'telemetry' ? (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            width: '100%',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <motion.span
+              animate={{ scale: [1, 1.25, 1], opacity: [0.7, 1, 0.7] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: '50%',
+                backgroundColor: 'var(--nova-cyan)',
+                display: 'inline-block',
+              }}
+            />
+            <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--nova-text-primary)' }}>
+              SYS
+            </span>
+          </div>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              fontSize: '10px',
+              color: 'var(--nova-text-secondary)',
+              fontFamily: 'var(--font-mono)',
+            }}
+          >
+            <span style={{ display: 'flex', alignItems: 'center', gap: 2, color: 'var(--nova-blue)' }}>
+              <Cpu size={10} /> {metrics.cpuUsagePercent}%
+            </span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 2, color: 'var(--nova-cyan)' }}>
+              <Activity size={10} /> {metrics.ramUsagePercent}%
+            </span>
+            <span style={{ color: 'var(--nova-text-muted)' }}>{metrics.cpuTempCelsius}°C</span>
+          </div>
+        </div>
+      ) : pillContentMode === 'clock-weather' ? (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            width: '100%',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--nova-text-primary)' }}>
+              NOVA
+            </span>
+            <span
+              style={{
+                fontSize: '11px',
+                fontWeight: 500,
+                color: 'var(--nova-text-muted)',
+                fontFamily: 'var(--font-mono)',
+              }}
+            >
+              {time}
+            </span>
+          </div>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              fontSize: '10px',
+              color: 'var(--nova-text-secondary)',
+            }}
+          >
+            <span>☀️ 22°C</span>
+          </div>
         </div>
       ) : (
+        /* Default and minimal-zen */
         <div
           style={{
             display: 'flex',
@@ -145,7 +255,7 @@ export const IslandPillContent: React.FC<{ isCompact?: boolean }> = ({ isCompact
           </div>
 
           {/* Right Live Hardware Telemetry */}
-          {!isCompact && (
+          {!isCompact && pillContentMode !== 'minimal-zen' && (
             <div
               style={{
                 display: 'flex',
@@ -190,20 +300,33 @@ export const IslandPill: React.FC<IslandPillProps> = ({
 
   const isRgb = settings.enableRgbBorder || settings.themeMode === 'rgb';
   const isBottom = settings.screenPosition?.startsWith('bottom');
-  const isNotch = settings.notchStyle === 'notch-attached' && !isBottom;
+  const isNotch =
+    (settings.notchStyle === 'notch-attached' || settings.notchStyle === 'chamfered-notch') &&
+    !isBottom;
   const isSquircle = settings.notchStyle === 'squircle-bar';
   const isCompact = settings.notchStyle === 'compact-badge';
+  const isChamfered = settings.notchStyle === 'chamfered-notch';
+  const isTeardrop = settings.notchStyle === 'teardrop-capsule';
+  const isHexPill = settings.notchStyle === 'hex-pill';
 
   let borderRadius: string | number = 9999;
-  if (isNotch) {
-    borderRadius = '0 0 22px 22px';
+  if (isChamfered) {
+    borderRadius = isBottom ? '16px 16px 0 0' : '0 0 16px 16px';
+  } else if (isNotch) {
+    borderRadius = isBottom ? '22px 22px 0 0' : '0 0 22px 22px';
   } else if (isSquircle) {
     borderRadius = '14px';
+  } else if (isTeardrop) {
+    borderRadius = '22px 8px 22px 18px';
+  } else if (isHexPill) {
+    borderRadius = '12px';
   }
 
   const effectiveWidth = isCompact
     ? 170
-    : liveActivity || media.isPlaying
+    : liveActivity || media.isPlaying || (settings.pillDisplayContent === 'media-priority' && media.title)
+    ? 270
+    : settings.pillDisplayContent === 'telemetry'
     ? 260
     : settings.pillWidth;
 

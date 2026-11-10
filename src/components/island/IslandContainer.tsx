@@ -153,14 +153,22 @@ export const IslandContainer: React.FC = () => {
   const isBottom = settings.screenPosition?.startsWith('bottom');
   const isLeft = settings.screenPosition?.endsWith('left');
   const isRight = settings.screenPosition?.endsWith('right');
-  const isNotch = settings.notchStyle === 'notch-attached' && !isBottom;
+  const isNotch =
+    (settings.notchStyle === 'notch-attached' || settings.notchStyle === 'chamfered-notch') &&
+    !isBottom;
   const isSquircle = settings.notchStyle === 'squircle-bar';
   const isCompact = settings.notchStyle === 'compact-badge';
+  const isChamfered = settings.notchStyle === 'chamfered-notch';
+  const isDynamicWing = settings.notchStyle === 'dynamic-wing';
+  const isTeardrop = settings.notchStyle === 'teardrop-capsule';
+  const isHexPill = settings.notchStyle === 'hex-pill';
   const isRgb = settings.enableRgbBorder || settings.themeMode === 'rgb';
 
   const effectivePillWidth = isCompact
     ? 170
-    : liveActivity || media.isPlaying
+    : liveActivity || media.isPlaying || (settings.pillDisplayContent === 'media-priority' && media.title)
+    ? 270
+    : settings.pillDisplayContent === 'telemetry'
     ? 260
     : settings.pillWidth;
   const effectivePillHeight = isCompact ? 32 : settings.pillHeight;
@@ -170,27 +178,46 @@ export const IslandContainer: React.FC = () => {
 
   // Use explicit matching pixel strings so Framer Motion interpolates cleanly without getting stuck in an oval
   let currentRadius = '20px';
-  if (isNotch) {
+  if (isChamfered) {
+    currentRadius = isExpanded ? '24px' : '0 0 16px 16px';
+  } else if (isNotch) {
     currentRadius = isExpanded ? '0 0 24px 24px' : '0 0 20px 20px';
   } else if (isSquircle) {
     currentRadius = isExpanded ? '24px' : '14px';
   } else if (isCompact) {
     currentRadius = isExpanded ? '24px' : '16px';
+  } else if (isTeardrop) {
+    currentRadius = isExpanded ? '24px' : '22px 8px 22px 18px';
+  } else if (isHexPill) {
+    currentRadius = isExpanded ? '24px' : '12px';
   } else {
     // Floating Pill: 20px when collapsed (perfect pill), 24px when expanded (crisp modern card)
     currentRadius = isExpanded ? '24px' : '20px';
   }
 
   let glowRadius = '24px';
-  if (isNotch) {
+  if (isChamfered || isNotch) {
     glowRadius = isExpanded ? '0 0 28px 28px' : '0 0 24px 24px';
   } else if (isSquircle) {
     glowRadius = isExpanded ? '28px' : '18px';
   } else if (isCompact) {
     glowRadius = isExpanded ? '28px' : '20px';
+  } else if (isTeardrop) {
+    glowRadius = isExpanded ? '28px' : '24px 12px 24px 20px';
+  } else if (isHexPill) {
+    glowRadius = isExpanded ? '28px' : '16px';
   } else {
     glowRadius = isExpanded ? '28px' : '24px';
   }
+
+  const EDGE_GRADIENTS: Record<string, string> = {
+    'cyan-pulse': 'linear-gradient(90deg, #38BDF8, #3B82F6, #60A5FA, #38BDF8)',
+    'emerald-beam': 'linear-gradient(90deg, #10B981, #34D399, #06B6D4, #10B981)',
+    'sunset-flare': 'linear-gradient(90deg, #F59E0B, #F43F5E, #EC4899, #F59E0B)',
+    'violet-aurora': 'linear-gradient(90deg, #8B5CF6, #A855F7, #EC4899, #8B5CF6)',
+    'pure-white': 'linear-gradient(90deg, rgba(255,255,255,0.95), rgba(255,255,255,0.25), rgba(255,255,255,0.95))',
+    'chromatic': 'linear-gradient(90deg, #60A5FA, #A78BFA, #F43F5E, #38BDF8, #34D399, #60A5FA)',
+  };
 
   const justifyContent = isLeft ? 'flex-start' : isRight ? 'flex-end' : 'center';
   const alignItems = isBottom ? 'flex-end' : 'flex-start';
@@ -251,8 +278,8 @@ export const IslandContainer: React.FC = () => {
           />
         )}
 
-        {/* Left Notch Bezel Ear */}
-        {isNotch && (
+        {/* Left Notch Bezel Ear (Curved) */}
+        {settings.notchStyle === 'notch-attached' && !isBottom && (
           <svg
             width="16"
             height="16"
@@ -273,8 +300,8 @@ export const IslandContainer: React.FC = () => {
           </svg>
         )}
 
-        {/* Right Notch Bezel Ear */}
-        {isNotch && (
+        {/* Right Notch Bezel Ear (Curved) */}
+        {settings.notchStyle === 'notch-attached' && !isBottom && (
           <svg
             width="16"
             height="16"
@@ -293,6 +320,88 @@ export const IslandContainer: React.FC = () => {
               fill={isExpanded ? 'var(--nova-surface-glass)' : 'var(--nova-pill-bg)'}
             />
           </svg>
+        )}
+
+        {/* Chamfered Notch Ears */}
+        {isChamfered && !isBottom && (
+          <>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: `calc(50% - ${currentWidth / 2}px - 16px)`,
+                pointerEvents: 'none',
+                zIndex: 1,
+                transition: 'left 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)',
+              }}
+            >
+              <path
+                d="M 0,0 L 16,0 L 16,16 Z"
+                fill={isExpanded ? 'var(--nova-surface-glass)' : 'var(--nova-pill-bg)'}
+              />
+            </svg>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              style={{
+                position: 'absolute',
+                top: 0,
+                right: `calc(50% - ${currentWidth / 2}px - 16px)`,
+                pointerEvents: 'none',
+                zIndex: 1,
+                transition: 'right 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)',
+              }}
+            >
+              <path
+                d="M 16,0 L 0,0 L 0,16 Z"
+                fill={isExpanded ? 'var(--nova-surface-glass)' : 'var(--nova-pill-bg)'}
+              />
+            </svg>
+          </>
+        )}
+
+        {/* Dynamic Wing Aero Tabs */}
+        {isDynamicWing && !isExpanded && (
+          <>
+            <div
+              style={{
+                position: 'absolute',
+                top: '50%',
+                left: `calc(50% - ${currentWidth / 2}px - 8px)`,
+                transform: 'translateY(-50%)',
+                width: 8,
+                height: 16,
+                backgroundColor: 'var(--nova-pill-bg)',
+                borderLeft: '1px solid var(--nova-border)',
+                borderTop: '1px solid var(--nova-border)',
+                borderBottom: '1px solid var(--nova-border)',
+                borderRadius: '8px 0 0 8px',
+                pointerEvents: 'none',
+                zIndex: 1,
+              }}
+            />
+            <div
+              style={{
+                position: 'absolute',
+                top: '50%',
+                right: `calc(50% - ${currentWidth / 2}px - 8px)`,
+                transform: 'translateY(-50%)',
+                width: 8,
+                height: 16,
+                backgroundColor: 'var(--nova-pill-bg)',
+                borderRight: '1px solid var(--nova-border)',
+                borderTop: '1px solid var(--nova-border)',
+                borderBottom: '1px solid var(--nova-border)',
+                borderRadius: '0 8px 8px 0',
+                pointerEvents: 'none',
+                zIndex: 1,
+              }}
+            />
+          </>
         )}
 
         {/* Master Single Island Capsule */}
@@ -324,6 +433,17 @@ export const IslandContainer: React.FC = () => {
           }}
           className={isRgb ? 'rgb-border' : ''}
         >
+          {/* Minimalistic Edge Lighting Overlay */}
+          {settings.edgeLightingMode && settings.edgeLightingMode !== 'off' && (
+            <div
+              className={`edge-lighting-trail mode-${settings.edgeLightingMode} speed-${settings.edgeLightingSpeed || 'normal'}`}
+              style={{
+                background:
+                  EDGE_GRADIENTS[settings.edgeLightingColor || 'cyan-pulse'] ||
+                  EDGE_GRADIENTS['cyan-pulse'],
+              }}
+            />
+          )}
           <AnimatePresence mode="wait">
             {!isExpanded ? (
               <motion.div

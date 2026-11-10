@@ -26,7 +26,7 @@ export const HomeView: React.FC = () => {
     if (typeof window !== 'undefined' && (window as any).require) {
       try {
         const { ipcRenderer } = (window as any).require('electron');
-        ipcRenderer.send('control-media', action);
+        ipcRenderer.send('control-media', action === 'play-pause' ? 'toggle' : action);
       } catch (e) {}
     }
     if (action === 'play-pause') {
@@ -34,7 +34,11 @@ export const HomeView: React.FC = () => {
     }
   };
 
-  const isYouTube = media.title?.toLowerCase().includes('youtube') || media.artist?.toLowerCase().includes('youtube');
+  const hasMedia = Boolean(media.title);
+  const isYouTube =
+    media.title?.toLowerCase().includes('youtube') ||
+    media.artist?.toLowerCase().includes('youtube') ||
+    media.album?.toLowerCase().includes('chrome');
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -83,7 +87,11 @@ export const HomeView: React.FC = () => {
           style={{
             padding: 12,
             backgroundColor: 'var(--nova-surface)',
-            border: media.isPlaying ? '1px solid var(--nova-blue)' : '1px solid var(--nova-border)',
+            border: media.isPlaying
+              ? '1px solid var(--nova-blue)'
+              : hasMedia
+              ? '1px solid rgba(56, 189, 248, 0.3)'
+              : '1px solid var(--nova-border)',
             borderRadius: 'var(--nova-radius-widget)',
             display: 'flex',
             flexDirection: 'column',
@@ -98,7 +106,11 @@ export const HomeView: React.FC = () => {
                 width: 36,
                 height: 36,
                 borderRadius: 8,
-                backgroundColor: media.isPlaying ? 'rgba(56, 189, 248, 0.18)' : 'rgba(102, 136, 255, 0.12)',
+                backgroundColor: media.isPlaying
+                  ? 'rgba(56, 189, 248, 0.18)'
+                  : hasMedia
+                  ? 'rgba(102, 136, 255, 0.12)'
+                  : 'rgba(255, 255, 255, 0.04)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -116,7 +128,7 @@ export const HomeView: React.FC = () => {
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
-                  color: media.isPlaying ? 'var(--nova-text-primary)' : 'var(--nova-text-secondary)',
+                  color: hasMedia ? 'var(--nova-text-primary)' : 'var(--nova-text-secondary)',
                 }}
               >
                 {media.title || 'No Media Playing'}
@@ -131,7 +143,11 @@ export const HomeView: React.FC = () => {
                   marginTop: 1,
                 }}
               >
-                {media.isPlaying ? (media.artist || 'Web Playback') : 'YouTube / Spotify will auto-detect'}
+                {hasMedia
+                  ? media.isPlaying
+                    ? media.artist || 'Web Playback'
+                    : `${media.artist || 'Web Media'} • Paused`
+                  : 'YouTube / Spotify will auto-detect'}
               </div>
             </div>
           </div>

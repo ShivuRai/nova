@@ -99,7 +99,15 @@ export type ThemeMode =
   | 'sunset'
   | 'vivid';
 
-export type NotchStyle = 'floating-pill' | 'notch-attached' | 'squircle-bar' | 'compact-badge';
+export type NotchStyle =
+  | 'floating-pill'
+  | 'notch-attached'
+  | 'squircle-bar'
+  | 'compact-badge'
+  | 'chamfered-notch'
+  | 'dynamic-wing'
+  | 'teardrop-capsule'
+  | 'hex-pill';
 
 export type ScreenPosition =
   | 'top-center'
@@ -111,6 +119,30 @@ export type ScreenPosition =
 
 export type RgbPreset = 'rainbow' | 'cyberpunk' | 'sunset' | 'oceanic' | 'aurora';
 
+export type EdgeLightingMode =
+  | 'corners-inward'
+  | 'continuous'
+  | 'center-outward'
+  | 'breathing-glow'
+  | 'off';
+
+export type EdgeLightingColor =
+  | 'cyan-pulse'
+  | 'emerald-beam'
+  | 'sunset-flare'
+  | 'violet-aurora'
+  | 'pure-white'
+  | 'chromatic';
+
+export type EdgeLightingSpeed = 'slow' | 'normal' | 'fast';
+
+export type PillDisplayContent =
+  | 'smart-auto'
+  | 'media-priority'
+  | 'telemetry'
+  | 'clock-weather'
+  | 'minimal-zen';
+
 export interface AppearanceSettings {
   themeMode: ThemeMode;
   notchStyle: NotchStyle;
@@ -118,6 +150,10 @@ export interface AppearanceSettings {
   enableRgbBorder: boolean;
   enableGlow: boolean;
   rgbPreset?: RgbPreset;
+  edgeLightingMode?: EdgeLightingMode;
+  edgeLightingColor?: EdgeLightingColor;
+  edgeLightingSpeed?: EdgeLightingSpeed;
+  pillDisplayContent?: PillDisplayContent;
   pillWidth: number;
   pillHeight: number;
   expandedWidth: number;

@@ -183,15 +183,16 @@ function createWindow() {
       let targetX, targetY;
       const pos = position || 'top-center';
       const margin = 12;
+      const isTopAttached = notchStyle === 'notch-attached' || notchStyle === 'chamfered-notch';
 
       switch (pos) {
         case 'top-left':
           targetX = margin;
-          targetY = notchStyle === 'notch-attached' ? 0 : margin;
+          targetY = isTopAttached ? 0 : margin;
           break;
         case 'top-right':
           targetX = screenWidth - winW - margin;
-          targetY = notchStyle === 'notch-attached' ? 0 : margin;
+          targetY = isTopAttached ? 0 : margin;
           break;
         case 'bottom-center':
           targetX = Math.round((screenWidth - winW) / 2);
@@ -208,7 +209,7 @@ function createWindow() {
         case 'top-center':
         default:
           targetX = Math.round((screenWidth - winW) / 2);
-          targetY = notchStyle === 'notch-attached' ? 0 : 8;
+          targetY = isTopAttached ? 0 : 8;
           break;
       }
 
@@ -254,20 +255,35 @@ function createWindow() {
     );
   }
 
-  // Poll every 2 seconds
-  const mediaInterval = setInterval(pollMedia, 2000);
-  setTimeout(pollMedia, 1000);
+  // Poll media every 1.5 seconds for instant YouTube & audio response
+  const mediaInterval = setInterval(pollMedia, 1500);
+  setTimeout(pollMedia, 800);
 
-  // IPC media playback hardware keystroke controls
+  // IPC media playback controls (Windows SMTC & Keystroke fallback)
   ipcMain.on('control-media', (event, action) => {
-    let key = '179'; // VK_MEDIA_PLAY_PAUSE
-    if (action === 'next') key = '176'; // VK_MEDIA_NEXT_TRACK
-    if (action === 'prev') key = '177'; // VK_MEDIA_PREV_TRACK
+    let scriptPath = path.join(__dirname, 'scripts', 'control-media.ps1');
+    if (!fs.existsSync(scriptPath)) {
+      scriptPath = path.join(__dirname, '..', 'scripts', 'control-media.ps1');
+    }
 
-    const psCommand = `(New-Object -ComObject WScript.Shell).SendKeys([char]${key})`;
-    execFile('powershell.exe', ['-NoProfile', '-Command', psCommand], { windowsHide: true }, () => {});
-    // Trigger immediate re-poll after action
-    setTimeout(pollMedia, 500);
+    if (fs.existsSync(scriptPath)) {
+      execFile(
+        'powershell.exe',
+        ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', scriptPath, '-Action', action],
+        { timeout: 2000, windowsHide: true },
+        () => {
+          setTimeout(pollMedia, 300);
+        }
+      );
+    } else {
+      let key = '179'; // VK_MEDIA_PLAY_PAUSE
+      if (action === 'next') key = '176'; // VK_MEDIA_NEXT_TRACK
+      if (action === 'prev') key = '177'; // VK_MEDIA_PREV_TRACK
+      const psCommand = `(New-Object -ComObject WScript.Shell).SendKeys([char]${key})`;
+      execFile('powershell.exe', ['-NoProfile', '-Command', psCommand], { windowsHide: true }, () => {
+        setTimeout(pollMedia, 300);
+      });
+    }
   });
 
   // Windows Auto-Start / Login Item IPC
