@@ -1,165 +1,336 @@
 import React, { useState } from 'react';
-import { Volume2, VolumeX, Sun, Wifi, Bluetooth, Moon, Settings, Monitor, Shield } from 'lucide-react';
+import {
+  Volume2,
+  VolumeX,
+  Volume1,
+  Wifi,
+  Bluetooth,
+  Moon,
+  Monitor,
+  Scissors,
+  Activity,
+  Calculator,
+  Lock,
+  Settings,
+  CheckCircle2,
+  Sliders,
+} from 'lucide-react';
+import { runQuickAction } from '../../services/platformService';
 
 export const QuickSettingsView: React.FC = () => {
-  const [volume, setVolume] = useState<number>(75);
-  const [brightness, setBrightness] = useState<number>(80);
-  const [isMuted, setIsMuted] = useState<boolean>(false);
-  const [wifiEnabled, setWifiEnabled] = useState<boolean>(true);
-  const [btEnabled, setBtEnabled] = useState<boolean>(true);
-  const [nightLight, setNightLight] = useState<boolean>(false);
+  const [feedback, setFeedback] = useState<string | null>(null);
+
+  const triggerAction = async (action: string, label: string) => {
+    setFeedback(`Triggered: ${label}`);
+    try {
+      await runQuickAction(action);
+    } catch (e) {
+      console.warn('Quick action error:', e);
+    }
+    setTimeout(() => {
+      setFeedback((current) => (current?.includes(label) ? null : current));
+    }, 2400);
+  };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, height: 320 }}>
-      {/* Quick Toggles Grid */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, height: 320, boxSizing: 'border-box' }}>
+      {/* Header with real-time feedback toast */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ fontSize: '11px', color: 'var(--nova-text-secondary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Sliders size={13} style={{ color: 'var(--nova-blue)' }} />
+          <span>WINDOWS SYSTEM QUICK ACTIONS</span>
+        </div>
+        {feedback && (
+          <div
+            style={{
+              fontSize: '10px',
+              color: 'var(--nova-success)',
+              backgroundColor: 'rgba(74, 222, 128, 0.12)',
+              padding: '2px 8px',
+              borderRadius: 12,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              fontWeight: 500,
+            }}
+          >
+            <CheckCircle2 size={11} />
+            <span>{feedback}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Main Connectivity Toggles */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
         <button
-          onClick={() => setWifiEnabled(!wifiEnabled)}
+          onClick={() => triggerAction('open-wifi', 'Wi-Fi Networks')}
           style={{
             padding: '10px 12px',
-            backgroundColor: wifiEnabled ? 'rgba(102, 136, 255, 0.2)' : 'var(--nova-surface)',
-            border: wifiEnabled ? '1px solid var(--nova-blue)' : '1px solid var(--nova-border)',
+            backgroundColor: 'rgba(102, 136, 255, 0.12)',
+            border: '1px solid rgba(102, 136, 255, 0.3)',
             borderRadius: 'var(--nova-radius-widget)',
             display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            fontSize: '11px',
-            fontWeight: 600,
-            color: wifiEnabled ? 'var(--nova-blue)' : 'var(--nova-text-secondary)',
+            flexDirection: 'column',
+            alignItems: 'flex-start',
+            gap: 6,
+            cursor: 'pointer',
+            textAlign: 'left',
           }}
         >
-          <Wifi size={15} />
-          <span>Wi-Fi {wifiEnabled ? 'On' : 'Off'}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--nova-blue)' }}>
+            <Wifi size={15} />
+            <span style={{ fontSize: '12px', fontWeight: 600 }}>Wi-Fi</span>
+          </div>
+          <span style={{ fontSize: '10px', color: 'var(--nova-text-muted)' }}>Manage Networks</span>
         </button>
 
         <button
-          onClick={() => setBtEnabled(!btEnabled)}
+          onClick={() => triggerAction('open-bluetooth', 'Bluetooth Devices')}
           style={{
             padding: '10px 12px',
-            backgroundColor: btEnabled ? 'rgba(84, 215, 232, 0.2)' : 'var(--nova-surface)',
-            border: btEnabled ? '1px solid var(--nova-cyan)' : '1px solid var(--nova-border)',
+            backgroundColor: 'rgba(84, 215, 232, 0.12)',
+            border: '1px solid rgba(84, 215, 232, 0.3)',
             borderRadius: 'var(--nova-radius-widget)',
             display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            fontSize: '11px',
-            fontWeight: 600,
-            color: btEnabled ? 'var(--nova-cyan)' : 'var(--nova-text-secondary)',
+            flexDirection: 'column',
+            alignItems: 'flex-start',
+            gap: 6,
+            cursor: 'pointer',
+            textAlign: 'left',
           }}
         >
-          <Bluetooth size={15} />
-          <span>Bluetooth</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--nova-cyan)' }}>
+            <Bluetooth size={15} />
+            <span style={{ fontSize: '12px', fontWeight: 600 }}>Bluetooth</span>
+          </div>
+          <span style={{ fontSize: '10px', color: 'var(--nova-text-muted)' }}>Pair Devices</span>
         </button>
 
         <button
-          onClick={() => setNightLight(!nightLight)}
+          onClick={() => triggerAction('open-nightlight', 'Night Light')}
           style={{
             padding: '10px 12px',
-            backgroundColor: nightLight ? 'rgba(243, 185, 91, 0.2)' : 'var(--nova-surface)',
-            border: nightLight ? '1px solid var(--nova-warning)' : '1px solid var(--nova-border)',
+            backgroundColor: 'rgba(243, 185, 91, 0.12)',
+            border: '1px solid rgba(243, 185, 91, 0.3)',
             borderRadius: 'var(--nova-radius-widget)',
             display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            fontSize: '11px',
-            fontWeight: 600,
-            color: nightLight ? 'var(--nova-warning)' : 'var(--nova-text-secondary)',
+            flexDirection: 'column',
+            alignItems: 'flex-start',
+            gap: 6,
+            cursor: 'pointer',
+            textAlign: 'left',
           }}
         >
-          <Moon size={15} />
-          <span>Night Light</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--nova-warning)' }}>
+            <Moon size={15} />
+            <span style={{ fontSize: '12px', fontWeight: 600 }}>Night Light</span>
+          </div>
+          <span style={{ fontSize: '10px', color: 'var(--nova-text-muted)' }}>Warm Colors</span>
         </button>
       </div>
 
-      {/* Sliders Box */}
+      {/* Master Volume Controller Box */}
       <div
         style={{
           display: 'flex',
           flexDirection: 'column',
-          gap: 12,
-          padding: 14,
+          gap: 8,
+          padding: '10px 12px',
           backgroundColor: 'var(--nova-surface)',
           border: '1px solid var(--nova-border)',
           borderRadius: 'var(--nova-radius-widget)',
         }}
       >
-        {/* Master Volume */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <button
-            onClick={() => setIsMuted(!isMuted)}
-            style={{ color: isMuted ? 'var(--nova-danger)' : 'var(--nova-text-secondary)' }}
-          >
-            {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
-          </button>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            value={isMuted ? 0 : volume}
-            onChange={(e) => {
-              setIsMuted(false);
-              setVolume(Number(e.target.value));
-            }}
-            style={{ flex: 1 }}
-          />
-          <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', minWidth: 35 }}>
-            {isMuted ? 0 : volume}%
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--nova-text-primary)' }}>
+            Master Windows Volume
           </span>
+          <button
+            onClick={() => triggerAction('open-sound-settings', 'Sound Settings')}
+            style={{ fontSize: '10px', color: 'var(--nova-blue)', cursor: 'pointer', background: 'none', border: 'none' }}
+          >
+            Sound Settings ↗
+          </button>
         </div>
 
-        {/* Display Brightness */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Sun size={16} style={{ color: 'var(--nova-warning)' }} />
-          <input
-            type="range"
-            min={10}
-            max={100}
-            value={brightness}
-            onChange={(e) => setBrightness(Number(e.target.value))}
-            style={{ flex: 1 }}
-          />
-          <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', minWidth: 35 }}>
-            {brightness}%
-          </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button
+            onClick={() => triggerAction('volume-mute', 'Toggle Mute')}
+            style={{
+              padding: '6px 12px',
+              backgroundColor: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid var(--nova-border)',
+              borderRadius: 6,
+              color: 'var(--nova-text-primary)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              fontSize: '11px',
+              cursor: 'pointer',
+            }}
+          >
+            <VolumeX size={14} style={{ color: 'var(--nova-danger)' }} />
+            <span>Mute</span>
+          </button>
+
+          <button
+            onClick={() => triggerAction('volume-down', 'Volume Down')}
+            style={{
+              flex: 1,
+              padding: '6px 10px',
+              backgroundColor: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid var(--nova-border)',
+              borderRadius: 6,
+              color: 'var(--nova-text-primary)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              fontSize: '11px',
+              cursor: 'pointer',
+            }}
+          >
+            <Volume1 size={14} />
+            <span>Vol Down (-4%)</span>
+          </button>
+
+          <button
+            onClick={() => triggerAction('volume-up', 'Volume Up')}
+            style={{
+              flex: 1,
+              padding: '6px 10px',
+              backgroundColor: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid var(--nova-border)',
+              borderRadius: 6,
+              color: 'var(--nova-text-primary)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              fontSize: '11px',
+              cursor: 'pointer',
+            }}
+          >
+            <Volume2 size={14} style={{ color: 'var(--nova-success)' }} />
+            <span>Vol Up (+4%)</span>
+          </button>
         </div>
       </div>
 
-      {/* Direct Windows Settings Navigators */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginTop: 'auto' }}>
+      {/* Windows Utility Shortcuts */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
         <button
-          onClick={() => alert('Opening Windows Display Settings...')}
+          onClick={() => triggerAction('open-snipping-tool', 'Snipping Tool')}
           style={{
             padding: '8px 10px',
             backgroundColor: 'var(--nova-surface)',
             border: '1px solid var(--nova-border)',
-            borderRadius: 'var(--nova-radius-input)',
+            borderRadius: 'var(--nova-radius-widget)',
             display: 'flex',
             alignItems: 'center',
-            gap: 6,
+            gap: 8,
             fontSize: '11px',
-            color: 'var(--nova-text-secondary)',
+            color: 'var(--nova-text-primary)',
+            cursor: 'pointer',
           }}
         >
-          <Monitor size={13} style={{ color: 'var(--nova-blue)' }} />
-          <span>Display Settings</span>
+          <Scissors size={14} style={{ color: 'var(--nova-violet)' }} />
+          <span>Snipping Tool</span>
         </button>
 
         <button
-          onClick={() => alert('Opening Windows Privacy & Security Settings...')}
+          onClick={() => triggerAction('open-task-manager', 'Task Manager')}
           style={{
             padding: '8px 10px',
             backgroundColor: 'var(--nova-surface)',
             border: '1px solid var(--nova-border)',
-            borderRadius: 'var(--nova-radius-input)',
+            borderRadius: 'var(--nova-radius-widget)',
             display: 'flex',
             alignItems: 'center',
-            gap: 6,
+            gap: 8,
             fontSize: '11px',
-            color: 'var(--nova-text-secondary)',
+            color: 'var(--nova-text-primary)',
+            cursor: 'pointer',
           }}
         >
-          <Shield size={13} style={{ color: 'var(--nova-success)' }} />
-          <span>Privacy Settings</span>
+          <Activity size={14} style={{ color: 'var(--nova-cyan)' }} />
+          <span>Task Manager</span>
+        </button>
+
+        <button
+          onClick={() => triggerAction('open-calc', 'Calculator')}
+          style={{
+            padding: '8px 10px',
+            backgroundColor: 'var(--nova-surface)',
+            border: '1px solid var(--nova-border)',
+            borderRadius: 'var(--nova-radius-widget)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            fontSize: '11px',
+            color: 'var(--nova-text-primary)',
+            cursor: 'pointer',
+          }}
+        >
+          <Calculator size={14} style={{ color: 'var(--nova-warning)' }} />
+          <span>Calculator</span>
+        </button>
+
+        <button
+          onClick={() => triggerAction('open-display-settings', 'Display Settings')}
+          style={{
+            padding: '8px 10px',
+            backgroundColor: 'var(--nova-surface)',
+            border: '1px solid var(--nova-border)',
+            borderRadius: 'var(--nova-radius-widget)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            fontSize: '11px',
+            color: 'var(--nova-text-primary)',
+            cursor: 'pointer',
+          }}
+        >
+          <Monitor size={14} style={{ color: 'var(--nova-blue)' }} />
+          <span>Display Setup</span>
+        </button>
+
+        <button
+          onClick={() => triggerAction('lock-workstation', 'Lock Workstation')}
+          style={{
+            padding: '8px 10px',
+            backgroundColor: 'var(--nova-surface)',
+            border: '1px solid var(--nova-border)',
+            borderRadius: 'var(--nova-radius-widget)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            fontSize: '11px',
+            color: 'var(--nova-text-primary)',
+            cursor: 'pointer',
+          }}
+        >
+          <Lock size={14} style={{ color: 'var(--nova-danger)' }} />
+          <span>Lock Screen</span>
+        </button>
+
+        <button
+          onClick={() => triggerAction('open-windows-settings', 'Windows Settings')}
+          style={{
+            padding: '8px 10px',
+            backgroundColor: 'var(--nova-surface)',
+            border: '1px solid var(--nova-border)',
+            borderRadius: 'var(--nova-radius-widget)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            fontSize: '11px',
+            color: 'var(--nova-text-primary)',
+            cursor: 'pointer',
+          }}
+        >
+          <Settings size={14} style={{ color: 'var(--nova-text-secondary)' }} />
+          <span>All Settings</span>
         </button>
       </div>
     </div>

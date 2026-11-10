@@ -66,3 +66,4 @@ if (typeof window !== 'undefined') {
     useTimerStore.getState().tick();
   }, 1000);
 }
+

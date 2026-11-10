@@ -73,3 +73,61 @@ export const setAutoStartStatus = async (enabled: boolean): Promise<boolean> => 
   }
 };
 
+export const getIpc = () => {
+  try {
+    if (typeof window !== 'undefined') {
+      if (window.electron?.ipcRenderer) return window.electron.ipcRenderer;
+      if (window.require) {
+        const { ipcRenderer } = window.require('electron');
+        return ipcRenderer;
+      }
+    }
+  } catch (e) {}
+  return null;
+};
+
+export const runQuickAction = async (action: string) => {
+  const ipc = getIpc();
+  if (ipc) {
+    return await ipc.invoke('quick-action', action);
+  }
+  return { success: false, error: 'IPC unavailable' };
+};
+
+export const runLaunchShortcut = async (target: string) => {
+  const ipc = getIpc();
+  if (ipc) {
+    return await ipc.invoke('launch-shortcut', target);
+  }
+  if (/^https?:\/\//i.test(target)) {
+    window.open(target, '_blank');
+    return { success: true };
+  }
+  return { success: false, error: 'IPC unavailable' };
+};
+
+export const runOpenPath = async (targetPath: string) => {
+  const ipc = getIpc();
+  if (ipc) {
+    return await ipc.invoke('open-path', targetPath);
+  }
+  return { success: false, error: 'IPC unavailable' };
+};
+
+export const runShowItemInFolder = async (targetPath: string) => {
+  const ipc = getIpc();
+  if (ipc) {
+    return await ipc.invoke('show-item-in-folder', targetPath);
+  }
+  return { success: false, error: 'IPC unavailable' };
+};
+
+export const runComputeFileHash = async (filePath: string, algorithm = 'sha256') => {
+  const ipc = getIpc();
+  if (ipc) {
+    return await ipc.invoke('compute-file-hash', { filePath, algorithm });
+  }
+  return { success: false, error: 'IPC unavailable' };
+};
+
+

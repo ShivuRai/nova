@@ -653,45 +653,56 @@ function uploadFiles() {
       res.end('Not Found');
     }
 
-    const dropPort = 5980;
-    try {
-      const dropServer = http.createServer(handleDropRequest);
-      dropServerInstance = dropServer;
-      activeDropPort = dropPort;
-
-      dropServer.on('error', (err) => {
-        if (err.code === 'EADDRINUSE') {
-          console.warn(`[NOVA Drop] Port ${dropPort} in use, binding to ephemeral free port...`);
-          try {
-            dropServer.close();
-          } catch (e) {}
-          try {
-            const fallbackServer = http.createServer(handleDropRequest);
-            fallbackServer.on('error', (fbErr) => {
-              console.error('[NOVA Drop] Fallback server error:', fbErr.message);
-            });
-            fallbackServer.listen(0, '0.0.0.0', () => {
-              activeDropPort = fallbackServer.address().port;
-              dropServerInstance = fallbackServer;
-              console.log(`[NOVA Drop] Wi-Fi file server active on fallback port http://${getLocalWifiIp()}:${activeDropPort}`);
-            });
-          } catch (e) {
-            console.error('[NOVA Drop] Could not start fallback server:', e);
-          }
-        } else {
-          console.error('[NOVA Drop] Server error:', err.message);
+    function startDropServer() {
+      const tester = net.createServer();
+      tester.once('error', (err) => {
+        try { tester.close(); } catch (e) {}
+        debugLog(`Port 5980 occupied (${err.code}), starting NOVA Drop on ephemeral free port...`);
+        try {
+          const fbServer = http.createServer(handleDropRequest);
+          fbServer.on('error', (fbErr) => {
+            debugLog('[NOVA Drop] Fallback server error: ' + fbErr.message);
+          });
+          fbServer.listen(0, '0.0.0.0', () => {
+            activeDropPort = fbServer.address().port;
+            dropServerInstance = fbServer;
+            debugLog(`[NOVA Drop] Wi-Fi file server active on fallback port ${activeDropPort}`);
+          });
+        } catch (e) {
+          debugLog('Error starting fallback server: ' + e.message);
         }
       });
-
-      dropServer.listen(dropPort, '0.0.0.0', () => {
-        activeDropPort = dropServer.address().port;
-        debugLog('NOVA Drop listening on port: ' + activeDropPort);
-        console.log(`[NOVA Drop] Wi-Fi file server active at http://${getLocalWifiIp()}:${activeDropPort}`);
+      tester.once('listening', () => {
+        tester.close(() => {
+          try {
+            const server = http.createServer(handleDropRequest);
+            server.on('error', (sErr) => {
+              debugLog('[NOVA Drop] Server error: ' + sErr.message);
+              if (sErr.code === 'EADDRINUSE') {
+                const fbServer = http.createServer(handleDropRequest);
+                fbServer.listen(0, '0.0.0.0', () => {
+                  activeDropPort = fbServer.address().port;
+                  dropServerInstance = fbServer;
+                });
+              }
+            });
+            server.listen(5980, '0.0.0.0', () => {
+              activeDropPort = 5980;
+              dropServerInstance = server;
+              debugLog('NOVA Drop listening on port 5980');
+            });
+          } catch (e) {
+            debugLog('Error starting server on 5980: ' + e.message);
+          }
+        });
       });
-    } catch (err) {
-      debugLog('Could not start HTTP server: ' + err.message);
-      console.error('[NOVA Drop] Could not start HTTP server:', err);
+      try {
+        tester.listen(5980, '0.0.0.0');
+      } catch (err) {
+        debugLog('Tester listen exception: ' + err.message);
+      }
     }
+    startDropServer();
 
   // NOVA Drop IPC
   ipcMain.handle('get-drop-info', () => {
@@ -745,6 +756,127 @@ function uploadFiles() {
     } catch (e) {
       console.error('[NOVA] Error updating autostart:', e);
       return false;
+    }
+  });
+
+  // Real Windows Quick Actions (Wi-Fi, Bluetooth, Night Light, Volume, Settings, System Tools)
+  ipcMain.handle('quick-action', async (event, action) => {
+    try {
+      debugLog('Received quick-action: ' + action);
+      switch (action) {
+        case 'open-wifi':
+          shell.openExternal('ms-availablenetworks:');
+          return { success: true, message: 'Opening Windows Wi-Fi flyout' };
+        case 'open-bluetooth':
+          shell.openExternal('ms-settings:bluetooth');
+          return { success: true, message: 'Opening Bluetooth settings' };
+        case 'open-nightlight':
+          shell.openExternal('ms-settings:nightlight');
+          return { success: true, message: 'Opening Night Light settings' };
+        case 'volume-mute':
+          execFile('powershell.exe', ['-NoProfile', '-Command', '(New-Object -ComObject WScript.Shell).SendKeys([char]173)'], { windowsHide: true });
+          return { success: true, message: 'Toggled system mute' };
+        case 'volume-up':
+          execFile('powershell.exe', ['-NoProfile', '-Command', '(New-Object -ComObject WScript.Shell).SendKeys([char]175); (New-Object -ComObject WScript.Shell).SendKeys([char]175)'], { windowsHide: true });
+          return { success: true, message: 'Increased master volume' };
+        case 'volume-down':
+          execFile('powershell.exe', ['-NoProfile', '-Command', '(New-Object -ComObject WScript.Shell).SendKeys([char]174); (New-Object -ComObject WScript.Shell).SendKeys([char]174)'], { windowsHide: true });
+          return { success: true, message: 'Decreased master volume' };
+        case 'open-display-settings':
+          shell.openExternal('ms-settings:display');
+          return { success: true, message: 'Opening Display Settings' };
+        case 'open-sound-settings':
+          shell.openExternal('ms-settings:sound');
+          return { success: true, message: 'Opening Sound Settings' };
+        case 'open-windows-settings':
+          shell.openExternal('ms-settings:');
+          return { success: true, message: 'Opening Windows Settings' };
+        case 'open-task-manager':
+          execFile('taskmgr.exe');
+          return { success: true, message: 'Launched Task Manager' };
+        case 'open-snipping-tool':
+          shell.openExternal('ms-screenclip:');
+          return { success: true, message: 'Launched Snipping Tool' };
+        case 'open-calc':
+          execFile('calc.exe');
+          return { success: true, message: 'Launched Calculator' };
+        case 'lock-workstation':
+          execFile('rundll32.exe', ['user32.dll,LockWorkStation']);
+          return { success: true, message: 'Locked workstation' };
+        default:
+          return { success: false, message: 'Unknown action: ' + action };
+      }
+    } catch (err) {
+      debugLog('Error executing quick-action: ' + err.message);
+      return { success: false, error: err.message };
+    }
+  });
+
+  // Real App & Shortcut Launcher
+  ipcMain.handle('launch-shortcut', async (event, target) => {
+    if (!target || typeof target !== 'string') return { success: false, error: 'Empty target' };
+    const trimmed = target.trim();
+    debugLog('Launching shortcut: ' + trimmed);
+    try {
+      if (/^https?:\/\//i.test(trimmed) || /^[a-z0-9-]+:/i.test(trimmed)) {
+        await shell.openExternal(trimmed);
+        return { success: true, type: 'url' };
+      }
+      if (fs.existsSync(trimmed)) {
+        await shell.openPath(trimmed);
+        return { success: true, type: 'path' };
+      }
+      execFile('powershell.exe', ['-NoProfile', '-Command', `Start-Process "${trimmed}"`], { windowsHide: true }, (err) => {
+        if (err) {
+          shell.openPath(trimmed).catch(() => {});
+        }
+      });
+      return { success: true, type: 'command' };
+    } catch (err) {
+      debugLog('Launch shortcut error: ' + err.message);
+      return { success: false, error: err.message };
+    }
+  });
+
+  // Open file or directory
+  ipcMain.handle('open-path', async (event, targetPath) => {
+    try {
+      if (fs.existsSync(targetPath)) {
+        await shell.openPath(targetPath);
+        return { success: true };
+      }
+      return { success: false, error: 'Path does not exist' };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  });
+
+  // Reveal item in File Explorer
+  ipcMain.handle('show-item-in-folder', async (event, targetPath) => {
+    try {
+      shell.showItemInFolder(targetPath);
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  });
+
+  // Real cryptographic file hash calculator
+  ipcMain.handle('compute-file-hash', async (event, { filePath, algorithm = 'sha256' }) => {
+    const crypto = require('crypto');
+    try {
+      if (!fs.existsSync(filePath)) {
+        return { success: false, error: 'File not found' };
+      }
+      return new Promise((resolve) => {
+        const hash = crypto.createHash(algorithm);
+        const stream = fs.createReadStream(filePath);
+        stream.on('data', (chunk) => hash.update(chunk));
+        stream.on('end', () => resolve({ success: true, hash: hash.digest('hex') }));
+        stream.on('error', (err) => resolve({ success: false, error: err.message }));
+      });
+    } catch (err) {
+      return { success: false, error: err.message };
     }
   });
 

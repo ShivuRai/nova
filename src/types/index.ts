@@ -169,3 +169,12 @@ export interface AppearanceSettings {
   hoverDelayMs: number;
   collapseDelayMs: number;
 }
+
+declare global {
+  interface Window {
+    electron?: {
+      ipcRenderer?: any;
+    };
+    require?: any;
+  }
+}

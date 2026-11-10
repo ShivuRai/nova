@@ -198,3 +198,66 @@ test('Verification 10: Real System Metrics, Timer Store, Clipboard Watcher, and 
   assert.strictEqual(electronContent.includes('system-metrics-update'), true);
   assert.strictEqual(electronContent.includes('get-current-clipboard-text'), true);
 });
+
+test('Verification 11: Real Quick Actions, File Shelf, File Tools, Launcher, Analytics, Revenue, and Mascot Pet', () => {
+  const electronPath = path.join(projectRoot, 'electron.cjs');
+  const electronContent = fs.readFileSync(electronPath, 'utf8');
+
+  // Verify IPC handlers
+  assert.strictEqual(electronContent.includes("'quick-action'"), true, 'quick-action handler must exist');
+  assert.strictEqual(electronContent.includes("'launch-shortcut'"), true, 'launch-shortcut handler must exist');
+  assert.strictEqual(electronContent.includes("'open-path'"), true, 'open-path handler must exist');
+  assert.strictEqual(electronContent.includes("'show-item-in-folder'"), true, 'show-item-in-folder handler must exist');
+  assert.strictEqual(electronContent.includes("'compute-file-hash'"), true, 'compute-file-hash handler must exist');
+
+  // Verify Quick Settings
+  const qsPath = path.join(projectRoot, 'src', 'modules', 'quick-settings', 'QuickSettingsView.tsx');
+  const qsContent = fs.readFileSync(qsPath, 'utf8');
+  assert.strictEqual(qsContent.includes('runQuickAction'), true);
+  assert.strictEqual(qsContent.includes('open-wifi'), true);
+  assert.strictEqual(qsContent.includes('volume-mute'), true);
+
+  // Verify Shelf View has hover tooltip (?) and no hardcoded demo files
+  const shelfPath = path.join(projectRoot, 'src', 'modules', 'shelf', 'ShelfView.tsx');
+  const shelfContent = fs.readFileSync(shelfPath, 'utf8');
+  assert.strictEqual(shelfContent.includes('HelpCircle'), true);
+  assert.strictEqual(shelfContent.includes('What is File Shelf?'), true);
+  assert.strictEqual(shelfContent.includes('Architecture_Diagram_v2.png'), false);
+
+  // Verify File Tools has real Web Crypto and Checksum verifier
+  const ftPath = path.join(projectRoot, 'src', 'modules', 'file-tools', 'FileToolsView.tsx');
+  const ftContent = fs.readFileSync(ftPath, 'utf8');
+  assert.strictEqual(ftContent.includes('crypto.subtle.digest'), true);
+  assert.strictEqual(ftContent.includes('VERIFY AGAINST EXPECTED HASH'), true);
+  assert.strictEqual(ftContent.includes('simpleHash'), false);
+
+  // Verify Launcher has custom shortcut adding
+  const launcherPath = path.join(projectRoot, 'src', 'modules', 'launcher', 'LauncherView.tsx');
+  const launcherContent = fs.readFileSync(launcherPath, 'utf8');
+  assert.strictEqual(launcherContent.includes('+ Add App'), true);
+  assert.strictEqual(launcherContent.includes('runLaunchShortcut'), true);
+
+  // Verify Analytics has real ping / latency check
+  const analyticsPath = path.join(projectRoot, 'src', 'modules', 'analytics', 'AnalyticsView.tsx');
+  const analyticsContent = fs.readFileSync(analyticsPath, 'utf8');
+  assert.strictEqual(analyticsContent.includes('pingSite'), true);
+  assert.strictEqual(analyticsContent.includes('lastLatencyMs'), true);
+  assert.strictEqual(analyticsContent.includes('2,950'), false);
+
+  // Verify Revenue has monthly goal and transaction logging
+  const revenuePath = path.join(projectRoot, 'src', 'modules', 'revenue', 'RevenueView.tsx');
+  const revenueContent = fs.readFileSync(revenuePath, 'utf8');
+  assert.strictEqual(revenueContent.includes('monthlyGoal'), true);
+  assert.strictEqual(revenueContent.includes('+ Add Income'), true);
+  assert.strictEqual(revenueContent.includes('$4,820.00'), false);
+
+  // Verify Desktop Mascot has 4 species and interactive care
+  const petPath = path.join(projectRoot, 'src', 'modules', 'pet', 'PetView.tsx');
+  const petContent = fs.readFileSync(petPath, 'utf8');
+  assert.strictEqual(petContent.includes('cat'), true);
+  assert.strictEqual(petContent.includes('dog'), true);
+  assert.strictEqual(petContent.includes('bunny'), true);
+  assert.strictEqual(petContent.includes('fox'), true);
+  assert.strictEqual(petContent.includes('handleFeed'), true);
+  assert.strictEqual(petContent.includes('handlePlay'), true);
+});

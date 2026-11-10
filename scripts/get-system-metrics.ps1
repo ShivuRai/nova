@@ -63,3 +63,4 @@ $metrics = @{
 }
 
 $metrics | ConvertTo-Json -Compress
+
