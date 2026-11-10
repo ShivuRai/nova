@@ -157,13 +157,28 @@ export const IslandContainer: React.FC = () => {
   const currentWidth = isExpanded ? settings.expandedWidth : effectivePillWidth;
   const currentHeight = isExpanded ? settings.expandedHeight : effectivePillHeight;
 
-  let currentRadius: string | number = 9999;
+  // Use explicit matching pixel strings so Framer Motion interpolates cleanly without getting stuck in an oval
+  let currentRadius = '20px';
   if (isNotch) {
-    currentRadius = isExpanded ? '0 0 26px 26px' : '0 0 22px 22px';
+    currentRadius = isExpanded ? '0 0 24px 24px' : '0 0 20px 20px';
   } else if (isSquircle) {
-    currentRadius = isExpanded ? '28px' : '14px';
-  } else if (isExpanded) {
-    currentRadius = '28px';
+    currentRadius = isExpanded ? '24px' : '14px';
+  } else if (isCompact) {
+    currentRadius = isExpanded ? '24px' : '16px';
+  } else {
+    // Floating Pill: 20px when collapsed (perfect pill), 24px when expanded (crisp modern card)
+    currentRadius = isExpanded ? '24px' : '20px';
+  }
+
+  let glowRadius = '24px';
+  if (isNotch) {
+    glowRadius = isExpanded ? '0 0 28px 28px' : '0 0 24px 24px';
+  } else if (isSquircle) {
+    glowRadius = isExpanded ? '28px' : '18px';
+  } else if (isCompact) {
+    glowRadius = isExpanded ? '28px' : '20px';
+  } else {
+    glowRadius = isExpanded ? '28px' : '24px';
   }
 
   const justifyContent = isLeft ? 'flex-start' : isRight ? 'flex-end' : 'center';
@@ -199,14 +214,14 @@ export const IslandContainer: React.FC = () => {
         {settings.enableGlow && (
           <motion.div
             animate={{
-              width: currentWidth + (isNotch ? 48 : 40),
-              height: currentHeight + (isNotch ? 24 : 36),
-              borderRadius: isNotch ? '0 0 34px 34px' : isSquircle ? '24px' : 9999,
+              width: currentWidth + (isNotch ? 40 : 32),
+              height: currentHeight + (isNotch ? 20 : 32),
+              borderRadius: glowRadius,
             }}
             transition={{
               type: 'spring',
-              stiffness: 350,
-              damping: 28,
+              stiffness: 380,
+              damping: 32,
               mass: 0.8,
             }}
             style={{
@@ -278,8 +293,8 @@ export const IslandContainer: React.FC = () => {
           }}
           transition={{
             type: 'spring',
-            stiffness: 350,
-            damping: 28,
+            stiffness: 380,
+            damping: 32,
             mass: 0.8,
           }}
           style={{
@@ -324,7 +339,7 @@ export const IslandContainer: React.FC = () => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.18, delay: 0.05 }}
+                transition={{ duration: 0.15 }}
                 style={{
                   width: '100%',
                   height: '100%',
