@@ -467,10 +467,10 @@ export const IslandContainer: React.FC = () => {
             boxShadow: isExpanded ? 'var(--nova-shadow-card)' : 'var(--nova-shadow-pill)',
             border: isRgb
               ? '1.5px solid rgba(96, 165, 250, 0.6)'
-              : '1px solid var(--nova-border)',
+              : `1px solid rgba(255, 255, 255, ${Math.max(0.05, ((settings.glassmorphismBorderGlow ?? 35) / 100) * 0.45)})`,
             borderTop: isNotch ? 'none' : undefined,
-            backdropFilter: 'blur(30px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(30px) saturate(180%)',
+            backdropFilter: `blur(${settings.glassmorphismBlur ?? 28}px) saturate(180%)`,
+            WebkitBackdropFilter: `blur(${settings.glassmorphismBlur ?? 28}px) saturate(180%)`,
             position: 'relative',
             overflow: 'hidden',
             zIndex: 2,

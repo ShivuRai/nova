@@ -37,6 +37,7 @@ const NOTCH_OPTIONS: Array<{ id: NotchStyle; label: string; desc: string }> = [
 
 const PILL_DISPLAY_OPTIONS: Array<{ id: PillDisplayContent; label: string; desc: string; icon: string }> = [
   { id: 'smart-auto', label: 'Smart Contextual (Auto)', desc: 'Switches to YouTube/media when playing, live tasks, or system clock', icon: '⚡' },
+  { id: 'network-speed', label: 'Real-time Network Speed', desc: 'Displays live internet download and upload speed right on the capsule', icon: '📶' },
   { id: 'media-priority', label: 'Media & YouTube Focus', desc: 'Always displays active track, artist & audio visualizer on collapsed pill', icon: '🎵' },
   { id: 'telemetry', label: 'Hardware Telemetry Monitor', desc: 'Real-time CPU %, RAM %, and thermals right on the capsule', icon: '📊' },
   { id: 'clock-weather', label: 'Clock & Weather Zen', desc: 'Minimalist clock with real-time temperature and sky conditions', icon: '⛅' },
@@ -150,6 +151,202 @@ export const SettingsView: React.FC = () => {
             />
             <span>Ambient Island Glow</span>
           </label>
+        </div>
+      </div>
+
+      {/* Section 1.5: Custom Color Picker & Glassmorphism Studio */}
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 10,
+          backgroundColor: 'var(--nova-surface)',
+          border: '1px solid var(--nova-border)',
+          borderRadius: 'var(--nova-radius-widget)',
+          padding: 12,
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--nova-text-secondary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Sparkles size={13} style={{ color: 'var(--nova-cyan)' }} />
+            <span>CUSTOM THEME COLOR & GLASSMORPHISM STUDIO</span>
+          </div>
+          <button
+            onClick={() =>
+              updateSettings({
+                customAccentColor: '#38BDF8',
+                customBgColor: '#0B0D12',
+                glassmorphismBlur: 24,
+                glassmorphismOpacity: 85,
+                glassmorphismBorderGlow: 35,
+              })
+            }
+            style={{
+              fontSize: '10px',
+              padding: '2px 8px',
+              borderRadius: 4,
+              backgroundColor: 'rgba(255, 255, 255, 0.06)',
+              border: 'none',
+              color: 'var(--nova-text-muted)',
+              cursor: 'pointer',
+            }}
+          >
+            Reset Studio
+          </button>
+        </div>
+
+        {/* Color Selectors Row */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          {/* Accent / Theme Color Picker */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <span style={{ fontSize: '10px', color: 'var(--nova-text-muted)', fontWeight: 600 }}>
+              CUSTOM ACCENT COLOR
+            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input
+                type="color"
+                value={settings.customAccentColor || '#38BDF8'}
+                onChange={(e) => updateSettings({ customAccentColor: e.target.value })}
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 6,
+                  border: '1px solid var(--nova-border)',
+                  backgroundColor: 'transparent',
+                  cursor: 'pointer',
+                  padding: 2,
+                }}
+              />
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--nova-text-primary)' }}>
+                {settings.customAccentColor || '#38BDF8'}
+              </span>
+            </div>
+            {/* Quick Preset Chips */}
+            <div style={{ display: 'flex', gap: 5, marginTop: 2 }}>
+              {['#38BDF8', '#818CF8', '#10B981', '#F43F5E', '#F59E0B', '#E2E8F0'].map((hex) => (
+                <div
+                  key={hex}
+                  onClick={() => updateSettings({ customAccentColor: hex })}
+                  style={{
+                    width: 16,
+                    height: 16,
+                    borderRadius: '50%',
+                    backgroundColor: hex,
+                    cursor: 'pointer',
+                    border: settings.customAccentColor === hex ? '2px solid #fff' : '1px solid rgba(255,255,255,0.2)',
+                  }}
+                  title={hex}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Background / Back Panel Color Picker */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <span style={{ fontSize: '10px', color: 'var(--nova-text-muted)', fontWeight: 600 }}>
+              BACK PANEL COLOR (DARK / PITCH BLACK)
+            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input
+                type="color"
+                value={settings.customBgColor || '#0B0D12'}
+                onChange={(e) => updateSettings({ customBgColor: e.target.value })}
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 6,
+                  border: '1px solid var(--nova-border)',
+                  backgroundColor: 'transparent',
+                  cursor: 'pointer',
+                  padding: 2,
+                }}
+              />
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--nova-text-primary)' }}>
+                {settings.customBgColor || '#0B0D12'}
+              </span>
+            </div>
+            {/* Quick Preset Chips */}
+            <div style={{ display: 'flex', gap: 5, marginTop: 2 }}>
+              {[
+                { hex: '#000000', label: 'Pitch Black' },
+                { hex: '#0B0D12', label: 'Obsidian (Default)' },
+                { hex: '#0F172A', label: 'Midnight' },
+                { hex: '#18181B', label: 'Charcoal' },
+                { hex: '#172554', label: 'Deep Blue' },
+              ].map((p) => (
+                <div
+                  key={p.hex}
+                  onClick={() => updateSettings({ customBgColor: p.hex })}
+                  style={{
+                    width: 16,
+                    height: 16,
+                    borderRadius: '50%',
+                    backgroundColor: p.hex,
+                    cursor: 'pointer',
+                    border: settings.customBgColor === p.hex ? '2px solid #fff' : '1px solid rgba(255,255,255,0.2)',
+                  }}
+                  title={p.label}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Glassmorphism Sliders */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
+          {/* Blur Slider */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: 'var(--nova-text-muted)' }}>
+              <span>Glass Backdrop Blur</span>
+              <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--nova-cyan)' }}>
+                {settings.glassmorphismBlur ?? 24}px
+              </span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={40}
+              value={settings.glassmorphismBlur ?? 24}
+              onChange={(e) => updateSettings({ glassmorphismBlur: Number(e.target.value) })}
+              style={{ width: '100%', accentColor: 'var(--nova-cyan)', cursor: 'pointer' }}
+            />
+          </div>
+
+          {/* Opacity Slider */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: 'var(--nova-text-muted)' }}>
+              <span>Panel Background Opacity</span>
+              <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--nova-blue)' }}>
+                {settings.glassmorphismOpacity ?? 85}%
+              </span>
+            </div>
+            <input
+              type="range"
+              min={20}
+              max={100}
+              value={settings.glassmorphismOpacity ?? 85}
+              onChange={(e) => updateSettings({ glassmorphismOpacity: Number(e.target.value) })}
+              style={{ width: '100%', accentColor: 'var(--nova-blue)', cursor: 'pointer' }}
+            />
+          </div>
+
+          {/* Border Glow Slider */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: 'var(--nova-text-muted)' }}>
+              <span>Edge Glass Border Glow</span>
+              <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--nova-violet)' }}>
+                {settings.glassmorphismBorderGlow ?? 35}%
+              </span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={settings.glassmorphismBorderGlow ?? 35}
+              onChange={(e) => updateSettings({ glassmorphismBorderGlow: Number(e.target.value) })}
+              style={{ width: '100%', accentColor: 'var(--nova-violet)', cursor: 'pointer' }}
+            />
+          </div>
         </div>
       </div>
 

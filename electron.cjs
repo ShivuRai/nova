@@ -2,16 +2,29 @@ if (process.env.ELECTRON_RUN_AS_NODE) {
   delete process.env.ELECTRON_RUN_AS_NODE;
 }
 
-const { app, BrowserWindow, screen, ipcMain, Tray, Menu, nativeImage, globalShortcut, shell } = require('electron');
+const { app, BrowserWindow, screen, ipcMain, Tray, Menu, nativeImage, globalShortcut, shell, clipboard } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
+const debugLogPath = path.join(__dirname, 'nova-debug.log');
+const debugLog = (msg) => {
+  try {
+    fs.appendFileSync(debugLogPath, `[${new Date().toISOString()}] ${msg}\n`);
+  } catch (e) {}
+};
+debugLog('Process started. PID: ' + process.pid + ', args: ' + process.argv.join(' '));
+
 // Global safety handler: Suppress uncaught exception dialogs to prevent scary modal popups
 process.on('uncaughtException', (err) => {
+  debugLog('Uncaught exception: ' + (err.stack || err.message));
   console.error('[NOVA Main Process Uncaught Exception]', err);
 });
 process.on('unhandledRejection', (reason) => {
+  debugLog('Unhandled rejection: ' + reason);
   console.error('[NOVA Main Process Unhandled Rejection]', reason);
+});
+process.on('exit', (code) => {
+  debugLog('Process on exit event called with code: ' + code);
 });
 
 let mainWindow = null;
@@ -21,7 +34,9 @@ let activeDropPort = 5980;
 
 // Single-instance lock: if NOVA is already running, focus and bring the existing instance to front
 const gotTheLock = app.requestSingleInstanceLock();
+debugLog('gotTheLock value: ' + gotTheLock);
 if (!gotTheLock) {
+  debugLog('Exiting because gotTheLock is false');
   app.quit();
 } else {
   app.on('second-instance', () => {
@@ -38,6 +53,7 @@ if (!gotTheLock) {
 }
 
 function createWindow() {
+  debugLog('createWindow started');
   const primaryDisplay = screen.getPrimaryDisplay();
   const { width: screenWidth } = primaryDisplay.workAreaSize;
 
@@ -191,12 +207,14 @@ function createWindow() {
   }
 
   mainWindow.webContents.on('did-finish-load', () => {
+    debugLog('Window contents finished loading successfully!');
     console.log('[NOVA] Window contents finished loading.');
     mainWindow.show();
     mainWindow.focus();
   });
 
   mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+    debugLog('Failed to load: ' + errorCode + ' ' + errorDescription);
     console.error('[NOVA] Failed to load:', errorCode, errorDescription);
   });
 
@@ -362,6 +380,91 @@ function createWindow() {
     });
   });
 
+  // Real-Time System Metrics IPC & Background Broadcaster
+  let latestSystemMetrics = {
+    cpuUsagePercent: 12,
+    cpuTempCelsius: 44,
+    ramUsagePercent: 50,
+    ramUsedGb: 8.0,
+    ramTotalGb: 16.0,
+    diskUsagePercent: 65,
+    diskFreeGb: 120,
+    networkDownloadKbps: 0,
+    networkUploadKbps: 0,
+    batteryPercent: 100,
+    isCharging: true,
+  };
+
+  function pollSystemMetrics() {
+    let scriptPath = path.join(__dirname, 'scripts', 'get-system-metrics.ps1');
+    if (!fs.existsSync(scriptPath)) {
+      scriptPath = path.join(__dirname, '..', 'scripts', 'get-system-metrics.ps1');
+    }
+    if (!fs.existsSync(scriptPath)) return;
+
+    execFile(
+      'powershell.exe',
+      ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', scriptPath],
+      { timeout: 3500, windowsHide: true },
+      (err, stdout) => {
+        if (!err && stdout) {
+          try {
+            const data = JSON.parse(stdout.trim());
+            latestSystemMetrics = { ...latestSystemMetrics, ...data };
+            if (mainWindow && !mainWindow.isDestroyed()) {
+              mainWindow.webContents.send('system-metrics-update', latestSystemMetrics);
+            }
+          } catch (e) {}
+        }
+      }
+    );
+  }
+
+  // Poll system metrics every 2.5 seconds
+  const metricsTimer = setInterval(pollSystemMetrics, 2500);
+  setTimeout(pollSystemMetrics, 300);
+
+  ipcMain.handle('get-system-metrics', () => latestSystemMetrics);
+
+  // Real-Time Windows Clipboard Watcher
+  let lastWatchedClipboardText = '';
+  try {
+    lastWatchedClipboardText = clipboard.readText();
+  } catch (e) {}
+
+  const clipboardTimer = setInterval(() => {
+    try {
+      const currentText = clipboard.readText();
+      if (currentText && currentText.trim().length > 0 && currentText !== lastWatchedClipboardText) {
+        lastWatchedClipboardText = currentText;
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('clipboard-copy-detected', {
+            textContent: currentText,
+            timestamp: Date.now(),
+          });
+        }
+      }
+    } catch (e) {}
+  }, 400);
+
+  ipcMain.handle('get-current-clipboard-text', () => {
+    try {
+      return clipboard.readText();
+    } catch (e) {
+      return '';
+    }
+  });
+
+  ipcMain.handle('write-clipboard-text', (event, text) => {
+    try {
+      clipboard.writeText(text);
+      lastWatchedClipboardText = text;
+      return true;
+    } catch (e) {
+      return false;
+    }
+  });
+
   // REAL NOVA DROP: Local Wi-Fi File Transfer HTTP Server
   const http = require('http');
   const net = require('net');
@@ -385,39 +488,10 @@ function createWindow() {
     return '127.0.0.1';
   }
 
-  function findAvailablePort(startPort, maxAttempts = 30) {
-    return new Promise((resolve) => {
-      let currentPort = startPort;
-      let attempts = 0;
-
-      function testPort() {
-        if (attempts >= maxAttempts) {
-          return resolve(0); // 0 lets the OS kernel allocate a free port
-        }
-        attempts++;
-        const tester = net.createServer();
-        tester.unref();
-        tester.once('error', () => {
-          currentPort++;
-          testPort();
-        });
-        tester.once('listening', () => {
-          const port = tester.address().port;
-          tester.close(() => resolve(port));
-        });
-        tester.listen(currentPort, '0.0.0.0');
-      }
-
-      testPort();
-    });
-  }
-
-  findAvailablePort(5980).then((chosenPort) => {
-    try {
-      const dropServer = http.createServer((req, res) => {
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  function handleDropRequest(req, res) {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
       if (req.method === 'OPTIONS') {
         res.writeHead(200);
@@ -577,24 +651,47 @@ function uploadFiles() {
 
       res.writeHead(404);
       res.end('Not Found');
-    });
+    }
 
-    dropServerInstance = dropServer;
+    const dropPort = 5980;
+    try {
+      const dropServer = http.createServer(handleDropRequest);
+      dropServerInstance = dropServer;
+      activeDropPort = dropPort;
 
-    dropServer.on('error', (err) => {
-      console.warn('[NOVA Drop] Server warning:', err.message);
-    });
+      dropServer.on('error', (err) => {
+        if (err.code === 'EADDRINUSE') {
+          console.warn(`[NOVA Drop] Port ${dropPort} in use, binding to ephemeral free port...`);
+          try {
+            dropServer.close();
+          } catch (e) {}
+          try {
+            const fallbackServer = http.createServer(handleDropRequest);
+            fallbackServer.on('error', (fbErr) => {
+              console.error('[NOVA Drop] Fallback server error:', fbErr.message);
+            });
+            fallbackServer.listen(0, '0.0.0.0', () => {
+              activeDropPort = fallbackServer.address().port;
+              dropServerInstance = fallbackServer;
+              console.log(`[NOVA Drop] Wi-Fi file server active on fallback port http://${getLocalWifiIp()}:${activeDropPort}`);
+            });
+          } catch (e) {
+            console.error('[NOVA Drop] Could not start fallback server:', e);
+          }
+        } else {
+          console.error('[NOVA Drop] Server error:', err.message);
+        }
+      });
 
-    dropServer.listen(chosenPort, '0.0.0.0', () => {
-      activeDropPort = dropServer.address().port;
-      console.log(`[NOVA Drop] Wi-Fi file server active at http://${getLocalWifiIp()}:${activeDropPort}`);
-    });
-  } catch (err) {
-    console.error('[NOVA Drop] Could not start HTTP server:', err);
-  }
-  }).catch((err) => {
-    console.error('[NOVA Drop] Port discovery error:', err);
-  });
+      dropServer.listen(dropPort, '0.0.0.0', () => {
+        activeDropPort = dropServer.address().port;
+        debugLog('NOVA Drop listening on port: ' + activeDropPort);
+        console.log(`[NOVA Drop] Wi-Fi file server active at http://${getLocalWifiIp()}:${activeDropPort}`);
+      });
+    } catch (err) {
+      debugLog('Could not start HTTP server: ' + err.message);
+      console.error('[NOVA Drop] Could not start HTTP server:', err);
+    }
 
   // NOVA Drop IPC
   ipcMain.handle('get-drop-info', () => {
@@ -667,12 +764,22 @@ function uploadFiles() {
     // Ignore shortcut conflict
   }
 
+  mainWindow.on('close', (e) => {
+    debugLog('mainWindow on close called');
+  });
+
   mainWindow.on('closed', () => {
+    debugLog('mainWindow on closed called');
     mainWindow = null;
   });
 }
 
+app.on('before-quit', (e) => {
+  debugLog('app before-quit called');
+});
+
 app.on('will-quit', () => {
+  debugLog('app will-quit called');
   try {
     globalShortcut.unregisterAll();
   } catch (e) {}
@@ -691,6 +798,7 @@ app.on('will-quit', () => {
 });
 
 app.on('window-all-closed', () => {
+  debugLog('app window-all-closed called');
   if (process.platform !== 'darwin') {
     app.exit(0);
   }

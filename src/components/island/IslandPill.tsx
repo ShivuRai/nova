@@ -3,12 +3,14 @@ import { motion } from 'framer-motion';
 import { useIslandStore } from '../../stores/useIslandStore';
 import { useSystemStore } from '../../stores/useSystemStore';
 import { useThemeStore } from '../../stores/useThemeStore';
-import { Music, Activity, Battery, Timer, Cpu, QrCode, ChevronDown } from 'lucide-react';
+import { useTimerStore } from '../../stores/useTimerStore';
+import { Music, Activity, Battery, Timer, Cpu, QrCode, ChevronDown, Wifi } from 'lucide-react';
 
 export const IslandPillContent: React.FC<{ isCompact?: boolean }> = ({ isCompact = false }) => {
   const { liveActivity } = useIslandStore();
   const { media, metrics } = useSystemStore();
   const { settings } = useThemeStore();
+  const { isRunning: isTimerRunning, secondsRemaining, stopwatchSeconds, mode: timerMode } = useTimerStore();
   const [time, setTime] = useState<string>('');
 
   useEffect(() => {
@@ -45,7 +47,19 @@ export const IslandPillContent: React.FC<{ isCompact?: boolean }> = ({ isCompact
       )}
 
       {/* Render based on user-configured pillDisplayContent mode */}
-      {liveActivity && pillContentMode !== 'minimal-zen' ? (
+      {isTimerRunning ? (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: '12px' }}>{timerMode === 'stopwatch' ? '⏱️' : '⏳'}</span>
+            <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--nova-cyan)', textTransform: 'capitalize' }}>
+              {timerMode === 'pomodoro' ? 'Focus' : timerMode}
+            </span>
+          </div>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 700, color: '#fff', letterSpacing: '0.5px' }}>
+            {`${String(Math.floor((timerMode === 'stopwatch' ? stopwatchSeconds : secondsRemaining) / 60)).padStart(2, '0')}:${String((timerMode === 'stopwatch' ? stopwatchSeconds : secondsRemaining) % 60).padStart(2, '0')}`}
+          </div>
+        </div>
+      ) : liveActivity && pillContentMode !== 'minimal-zen' ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}>
           <div style={{ color: 'var(--nova-blue)' }}>
             {liveActivity.type === 'music' && <Music size={14} />}
@@ -170,6 +184,38 @@ export const IslandPillContent: React.FC<{ isCompact?: boolean }> = ({ isCompact
               <Activity size={10} /> {metrics.ramUsagePercent}%
             </span>
             <span style={{ color: 'var(--nova-text-muted)' }}>{metrics.cpuTempCelsius}°C</span>
+          </div>
+        </div>
+      ) : pillContentMode === 'network-speed' ? (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            width: '100%',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <Wifi size={13} style={{ color: 'var(--nova-cyan)' }} />
+            <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--nova-text-primary)' }}>
+              NET
+            </span>
+          </div>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              fontSize: '10px',
+              fontFamily: 'var(--font-mono)',
+            }}
+          >
+            <span style={{ color: 'var(--nova-cyan)' }}>
+              ↓ {metrics.networkDownloadKbps > 1024 ? `${(metrics.networkDownloadKbps / 1024).toFixed(1)}M` : `${metrics.networkDownloadKbps}K`}
+            </span>
+            <span style={{ color: 'var(--nova-blue)' }}>
+              ↑ {metrics.networkUploadKbps > 1024 ? `${(metrics.networkUploadKbps / 1024).toFixed(1)}M` : `${metrics.networkUploadKbps}K`}
+            </span>
           </div>
         </div>
       ) : pillContentMode === 'clock-weather' ? (

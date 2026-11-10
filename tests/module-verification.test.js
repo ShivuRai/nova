@@ -178,3 +178,23 @@ test('Verification 9: Real Screen Time script and NOVA Drop checks', () => {
   assert.strictEqual(electronContent.includes('drop-file-received'), true);
   assert.strictEqual(electronContent.includes('open-drop-folder'), true);
 });
+
+test('Verification 10: Real System Metrics, Timer Store, Clipboard Watcher, and Glassmorphism Studio', () => {
+  const metricsScript = path.join(projectRoot, 'scripts', 'get-system-metrics.ps1');
+  assert.strictEqual(fs.existsSync(metricsScript), true, 'scripts/get-system-metrics.ps1 must exist');
+
+  const timerStorePath = path.join(projectRoot, 'src', 'stores', 'useTimerStore.ts');
+  assert.strictEqual(fs.existsSync(timerStorePath), true, 'useTimerStore.ts must exist');
+
+  const typesPath = path.join(projectRoot, 'src', 'types', 'index.ts');
+  const typesContent = fs.readFileSync(typesPath, 'utf8');
+  assert.strictEqual(typesContent.includes('network-speed'), true, 'network-speed must be in PillDisplayContent');
+  assert.strictEqual(typesContent.includes('customAccentColor'), true, 'customAccentColor must be in AppearanceSettings');
+  assert.strictEqual(typesContent.includes('glassmorphismBlur'), true, 'glassmorphismBlur must be in AppearanceSettings');
+
+  const electronPath = path.join(projectRoot, 'electron.cjs');
+  const electronContent = fs.readFileSync(electronPath, 'utf8');
+  assert.strictEqual(electronContent.includes('clipboard-copy-detected'), true);
+  assert.strictEqual(electronContent.includes('system-metrics-update'), true);
+  assert.strictEqual(electronContent.includes('get-current-clipboard-text'), true);
+});

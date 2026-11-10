@@ -19,6 +19,11 @@ const DEFAULT_SETTINGS: AppearanceSettings = {
   pillDisplayContent: 'smart-auto',
   topOffset: 0,
   sideMargin: 16,
+  customAccentColor: '#38BDF8',
+  customBgColor: '#0B0D12',
+  glassmorphismBlur: 24,
+  glassmorphismOpacity: 85,
+  glassmorphismBorderGlow: 35,
   pillWidth: 230,
   pillHeight: 38,
   expandedWidth: 640,
@@ -39,6 +44,35 @@ const VALID_NOTCH_STYLES: NotchStyle[] = [
   'hex-pill',
 ];
 
+const applyCustomStyles = (settings: AppearanceSettings) => {
+  if (typeof document === 'undefined') return;
+  const root = document.documentElement;
+
+  if (settings.customAccentColor) {
+    root.style.setProperty('--nova-blue', settings.customAccentColor);
+    root.style.setProperty('--nova-accent', settings.customAccentColor);
+  }
+
+  if (settings.glassmorphismBlur !== undefined) {
+    root.style.setProperty('--nova-glass-blur', `${settings.glassmorphismBlur}px`);
+  }
+
+  if (settings.glassmorphismOpacity !== undefined && settings.customBgColor) {
+    const hex = settings.customBgColor.replace('#', '');
+    const r = parseInt(hex.substring(0, 2), 16) || 11;
+    const g = parseInt(hex.substring(2, 4), 16) || 13;
+    const b = parseInt(hex.substring(4, 6), 16) || 18;
+    const alpha = settings.glassmorphismOpacity / 100;
+    root.style.setProperty('--nova-surface', `rgba(${r}, ${g}, ${b}, ${alpha})`);
+    root.style.setProperty('--nova-bg', `rgba(${r}, ${g}, ${b}, ${Math.min(1, alpha + 0.1)})`);
+  }
+
+  if (settings.glassmorphismBorderGlow !== undefined) {
+    const borderAlpha = (settings.glassmorphismBorderGlow / 100) * 0.4;
+    root.style.setProperty('--nova-border', `rgba(255, 255, 255, ${borderAlpha})`);
+  }
+};
+
 // Load saved settings if present
 const getSavedSettings = (): AppearanceSettings => {
   try {
@@ -54,7 +88,6 @@ const getSavedSettings = (): AppearanceSettings => {
       if (!VALID_NOTCH_STYLES.includes(merged.notchStyle)) {
         merged.notchStyle = 'floating-pill';
       }
-      // Tighten dimensions if old 500px height was saved
       if (merged.expandedHeight > 440) {
         merged.expandedHeight = 420;
       }
@@ -71,6 +104,7 @@ const initialSettings = getSavedSettings();
 if (typeof document !== 'undefined') {
   document.documentElement.setAttribute('data-theme', initialSettings.themeMode);
   document.documentElement.setAttribute('data-rgb-preset', initialSettings.rgbPreset || 'rainbow');
+  applyCustomStyles(initialSettings);
 }
 
 export const useThemeStore = create<ThemeState>((set) => ({
@@ -98,10 +132,11 @@ export const useThemeStore = create<ThemeState>((set) => ({
         }
       }
 
-      // Sync to document element data attributes
+      // Sync to document element data attributes and CSS custom properties
       if (typeof document !== 'undefined') {
         document.documentElement.setAttribute('data-theme', updated.themeMode);
         document.documentElement.setAttribute('data-rgb-preset', updated.rgbPreset || 'rainbow');
+        applyCustomStyles(updated);
       }
       try {
         localStorage.setItem('nova_theme_settings', JSON.stringify(updated));

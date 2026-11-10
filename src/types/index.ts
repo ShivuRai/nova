@@ -141,6 +141,7 @@ export type PillDisplayContent =
   | 'media-priority'
   | 'telemetry'
   | 'clock-weather'
+  | 'network-speed'
   | 'minimal-zen';
 
 export interface AppearanceSettings {
@@ -156,6 +157,11 @@ export interface AppearanceSettings {
   pillDisplayContent?: PillDisplayContent;
   topOffset?: number;
   sideMargin?: number;
+  customAccentColor?: string;
+  customBgColor?: string;
+  glassmorphismBlur?: number;
+  glassmorphismOpacity?: number;
+  glassmorphismBorderGlow?: number;
   pillWidth: number;
   pillHeight: number;
   expandedWidth: number;
