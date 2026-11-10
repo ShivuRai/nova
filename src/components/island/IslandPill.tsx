@@ -160,6 +160,15 @@ export const IslandBrandMascot: React.FC<{ isCompact?: boolean; type?: string }>
   );
 };
 
+const EDGE_GRADIENTS: Record<string, string> = {
+  'cyan-pulse': 'linear-gradient(90deg, #38BDF8, #3B82F6, #60A5FA, #38BDF8)',
+  'emerald-beam': 'linear-gradient(90deg, #10B981, #34D399, #06B6D4, #10B981)',
+  'sunset-flare': 'linear-gradient(90deg, #F59E0B, #F43F5E, #EC4899, #F59E0B)',
+  'violet-aurora': 'linear-gradient(90deg, #8B5CF6, #A855F7, #EC4899, #8B5CF6)',
+  'pure-white': 'linear-gradient(90deg, rgba(255,255,255,0.95), rgba(255,255,255,0.25), rgba(255,255,255,0.95))',
+  'chromatic': 'linear-gradient(90deg, #60A5FA, #A78BFA, #F43F5E, #38BDF8, #34D399, #60A5FA)',
+};
+
 export const IslandPillContent: React.FC<{ isCompact?: boolean }> = ({ isCompact = false }) => {
   const { liveActivity } = useIslandStore();
   const { media, metrics } = useSystemStore();
@@ -182,6 +191,107 @@ export const IslandPillContent: React.FC<{ isCompact?: boolean }> = ({ isCompact
     !settings.screenPosition?.startsWith('bottom');
 
   const pillContentMode = settings.pillDisplayContent || 'smart-auto';
+  const isSplitCapsule = settings.notchStyle === 'split-capsule';
+
+  const customEdgeColor = settings.customEdgeLightingColor || '#38BDF8';
+  const resolvedEdgeBackground =
+    settings.edgeLightingColor === 'custom'
+      ? `linear-gradient(90deg, ${customEdgeColor}, #ffffff, ${customEdgeColor})`
+      : (EDGE_GRADIENTS[settings.edgeLightingColor || 'cyan-pulse'] || EDGE_GRADIENTS['cyan-pulse']);
+
+  // True Twin-Pod Split Capsule architecture
+  if (isSplitCapsule) {
+    const borderGlow = Math.max(0.05, ((settings.glassmorphismBorderGlow ?? 35) / 100) * 0.45);
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', height: '100%' }}>
+        {/* Left Pod: Mascot / Identity Pod */}
+        <div
+          style={{
+            height: '100%',
+            padding: isCompact ? '0 8px' : '0 12px',
+            borderRadius: '20px',
+            backgroundColor: 'var(--nova-pill-bg)',
+            boxShadow: 'var(--nova-shadow-pill)',
+            border: `1px solid rgba(255, 255, 255, ${borderGlow})`,
+            backdropFilter: `blur(${settings.glassmorphismBlur ?? 24}px) saturate(180%)`,
+            WebkitBackdropFilter: `blur(${settings.glassmorphismBlur ?? 24}px) saturate(180%)`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            position: 'relative',
+            overflow: 'hidden',
+            flexShrink: 0,
+          }}
+        >
+          {settings.edgeLightingMode && settings.edgeLightingMode !== 'off' && (
+            <div
+              className={`edge-lighting-trail mode-${settings.edgeLightingMode} speed-${settings.edgeLightingSpeed || 'normal'}`}
+              style={{ background: resolvedEdgeBackground }}
+            />
+          )}
+          <IslandBrandMascot isCompact={isCompact} type={settings.pillBrandBadge || 'robot'} />
+        </div>
+
+        {/* Right Pod: Telemetry / Time / Media Pod */}
+        <div
+          style={{
+            flex: 1,
+            height: '100%',
+            padding: isCompact ? '0 10px' : '0 14px',
+            borderRadius: '20px',
+            backgroundColor: 'var(--nova-pill-bg)',
+            boxShadow: 'var(--nova-shadow-pill)',
+            border: `1px solid rgba(255, 255, 255, ${borderGlow})`,
+            backdropFilter: `blur(${settings.glassmorphismBlur ?? 24}px) saturate(180%)`,
+            WebkitBackdropFilter: `blur(${settings.glassmorphismBlur ?? 24}px) saturate(180%)`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 8,
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+        >
+          {settings.edgeLightingMode && settings.edgeLightingMode !== 'off' && (
+            <div
+              className={`edge-lighting-trail mode-${settings.edgeLightingMode} speed-${settings.edgeLightingSpeed || 'normal'}`}
+              style={{ background: resolvedEdgeBackground }}
+            />
+          )}
+          {media.isPlaying ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, flex: 1 }}>
+              <Music size={12} style={{ color: 'var(--nova-blue)', flexShrink: 0 }} />
+              <span style={{ fontSize: '10px', fontWeight: 600, color: 'var(--nova-text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {media.title || 'Playing'}
+              </span>
+            </div>
+          ) : (
+            <span
+              style={{
+                fontSize: isCompact ? '10px' : '11.5px',
+                fontWeight: 600,
+                color: 'var(--nova-text-primary)',
+                fontFamily: 'var(--font-mono)',
+                letterSpacing: '0.02em',
+              }}
+            >
+              {time}
+            </span>
+          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '10px', color: 'var(--nova-text-secondary)', fontFamily: 'var(--font-mono)' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Cpu size={10} style={{ color: 'var(--nova-blue)' }} />
+              {metrics.cpuUsagePercent}%
+            </span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Activity size={10} style={{ color: 'var(--nova-cyan)' }} />
+              {metrics.ramUsagePercent}%
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -375,29 +485,38 @@ export const IslandPillContent: React.FC<{ isCompact?: boolean }> = ({ isCompact
       ) : pillContentMode === 'clock-weather' ? (
         <div
           style={{
-            display: 'flex',
+            display: 'grid',
+            gridTemplateColumns: '1fr auto 1fr',
             alignItems: 'center',
-            justifyContent: 'space-between',
             width: '100%',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {/* Left: Brand Mascot */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}>
             <IslandBrandMascot isCompact={isCompact} type={settings.pillBrandBadge || 'robot'} />
+          </div>
+
+          {/* Center: Perfectly Centered Clock */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <span
               style={{
-                fontSize: '11px',
-                fontWeight: 500,
-                color: 'var(--nova-text-muted)',
+                fontSize: isCompact ? '10px' : '11.5px',
+                fontWeight: 600,
+                color: 'var(--nova-text-primary)',
                 fontFamily: 'var(--font-mono)',
+                letterSpacing: '0.02em',
               }}
             >
               {time}
             </span>
           </div>
+
+          {/* Right: Weather */}
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
+              justifyContent: 'flex-end',
               gap: 4,
               fontSize: '10px',
               color: 'var(--nova-text-secondary)',
@@ -407,53 +526,70 @@ export const IslandPillContent: React.FC<{ isCompact?: boolean }> = ({ isCompact
           </div>
         </div>
       ) : (
-        /* Default and minimal-zen */
+        /* Default and minimal-zen: Balanced 3-Column Layout */
         <div
           style={{
-            display: 'flex',
+            display: 'grid',
+            gridTemplateColumns: '1fr auto 1fr',
             alignItems: 'center',
-            justifyContent: 'space-between',
             width: '100%',
           }}
         >
-          {/* Left Brand Badge with Animated Mascot or Logo */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {/* Left: Brand Mascot (Astro, Mochi, Quantum, Pixel, Text) */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}>
             <IslandBrandMascot isCompact={isCompact} type={settings.pillBrandBadge || 'robot'} />
+          </div>
+
+          {/* Center: Dedicated Centered Clock - Always Dead-Centered */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <span
               style={{
-                fontSize: isCompact ? '10px' : '11px',
-                fontWeight: 500,
-                color: 'var(--nova-text-muted)',
+                fontSize: isCompact ? '10px' : '11.5px',
+                fontWeight: 600,
+                color: 'var(--nova-text-primary)',
                 fontFamily: 'var(--font-mono)',
+                letterSpacing: '0.02em',
               }}
             >
               {time}
             </span>
           </div>
 
-          {/* Right Live Hardware Telemetry */}
-          {!isCompact && pillContentMode !== 'minimal-zen' && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                fontSize: '10px',
-                color: 'var(--nova-text-secondary)',
-                fontFamily: 'var(--font-mono)',
-              }}
-            >
-              <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                <Cpu size={10} style={{ color: 'var(--nova-blue)' }} />
-                {metrics.cpuUsagePercent}%
-              </span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                <Activity size={10} style={{ color: 'var(--nova-cyan)' }} />
-                {metrics.ramUsagePercent}%
-              </span>
-              <ChevronDown size={11} style={{ color: 'var(--nova-text-muted)', opacity: 0.7 }} />
-            </div>
-          )}
+          {/* Right: Live Hardware Telemetry or Subtle Status Dot */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
+            {!isCompact && pillContentMode !== 'minimal-zen' ? (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  fontSize: '10px',
+                  color: 'var(--nova-text-secondary)',
+                  fontFamily: 'var(--font-mono)',
+                }}
+              >
+                <span style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Cpu size={10} style={{ color: 'var(--nova-blue)' }} />
+                  {metrics.cpuUsagePercent}%
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Activity size={10} style={{ color: 'var(--nova-cyan)' }} />
+                  {metrics.ramUsagePercent}%
+                </span>
+                <ChevronDown size={11} style={{ color: 'var(--nova-text-muted)', opacity: 0.7 }} />
+              </div>
+            ) : (
+              <div
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: '50%',
+                  backgroundColor: 'var(--nova-cyan)',
+                  boxShadow: '0 0 6px var(--nova-cyan)',
+                }}
+              />
+            )}
+          </div>
         </div>
       )}
     </>

@@ -248,10 +248,12 @@ export const IslandContainer: React.FC = () => {
   const currentWidth = isExpanded ? settings.expandedWidth : effectivePillWidth;
   const currentHeight = isExpanded ? targetExpandedHeight : effectivePillHeight;
 
-  // Use explicit matching pixel strings so Framer Motion interpolates cleanly without getting stuck in an oval
+  // Explicit radius per shape
   let currentRadius = '20px';
   if (isChamfered) {
-    currentRadius = isExpanded ? '24px' : '0 0 16px 16px';
+    currentRadius = '0px';
+  } else if (isDynamicWing) {
+    currentRadius = isExpanded ? '6px' : '4px';
   } else if (isNotch) {
     currentRadius = isExpanded ? '24px' : '0 0 20px 20px';
   } else if (isSquircle) {
@@ -261,11 +263,11 @@ export const IslandContainer: React.FC = () => {
   } else if (isTeardrop) {
     currentRadius = isExpanded ? '24px' : '22px 8px 22px 18px';
   } else if (isHexPill) {
-    currentRadius = isExpanded ? '24px' : '12px';
+    currentRadius = isExpanded ? '24px' : '0px';
   } else if (isBlade) {
-    currentRadius = isExpanded ? '24px' : '18px 4px 18px 4px';
+    currentRadius = isExpanded ? '24px' : '0px';
   } else if (isDiamond) {
-    currentRadius = isExpanded ? '24px' : '8px 24px 8px 24px';
+    currentRadius = isExpanded ? '24px' : '0px';
   } else if (isDroplet) {
     currentRadius = isExpanded ? '24px' : '24px 24px 24px 8px';
   } else if (isSplit) {
@@ -278,6 +280,8 @@ export const IslandContainer: React.FC = () => {
   let glowRadius = '24px';
   if (isChamfered || isNotch) {
     glowRadius = isExpanded ? '0 0 28px 28px' : '0 0 24px 24px';
+  } else if (isDynamicWing) {
+    glowRadius = isExpanded ? '20px' : '16px';
   } else if (isSquircle) {
     glowRadius = isExpanded ? '28px' : '18px';
   } else if (isCompact) {
@@ -298,9 +302,26 @@ export const IslandContainer: React.FC = () => {
     glowRadius = isExpanded ? '28px' : '24px';
   }
 
+  const topGap = typeof settings.topOffset === 'number' ? settings.topOffset : (isNotch ? 0 : 8);
+  const sideGap = typeof settings.sideMargin === 'number' ? settings.sideMargin : 16;
+
   // Explicit clip-path for faceted geometric notch shapes
   let currentClipPath = 'none';
-  if (!isExpanded) {
+  if (isChamfered) {
+    if (isExpanded) {
+      currentClipPath = 'polygon(16px 0%, calc(100% - 16px) 0%, 100% 16px, 100% calc(100% - 16px), calc(100% - 16px) 100%, 16px 100%, 0% calc(100% - 16px), 0% 16px)';
+    } else if (!isBottom && topGap === 0) {
+      currentClipPath = 'polygon(0% 0%, 100% 0%, 100% calc(100% - 16px), calc(100% - 16px) 100%, 16px 100%, 0% calc(100% - 16px))';
+    } else {
+      currentClipPath = 'polygon(14px 0%, calc(100% - 14px) 0%, 100% 14px, 100% calc(100% - 14px), calc(100% - 14px) 100%, 14px 100%, 0% calc(100% - 14px), 0% 14px)';
+    }
+  } else if (isDynamicWing) {
+    if (isExpanded) {
+      currentClipPath = 'polygon(0% 16px, 16px 0%, calc(100% - 16px) 0%, 100% 16px, 100% calc(100% - 16px), calc(100% - 16px) 100%, 16px 100%, 0% calc(100% - 16px))';
+    } else {
+      currentClipPath = 'polygon(16px 0%, calc(100% - 16px) 0%, 100% 26%, calc(100% - 8px) 50%, 100% 74%, calc(100% - 16px) 100%, 16px 100%, 0% 74%, 8px 50%, 0% 26%)';
+    }
+  } else if (!isExpanded) {
     if (isBlade) {
       currentClipPath = 'polygon(0% 0%, 100% 0%, calc(100% - 10px) 100%, 10px 100%)';
     } else if (isDiamond) {
@@ -327,8 +348,11 @@ export const IslandContainer: React.FC = () => {
     'chromatic': 'linear-gradient(90deg, #60A5FA, #A78BFA, #F43F5E, #38BDF8, #34D399, #60A5FA)',
   };
 
-  const topGap = typeof settings.topOffset === 'number' ? settings.topOffset : (isNotch ? 0 : 8);
-  const sideGap = typeof settings.sideMargin === 'number' ? settings.sideMargin : 16;
+  const customEdgeColor = settings.customEdgeLightingColor || '#38BDF8';
+  const resolvedEdgeBackground =
+    settings.edgeLightingColor === 'custom'
+      ? `linear-gradient(90deg, ${customEdgeColor}, #ffffff, ${customEdgeColor})`
+      : (EDGE_GRADIENTS[settings.edgeLightingColor || 'cyan-pulse'] || EDGE_GRADIENTS['cyan-pulse']);
 
   const justifyContent = isLeft ? 'flex-start' : isRight ? 'flex-end' : 'center';
   const alignItems = isBottom ? 'flex-end' : 'flex-start';
@@ -475,52 +499,12 @@ export const IslandContainer: React.FC = () => {
           </>
         )}
 
-        {/* Dynamic Wing Aero Tabs */}
-        {isDynamicWing && !isExpanded && (
-          <>
-            <div
-              style={{
-                position: 'absolute',
-                top: '50%',
-                left: `calc(50% - ${currentWidth / 2}px - 8px)`,
-                transform: 'translateY(-50%)',
-                width: 8,
-                height: 16,
-                backgroundColor: 'var(--nova-pill-bg)',
-                borderLeft: '1px solid var(--nova-border)',
-                borderTop: '1px solid var(--nova-border)',
-                borderBottom: '1px solid var(--nova-border)',
-                borderRadius: '8px 0 0 8px',
-                pointerEvents: 'none',
-                zIndex: 1,
-              }}
-            />
-            <div
-              style={{
-                position: 'absolute',
-                top: '50%',
-                right: `calc(50% - ${currentWidth / 2}px - 8px)`,
-                transform: 'translateY(-50%)',
-                width: 8,
-                height: 16,
-                backgroundColor: 'var(--nova-pill-bg)',
-                borderRight: '1px solid var(--nova-border)',
-                borderTop: '1px solid var(--nova-border)',
-                borderBottom: '1px solid var(--nova-border)',
-                borderRadius: '0 8px 8px 0',
-                pointerEvents: 'none',
-                zIndex: 1,
-              }}
-            />
-          </>
-        )}
-
         {/* Master Single Island Capsule */}
         <motion.div
           animate={{
             width: currentWidth,
             height: currentHeight,
-            borderRadius: currentRadius,
+            borderRadius: isChamfered ? '0px' : (isSplit && !isExpanded ? '0px' : currentRadius),
           }}
           transition={{
             type: 'spring',
@@ -529,29 +513,31 @@ export const IslandContainer: React.FC = () => {
             mass: 0.8,
           }}
           style={{
-            backgroundColor: dynamicBg,
-            boxShadow: isExpanded ? 'var(--nova-shadow-card)' : 'var(--nova-shadow-pill)',
-            border: isRgb
-              ? '1.5px solid rgba(96, 165, 250, 0.6)'
-              : wallpaperPalette && settings.enableWallpaperTinting
-              ? `1.5px solid ${wallpaperPalette.accent}70`
-              : `1px solid rgba(255, 255, 255, ${Math.max(0.05, ((settings.glassmorphismBorderGlow ?? 35) / 100) * 0.45)})`,
+            backgroundColor: isSplit && !isExpanded ? 'transparent' : dynamicBg,
+            boxShadow: isSplit && !isExpanded ? 'none' : (isExpanded ? 'var(--nova-shadow-card)' : 'var(--nova-shadow-pill)'),
+            border: isSplit && !isExpanded ? 'none' : (
+              isRgb
+                ? '1.5px solid rgba(96, 165, 250, 0.6)'
+                : wallpaperPalette && settings.enableWallpaperTinting
+                ? `1.5px solid ${wallpaperPalette.accent}70`
+                : `1px solid rgba(255, 255, 255, ${Math.max(0.05, ((settings.glassmorphismBorderGlow ?? 35) / 100) * 0.45)})`
+            ),
             borderTop: isNotch ? 'none' : undefined,
-            backdropFilter: `blur(${settings.glassmorphismBlur ?? 28}px) saturate(180%)`,
-            WebkitBackdropFilter: `blur(${settings.glassmorphismBlur ?? 28}px) saturate(180%)`,
-            clipPath: currentClipPath,
+            backdropFilter: isSplit && !isExpanded ? 'none' : `blur(${settings.glassmorphismBlur ?? 28}px) saturate(180%)`,
+            WebkitBackdropFilter: isSplit && !isExpanded ? 'none' : `blur(${settings.glassmorphismBlur ?? 28}px) saturate(180%)`,
+            clipPath: isSplit && !isExpanded ? 'none' : currentClipPath,
             position: 'relative',
-            overflow: 'hidden',
+            overflow: isSplit && !isExpanded ? 'visible' : 'hidden',
             zIndex: 2,
             cursor: isExpanded ? 'default' : 'pointer',
           }}
-          className={isRgb ? 'rgb-border' : ''}
+          className={isRgb && !(isSplit && !isExpanded) ? 'rgb-border' : ''}
         >
           {/* Seasonal Ambient Particles Engine */}
           <AmbientParticles mode={settings.ambientParticles} width={currentWidth} height={currentHeight} />
 
           {/* Audio-Reactive Equalizer Edge Lighting Pulse */}
-          {settings.enableAudioReactiveLighting && media.isPlaying && (
+          {settings.enableAudioReactiveLighting && media.isPlaying && !(isSplit && !isExpanded) && (
             <motion.div
               animate={{
                 opacity: [0.35, 0.95, 0.35],
@@ -576,30 +562,12 @@ export const IslandContainer: React.FC = () => {
             />
           )}
 
-          {/* Split Capsule Center Seam */}
-          {isSplit && !isExpanded && (
-            <div
-              style={{
-                position: 'absolute',
-                top: 8,
-                bottom: 8,
-                left: '50%',
-                width: 1,
-                backgroundColor: 'rgba(255, 255, 255, 0.12)',
-                pointerEvents: 'none',
-                zIndex: 3,
-              }}
-            />
-          )}
-
           {/* Minimalistic Edge Lighting Overlay */}
-          {settings.edgeLightingMode && settings.edgeLightingMode !== 'off' && (
+          {!(isSplit && !isExpanded) && settings.edgeLightingMode && settings.edgeLightingMode !== 'off' && (
             <div
               className={`edge-lighting-trail mode-${settings.edgeLightingMode} speed-${settings.edgeLightingSpeed || 'normal'}`}
               style={{
-                background:
-                  EDGE_GRADIENTS[settings.edgeLightingColor || 'cyan-pulse'] ||
-                  EDGE_GRADIENTS['cyan-pulse'],
+                background: resolvedEdgeBackground,
               }}
             />
           )}
@@ -617,7 +585,7 @@ export const IslandContainer: React.FC = () => {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  padding: isCompact ? '0 10px' : '0 14px',
+                  padding: isSplit ? 0 : (isCompact ? '0 10px' : '0 14px'),
                 }}
                 onClick={handleManualExpand}
               >

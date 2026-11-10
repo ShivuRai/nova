@@ -229,3 +229,4 @@ export const AmbientParticles: React.FC<AmbientParticlesProps> = ({ mode = 'off'
 
   return null;
 };
+

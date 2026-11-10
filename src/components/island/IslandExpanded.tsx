@@ -22,6 +22,7 @@ import {
   MessageSquare,
   Search,
   Sliders,
+  SlidersHorizontal,
   Cpu,
   TrendingUp,
   DollarSign,
@@ -338,167 +339,216 @@ export const IslandExpandedContent: React.FC<IslandExpandedProps> = ({ onCollaps
         </div>
       </div>
 
-      {/* Category Tabs - Sliding active pill with custom category creation */}
+      {/* Category Tabs - Left: Scrollable Category Pills; Right: Pinned Always-Visible Action Buttons */}
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 4,
-          padding: '6px 14px',
+          justifyContent: 'space-between',
+          padding: '6px 12px 6px 14px',
           borderBottom: '1px solid var(--nova-border)',
-          overflowX: 'auto',
-          scrollbarWidth: 'none',
+          gap: 6,
         }}
       >
-        {categories.map((cat) => {
-          const isSelected = selectedCategory === cat.id;
-          const isCustom = cat.id.startsWith('custom_');
-          return (
-            <motion.button
-              key={cat.id}
+        {/* Scrollable Category Pills */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+            overflowX: 'auto',
+            scrollbarWidth: 'none',
+            flex: 1,
+            minWidth: 0,
+          }}
+        >
+          {categories.map((cat) => {
+            const isSelected = selectedCategory === cat.id;
+            const isCustom = cat.id.startsWith('custom_');
+            return (
+              <motion.button
+                key={cat.id}
+                onClick={() => {
+                  playClickSound();
+                  setSelectedCategory(cat.id);
+                  setIsManagingModules(false);
+                }}
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.96 }}
+                style={{
+                  fontSize: '10.5px',
+                  fontWeight: isSelected ? 600 : 500,
+                  padding: '3px 9px',
+                  borderRadius: 'var(--nova-radius-pill)',
+                  color: isSelected ? 'var(--nova-text-primary)' : 'var(--nova-text-muted)',
+                  position: 'relative',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  flexShrink: 0,
+                }}
+              >
+                {isSelected && (
+                  <motion.div
+                    layoutId="active-category-pill"
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      borderRadius: 'var(--nova-radius-pill)',
+                      backgroundColor: 'rgba(255, 255, 255, 0.12)',
+                      border: '1px solid var(--nova-border)',
+                      zIndex: -1,
+                    }}
+                    transition={{ type: 'spring', stiffness: 420, damping: 30 }}
+                  />
+                )}
+                <span>{cat.label}</span>
+                {isCustom && (
+                  <span
+                    onClick={(e) => handleDeleteCategory(cat.id, e)}
+                    title="Delete category"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: 13,
+                      height: 13,
+                      borderRadius: '50%',
+                      backgroundColor: 'rgba(255,255,255,0.1)',
+                      color: 'var(--nova-text-muted)',
+                      marginLeft: 2,
+                    }}
+                  >
+                    <X size={9} />
+                  </span>
+                )}
+              </motion.button>
+            );
+          })}
+        </div>
+
+        {/* Pinned Action Controls (+ Add Category and Manage Modules) */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+          {isAddingCategory ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <input
+                type="text"
+                autoFocus
+                placeholder="Category name..."
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleCreateCategory();
+                  if (e.key === 'Escape') setIsAddingCategory(false);
+                }}
+                style={{
+                  fontSize: '10px',
+                  padding: '2px 7px',
+                  borderRadius: 'var(--nova-radius-pill)',
+                  backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid var(--nova-cyan)',
+                  color: '#fff',
+                  outline: 'none',
+                  width: 90,
+                }}
+              />
+              <button
+                onClick={handleCreateCategory}
+                style={{
+                  background: 'var(--nova-cyan)',
+                  color: '#000',
+                  border: 'none',
+                  borderRadius: 'var(--nova-radius-pill)',
+                  padding: '2px 7px',
+                  fontSize: '9.5px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                Add
+              </button>
+              <button
+                onClick={() => {
+                  setIsAddingCategory(false);
+                  setNewCategoryName('');
+                }}
+                style={{
+                  background: 'none',
+                  color: 'var(--nova-text-muted)',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: 1,
+                }}
+              >
+                <X size={11} />
+              </button>
+            </div>
+          ) : (
+            <button
               onClick={() => {
                 playClickSound();
-                setSelectedCategory(cat.id);
-                setIsManagingModules(false);
+                setIsAddingCategory(true);
               }}
-              whileHover={{ scale: 1.04 }}
-              whileTap={{ scale: 0.96 }}
+              title="Add custom category"
               style={{
-                fontSize: '10.5px',
-                fontWeight: isSelected ? 600 : 500,
-                padding: '3px 9px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 3,
+                fontSize: '10px',
+                fontWeight: 600,
+                padding: '2px 8px',
                 borderRadius: 'var(--nova-radius-pill)',
-                color: isSelected ? 'var(--nova-text-primary)' : 'var(--nova-text-muted)',
-                position: 'relative',
-                background: 'none',
-                border: 'none',
+                color: 'var(--nova-cyan)',
+                backgroundColor: 'rgba(56, 189, 248, 0.12)',
+                border: '1px solid rgba(56, 189, 248, 0.35)',
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 4,
               }}
             >
-              {isSelected && (
-                <motion.div
-                  layoutId="active-category-pill"
-                  style={{
-                    position: 'absolute',
-                    inset: 0,
-                    borderRadius: 'var(--nova-radius-pill)',
-                    backgroundColor: 'rgba(255, 255, 255, 0.12)',
-                    border: '1px solid var(--nova-border)',
-                    zIndex: -1,
-                  }}
-                  transition={{ type: 'spring', stiffness: 420, damping: 30 }}
-                />
-              )}
-              <span>{cat.label}</span>
-              {isCustom && (
-                <span
-                  onClick={(e) => handleDeleteCategory(cat.id, e)}
-                  title="Delete category"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: 13,
-                    height: 13,
-                    borderRadius: '50%',
-                    backgroundColor: 'rgba(255,255,255,0.1)',
-                    color: 'var(--nova-text-muted)',
-                    marginLeft: 2,
-                  }}
-                >
-                  <X size={9} />
-                </span>
-              )}
-            </motion.button>
-          );
-        })}
+              <Plus size={11} />
+              <span>Category</span>
+            </button>
+          )}
 
-        {/* Plus / Add Custom Category Button */}
-        {isAddingCategory ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 2 }}>
-            <input
-              type="text"
-              autoFocus
-              placeholder="Category name..."
-              value={newCategoryName}
-              onChange={(e) => setNewCategoryName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleCreateCategory();
-                if (e.key === 'Escape') setIsAddingCategory(false);
-              }}
-              style={{
-                fontSize: '10px',
-                padding: '2px 7px',
-                borderRadius: 'var(--nova-radius-pill)',
-                backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                border: '1px solid var(--nova-cyan)',
-                color: '#fff',
-                outline: 'none',
-                width: 95,
-              }}
-            />
-            <button
-              onClick={handleCreateCategory}
-              style={{
-                background: 'var(--nova-cyan)',
-                color: '#000',
-                border: 'none',
-                borderRadius: 'var(--nova-radius-pill)',
-                padding: '2px 7px',
-                fontSize: '9.5px',
-                fontWeight: 700,
-                cursor: 'pointer',
-              }}
-            >
-              Add
-            </button>
-            <button
-              onClick={() => {
-                setIsAddingCategory(false);
-                setNewCategoryName('');
-              }}
-              style={{
-                background: 'none',
-                color: 'var(--nova-text-muted)',
-                border: 'none',
-                cursor: 'pointer',
-                padding: 1,
-              }}
-            >
-              <X size={11} />
-            </button>
-          </div>
-        ) : (
+          {/* Manage / Curate Apps Button */}
           <button
             onClick={() => {
               playClickSound();
-              setIsAddingCategory(true);
+              if (!isCustomCategory) {
+                if (customCategories.length > 0) {
+                  setSelectedCategory(customCategories[0].id);
+                  setIsManagingModules(true);
+                } else {
+                  setIsAddingCategory(true);
+                }
+              } else {
+                setIsManagingModules(!isManagingModules);
+              }
             }}
-            title="Create custom category"
+            title={isManagingModules ? 'Done customizing' : 'Manage & curate apps in custom categories'}
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: 3,
               fontSize: '10px',
-              fontWeight: 600,
-              padding: '2px 7px',
+              fontWeight: 500,
+              padding: '2px 8px',
               borderRadius: 'var(--nova-radius-pill)',
-              color: 'var(--nova-cyan)',
-              backgroundColor: 'rgba(56, 189, 248, 0.08)',
-              border: '1px dashed rgba(56, 189, 248, 0.35)',
+              color: isManagingModules ? '#000' : 'var(--nova-text-secondary)',
+              backgroundColor: isManagingModules ? 'var(--nova-cyan)' : 'rgba(255, 255, 255, 0.05)',
+              border: isManagingModules ? '1px solid var(--nova-cyan)' : '1px solid var(--nova-border)',
               cursor: 'pointer',
               whiteSpace: 'nowrap',
-              marginLeft: 2,
             }}
           >
-            <Plus size={11} />
-            <span>New</span>
+            <SlidersHorizontal size={10} />
+            <span>{isManagingModules ? 'Done' : 'Manage'}</span>
           </button>
-        )}
+        </div>
       </div>
 
       {/* Module Strip Bar - Interactive sliding selection with hover spring */}

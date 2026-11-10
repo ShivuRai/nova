@@ -154,6 +154,52 @@ input, textarea, select {
   50% { opacity: 0.95; }
 }
 
+@keyframes edge-flow-laser-chase {
+  0% {
+    background-position: 0% 0%;
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    background-position: 250% 0%;
+    opacity: 0.8;
+  }
+}
+
+@keyframes edge-flow-neon-ripple {
+  0% {
+    background-size: 50% 100%;
+    opacity: 0.4;
+  }
+  50% {
+    background-size: 150% 100%;
+    opacity: 1;
+  }
+  100% {
+    background-size: 250% 100%;
+    opacity: 0.4;
+  }
+}
+
+@keyframes edge-flow-strobe-flow {
+  0%, 100% {
+    background-position: 0% 50%;
+    opacity: 0.5;
+  }
+  25% {
+    opacity: 1;
+  }
+  50% {
+    background-position: 150% 50%;
+    opacity: 0.6;
+  }
+  75% {
+    opacity: 1;
+  }
+}
+
 .edge-lighting-trail {
   position: absolute;
   inset: 0;
@@ -185,11 +231,26 @@ input, textarea, select {
   animation: edge-flow-breathing 2.4s ease-in-out infinite;
 }
 
+.edge-lighting-trail.mode-laser-chase {
+  background-size: 250% 200%;
+  animation: edge-flow-laser-chase 2s linear infinite;
+}
+
+.edge-lighting-trail.mode-neon-ripple {
+  background-size: 200% 100%;
+  animation: edge-flow-neon-ripple 2.5s ease-in-out infinite;
+}
+
+.edge-lighting-trail.mode-strobe-flow {
+  background-size: 200% 200%;
+  animation: edge-flow-strobe-flow 1.8s steps(20, end) infinite;
+}
+
 .edge-lighting-trail.speed-slow {
   animation-duration: 6.5s !important;
 }
 
 .edge-lighting-trail.speed-fast {
-  animation-duration: 1.8s !important;
+  animation-duration: 1.2s !important;
 }
 

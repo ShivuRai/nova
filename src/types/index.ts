@@ -126,10 +126,13 @@ export type ScreenPosition =
 export type RgbPreset = 'rainbow' | 'cyberpunk' | 'sunset' | 'oceanic' | 'aurora';
 
 export type EdgeLightingMode =
-  | 'corners-inward'
   | 'continuous'
+  | 'corners-inward'
   | 'center-outward'
   | 'breathing-glow'
+  | 'laser-chase'
+  | 'neon-ripple'
+  | 'strobe-flow'
   | 'off';
 
 export type EdgeLightingColor =
@@ -138,7 +141,8 @@ export type EdgeLightingColor =
   | 'sunset-flare'
   | 'violet-aurora'
   | 'pure-white'
-  | 'chromatic';
+  | 'chromatic'
+  | 'custom';
 
 export type EdgeLightingSpeed = 'slow' | 'normal' | 'fast';
 
@@ -161,6 +165,7 @@ export interface AppearanceSettings {
   rgbPreset?: RgbPreset;
   edgeLightingMode?: EdgeLightingMode;
   edgeLightingColor?: EdgeLightingColor;
+  customEdgeLightingColor?: string;
   edgeLightingSpeed?: EdgeLightingSpeed;
   pillDisplayContent?: PillDisplayContent;
   pillBrandBadge?: PillBrandBadge;

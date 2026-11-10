@@ -74,8 +74,11 @@ const POSITIONS: Array<{ id: ScreenPosition; label: string }> = [
 
 const EDGE_MODES: Array<{ id: EdgeLightingMode; label: string; desc: string }> = [
   { id: 'continuous', label: 'Continuous Flow', desc: 'Perpetual perimeter border sweep' },
+  { id: 'laser-chase', label: 'Laser Comet', desc: 'Ultra-fast trailing laser comet running along the contour' },
   { id: 'corners-inward', label: 'Corners Inward', desc: 'Dual beams sweeping from both corners inward' },
   { id: 'center-outward', label: 'Center Outward', desc: 'Radiant pulse flowing outward to corners' },
+  { id: 'neon-ripple', label: 'Neon Ripple', desc: 'Dynamic ripple wave pulsating along the border' },
+  { id: 'strobe-flow', label: 'Strobe Cyber', desc: 'High-energy cyberpunk stroboscopic lighting' },
   { id: 'breathing-glow', label: 'Breathing Rim', desc: 'Gentle organic breathing illumination' },
   { id: 'off', label: 'Edge Light Off', desc: 'Minimal clean border without animations' },
 ];
@@ -87,6 +90,7 @@ const EDGE_COLORS: Array<{ id: EdgeLightingColor; label: string; dot: string }> 
   { id: 'violet-aurora', label: 'Electric Violet', dot: '#8B5CF6' },
   { id: 'pure-white', label: 'Platinum White', dot: '#FFFFFF' },
   { id: 'chromatic', label: 'Chromatic', dot: 'linear-gradient(135deg, #60A5FA, #F43F5E, #34D399)' },
+  { id: 'custom', label: 'Custom Color', dot: 'var(--nova-blue)' },
 ];
 
 const MASCOT_OPTIONS: Array<{ id: PillBrandBadge; label: string; desc: string; preview: string }> = [
@@ -586,8 +590,8 @@ export const RgbView: React.FC = () => {
           <div
             style={{
               padding: '8px 12px',
-              backgroundColor: isRgbActive ? 'rgba(96, 165, 250, 0.12)' : 'var(--nova-surface)',
-              border: isRgbActive ? '1px solid var(--nova-blue)' : '1px solid var(--nova-border)',
+              backgroundColor: settings.edgeLightingMode && settings.edgeLightingMode !== 'off' ? 'rgba(56, 189, 248, 0.12)' : 'var(--nova-surface)',
+              border: settings.edgeLightingMode && settings.edgeLightingMode !== 'off' ? '1px solid var(--nova-cyan)' : '1px solid var(--nova-border)',
               borderRadius: 'var(--nova-radius-widget)',
               display: 'flex',
               justifyContent: 'space-between',
@@ -595,41 +599,46 @@ export const RgbView: React.FC = () => {
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Sparkles size={14} style={{ color: isRgbActive ? 'var(--nova-blue)' : 'var(--nova-text-muted)' }} />
-              <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--nova-text-primary)' }}>
-                Edge Lighting Engine {isRgbActive ? 'Active' : 'Off'}
-              </span>
+              <Sparkles size={14} style={{ color: settings.edgeLightingMode && settings.edgeLightingMode !== 'off' ? 'var(--nova-cyan)' : 'var(--nova-text-muted)' }} />
+              <div>
+                <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--nova-text-primary)' }}>
+                  Perimeter Edge Lighting Outline
+                </div>
+                <div style={{ fontSize: '9px', color: 'var(--nova-text-muted)' }}>
+                  Animates a razor-thin neon outline along the notch contour without changing the glass background
+                </div>
+              </div>
             </div>
 
             <button
-              onClick={() => updateSettings({ enableRgbBorder: !isRgbActive, themeMode: isRgbActive ? 'minimal' : 'rgb' })}
+              onClick={() => updateSettings({ edgeLightingMode: settings.edgeLightingMode && settings.edgeLightingMode !== 'off' ? 'off' : 'continuous' })}
               style={{
                 padding: '4px 10px',
                 borderRadius: 'var(--nova-radius-pill)',
-                backgroundColor: isRgbActive ? 'var(--nova-blue)' : 'rgba(255,255,255,0.06)',
-                color: isRgbActive ? '#fff' : 'var(--nova-text-muted)',
+                backgroundColor: settings.edgeLightingMode && settings.edgeLightingMode !== 'off' ? 'var(--nova-cyan)' : 'rgba(255,255,255,0.06)',
+                color: settings.edgeLightingMode && settings.edgeLightingMode !== 'off' ? '#000' : 'var(--nova-text-muted)',
                 fontSize: '10px',
-                fontWeight: 600,
+                fontWeight: 700,
                 border: 'none',
                 cursor: 'pointer',
               }}
             >
-              {isRgbActive ? 'Enabled' : 'Disabled'}
+              {settings.edgeLightingMode && settings.edgeLightingMode !== 'off' ? 'Active' : 'Disabled'}
             </button>
           </div>
 
           {/* Edge Lighting Modes */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
             {EDGE_MODES.map((mode) => {
-              const isSelected = settings.edgeLightingMode === mode.id;
+              const isSelected = (settings.edgeLightingMode || 'off') === mode.id;
               return (
                 <button
                   key={mode.id}
-                  onClick={() => updateSettings({ edgeLightingMode: mode.id, enableRgbBorder: mode.id !== 'off' })}
+                  onClick={() => updateSettings({ edgeLightingMode: mode.id })}
                   style={{
                     padding: '8px 10px',
-                    backgroundColor: isSelected ? 'rgba(102, 136, 255, 0.15)' : 'var(--nova-surface)',
-                    border: isSelected ? '1.5px solid var(--nova-blue)' : '1px solid var(--nova-border)',
+                    backgroundColor: isSelected ? 'rgba(56, 189, 248, 0.16)' : 'var(--nova-surface)',
+                    border: isSelected ? '1.5px solid var(--nova-cyan)' : '1px solid var(--nova-border)',
                     borderRadius: 'var(--nova-radius-widget)',
                     display: 'flex',
                     flexDirection: 'column',
@@ -639,10 +648,10 @@ export const RgbView: React.FC = () => {
                     textAlign: 'left',
                   }}
                 >
-                  <span style={{ fontSize: '11px', fontWeight: 600, color: isSelected ? 'var(--nova-blue)' : 'var(--nova-text-primary)' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 600, color: isSelected ? 'var(--nova-cyan)' : 'var(--nova-text-primary)' }}>
                     {mode.label}
                   </span>
-                  <span style={{ fontSize: '9px', color: 'var(--nova-text-muted)' }}>{mode.desc}</span>
+                  <span style={{ fontSize: '8.5px', color: 'var(--nova-text-muted)', lineHeight: 1.2 }}>{mode.desc}</span>
                 </button>
               );
             })}
@@ -652,9 +661,9 @@ export const RgbView: React.FC = () => {
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 8 }}>
             <div style={{ padding: '8px 10px', backgroundColor: 'var(--nova-surface)', border: '1px solid var(--nova-border)', borderRadius: 'var(--nova-radius-widget)' }}>
               <div style={{ fontSize: '9px', color: 'var(--nova-text-secondary)', fontWeight: 600, marginBottom: 6 }}>LIGHTING BEAM COLOR</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4 }}>
                 {EDGE_COLORS.map((col) => {
-                  const isSelected = settings.edgeLightingColor === col.id;
+                  const isSelected = (settings.edgeLightingColor || 'cyan-pulse') === col.id;
                   return (
                     <button
                       key={col.id}
@@ -663,20 +672,43 @@ export const RgbView: React.FC = () => {
                         padding: '4px',
                         fontSize: '9px',
                         borderRadius: 4,
-                        backgroundColor: isSelected ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.02)',
-                        border: isSelected ? '1px solid var(--nova-blue)' : '1px solid var(--nova-border)',
-                        color: 'var(--nova-text-primary)',
+                        backgroundColor: isSelected ? 'rgba(56,189,248,0.18)' : 'rgba(255,255,255,0.02)',
+                        border: isSelected ? '1px solid var(--nova-cyan)' : '1px solid var(--nova-border)',
+                        color: isSelected ? 'var(--nova-cyan)' : 'var(--nova-text-primary)',
                         display: 'flex',
                         alignItems: 'center',
                         gap: 4,
                         cursor: 'pointer',
                       }}
                     >
-                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: col.dot }} />
+                      <div
+                        style={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: '50%',
+                          background: col.id === 'custom' ? (settings.customEdgeLightingColor || '#38BDF8') : col.dot,
+                        }}
+                      />
                       <span style={{ whiteSpace: 'nowrap' }}>{col.label}</span>
                     </button>
                   );
                 })}
+              </div>
+
+              {/* Custom Edge Color Picker */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, paddingTop: 6, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                <span style={{ fontSize: '9.5px', color: 'var(--nova-text-primary)' }}>Custom Beam Color</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <input
+                    type="color"
+                    value={settings.customEdgeLightingColor || '#38BDF8'}
+                    onChange={(e) => updateSettings({ customEdgeLightingColor: e.target.value, edgeLightingColor: 'custom' })}
+                    style={{ width: 18, height: 18, border: 'none', background: 'none', cursor: 'pointer', padding: 0 }}
+                  />
+                  <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: 'var(--nova-text-muted)' }}>
+                    {settings.customEdgeLightingColor || '#38BDF8'}
+                  </span>
+                </div>
               </div>
             </div>
 

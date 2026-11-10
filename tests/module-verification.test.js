@@ -344,3 +344,33 @@ test('Verification 13: Single-Instance Resilience, EADDRINUSE Prevention, Custom
   assert.strictEqual(containerContent.includes('playHoverSound'), true, 'playHoverSound must be called');
   assert.strictEqual(containerContent.includes('enableAudioReactiveLighting'), true, 'Audio reactive lighting must be handled');
 });
+
+test('Verification 14: Dynamic Wing, Chamfered Notch, Split Capsule Twin-Pod, Center Clock, and Edge Light Customization', () => {
+  const containerPath = path.join(projectRoot, 'src', 'components', 'island', 'IslandContainer.tsx');
+  const containerContent = fs.readFileSync(containerPath, 'utf8');
+
+  // 1. Dynamic Wing must use aerodynamic swept winglet polygon
+  assert.strictEqual(containerContent.includes('isDynamicWing'), true, 'isDynamicWing check must exist');
+  assert.strictEqual(containerContent.includes('polygon(16px 0%, calc(100% - 16px) 0%, 100% 26%'), true, 'Aerodynamic wing contour must be defined');
+
+  // 2. Chamfered Notch must use true 45-degree beveled corner polygon
+  assert.strictEqual(containerContent.includes('isChamfered'), true, 'isChamfered check must exist');
+  assert.strictEqual(containerContent.includes('polygon(14px 0%, calc(100% - 14px) 0%, 100% 14px'), true, '45-degree chamfer polygon must be defined');
+
+  // 3. Custom Edge Lighting gradient
+  assert.strictEqual(containerContent.includes('customEdgeLightingColor'), true, 'customEdgeLightingColor must be supported');
+  assert.strictEqual(containerContent.includes('resolvedEdgeBackground'), true, 'resolvedEdgeBackground must resolve custom color');
+
+  // 4. Split Capsule twin-pod architecture in IslandPill
+  const pillPath = path.join(projectRoot, 'src', 'components', 'island', 'IslandPill.tsx');
+  const pillContent = fs.readFileSync(pillPath, 'utf8');
+  assert.strictEqual(pillContent.includes('isSplitCapsule'), true, 'isSplitCapsule twin-pod check must exist');
+  assert.strictEqual(pillContent.includes("gridTemplateColumns: '1fr auto 1fr'"), true, 'Clock must be dead-centered in a 3-zone grid layout');
+
+  // 5. Fixed + Category and Manage buttons in IslandExpanded
+  const expandedPath = path.join(projectRoot, 'src', 'components', 'island', 'IslandExpanded.tsx');
+  const expandedContent = fs.readFileSync(expandedPath, 'utf8');
+  assert.strictEqual(expandedContent.includes('Pinned Action Controls'), true, 'Pinned action controls must be present');
+  assert.strictEqual(expandedContent.includes('SlidersHorizontal'), true, 'Manage action button must be present');
+  assert.strictEqual(expandedContent.includes('isAddingCategory'), true, 'isAddingCategory must be present');
+});

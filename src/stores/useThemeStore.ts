@@ -15,6 +15,7 @@ const DEFAULT_SETTINGS: AppearanceSettings = {
   rgbPreset: 'rainbow',
   edgeLightingMode: 'continuous',
   edgeLightingColor: 'cyan-pulse',
+  customEdgeLightingColor: '#38BDF8',
   edgeLightingSpeed: 'normal',
   pillDisplayContent: 'smart-auto',
   pillBrandBadge: 'robot',
