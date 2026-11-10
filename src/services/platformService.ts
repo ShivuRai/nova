@@ -8,12 +8,18 @@ export const isTauri = (): boolean => {
   return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 };
 
-export const resizeDesktopWindow = async (expanded: boolean, width: number, height: number): Promise<void> => {
+export const resizeDesktopWindow = async (
+  expanded: boolean,
+  width: number,
+  height: number,
+  position: string = 'top-center',
+  notchStyle: string = 'floating-pill'
+): Promise<void> => {
   try {
     if (isElectron()) {
       const { ipcRenderer } = (window as any).require('electron');
       if (ipcRenderer) {
-        ipcRenderer.send('set-island-state', { expanded, width, height });
+        ipcRenderer.send('set-island-state', { expanded, width, height, position, notchStyle });
         return;
       }
     }
@@ -56,3 +62,4 @@ export const setAutoStartStatus = async (enabled: boolean): Promise<boolean> => 
     return enabled;
   }
 };
+

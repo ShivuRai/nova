@@ -23,3 +23,4 @@ echo Windows Defender and SmartScreen will now recognize NOVA binaries.
 echo ======================================================================
 echo.
 pause
+

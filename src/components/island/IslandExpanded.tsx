@@ -178,10 +178,10 @@ export const IslandExpanded: React.FC<IslandExpandedProps> = ({ onCollapse }) =>
         backgroundColor: 'var(--nova-surface-glass)',
         boxShadow: 'var(--nova-shadow-card)',
         border: isRgb
-          ? '1px solid rgba(102, 136, 255, 0.45)'
+          ? '1px solid rgba(96, 165, 250, 0.55)'
           : '1px solid var(--nova-border)',
-        backdropFilter: 'blur(28px)',
-        WebkitBackdropFilter: 'blur(28px)',
+        backdropFilter: 'blur(30px) saturate(180%) contrast(105%)',
+        WebkitBackdropFilter: 'blur(30px) saturate(180%) contrast(105%)',
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
@@ -190,10 +190,23 @@ export const IslandExpanded: React.FC<IslandExpandedProps> = ({ onCollapse }) =>
       className={isRgb ? 'rgb-border' : ''}
       transition={{
         type: 'spring',
-        stiffness: 400,
-        damping: 34,
+        stiffness: 420,
+        damping: 32,
+        mass: 0.85,
       }}
     >
+      {/* Specular top light streak for ultra-luxurious glass look */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: '10%',
+          right: '10%',
+          height: 1,
+          background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent)',
+          pointerEvents: 'none',
+        }}
+      />
       {/* Header Bar */}
       <div
         style={{

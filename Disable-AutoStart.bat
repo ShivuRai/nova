@@ -9,3 +9,4 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "if (Test-Path $path) { Remove-Item $path -Force; Write-Host '[SUCCESS] NOVA auto-start on boot has been removed.' -ForegroundColor Yellow } else { Write-Host '[INFO] Auto-start was not enabled.' -ForegroundColor Cyan }"
 echo.
 pause
+

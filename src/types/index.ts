@@ -89,12 +89,30 @@ export interface TimerState {
   isPaused: boolean;
 }
 
-export type ThemeMode = 'minimal' | 'rgb' | 'light' | 'vivid';
+export type ThemeMode =
+  | 'minimal'
+  | 'rgb'
+  | 'light'
+  | 'aurora'
+  | 'cyberpunk'
+  | 'deep-space'
+  | 'sunset'
+  | 'vivid';
+
 export type NotchStyle = 'floating-pill' | 'notch-attached' | 'extended-island';
+
+export type ScreenPosition =
+  | 'top-center'
+  | 'top-left'
+  | 'top-right'
+  | 'bottom-center'
+  | 'bottom-left'
+  | 'bottom-right';
 
 export interface AppearanceSettings {
   themeMode: ThemeMode;
   notchStyle: NotchStyle;
+  screenPosition: ScreenPosition;
   enableRgbBorder: boolean;
   enableGlow: boolean;
   pillWidth: number;

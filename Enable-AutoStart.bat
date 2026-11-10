@@ -14,3 +14,4 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "Write-Host '[SUCCESS] NOVA has been configured to start automatically on Windows boot!' -ForegroundColor Green"
 echo.
 pause
+

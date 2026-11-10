@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
 [assembly: System.Reflection.AssemblyTitle("NOVA Desktop Companion")]
@@ -19,14 +18,6 @@ namespace NovaLauncher
 {
     static class Program
     {
-        [DllImport("user32.dll")]
-        private static extern bool SetForegroundWindow(IntPtr hWnd);
-
-        [DllImport("user32.dll")]
-        private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
-
-        private const int SW_RESTORE = 9;
-
         [STAThread]
         static void Main(string[] args)
         {
@@ -66,27 +57,33 @@ namespace NovaLauncher
 
                 string workingDir = Path.GetDirectoryName(targetExe);
 
-                // 2. Clear any environment variable that might force Electron into node-only mode
+                // 2. Clear environment variables in current process
                 Environment.SetEnvironmentVariable("ELECTRON_RUN_AS_NODE", null, EnvironmentVariableTarget.Process);
-                Environment.SetEnvironmentVariable("ELECTRON_RUN_AS_NODE", null, EnvironmentVariableTarget.User);
 
-                // 3. Start NOVA completely detached using Windows Shell
+                // 3. Start NOVA directly
                 var startInfo = new ProcessStartInfo
                 {
-                    FileName = "cmd.exe",
-                    Arguments = string.Format("/c \"set ELECTRON_RUN_AS_NODE=&& start \"\" \"\"{0}\"\" {1}\"", targetExe, args != null && args.Length > 0 ? string.Join(" ", args) : ""),
+                    FileName = targetExe,
                     WorkingDirectory = workingDir,
-                    CreateNoWindow = true,
-                    WindowStyle = ProcessWindowStyle.Hidden,
                     UseShellExecute = false,
+                    CreateNoWindow = true,
                 };
 
+                // Clear from child environment
+                if (startInfo.EnvironmentVariables.ContainsKey("ELECTRON_RUN_AS_NODE"))
+                {
+                    startInfo.EnvironmentVariables.Remove("ELECTRON_RUN_AS_NODE");
+                }
+
+                if (args != null && args.Length > 0)
+                {
+                    startInfo.Arguments = string.Join(" ", args);
+                }
+
                 Process.Start(startInfo);
-                File.AppendAllText("launcher.log", "Started successfully!\n");
             }
             catch (Exception ex)
             {
-                File.AppendAllText("launcher.log", string.Format("Error: {0}\n", ex));
                 MessageBox.Show(
                     "Failed to launch NOVA: " + ex.Message,
                     "NOVA - Launch Error",

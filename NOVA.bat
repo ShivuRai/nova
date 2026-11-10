@@ -1,4 +1,5 @@
 @echo off
 title NOVA
+cd /d "%~dp0dist-app"
 set ELECTRON_RUN_AS_NODE=
-start "" "%~dp0dist-app\NOVA.exe"
+start "" "NOVA.exe"

@@ -19,14 +19,34 @@ export const IslandContainer: React.FC = () => {
   const hoverTimerRef = useRef<number | null>(null);
   const collapseTimerRef = useRef<number | null>(null);
 
-  // Sync window size when expanded state changes
+  // Sync window size & position when expanded state or position changes
   useEffect(() => {
     if (isExpanded) {
-      resizeDesktopWindow(true, settings.expandedWidth, settings.expandedHeight);
+      resizeDesktopWindow(
+        true,
+        settings.expandedWidth,
+        settings.expandedHeight,
+        settings.screenPosition,
+        settings.notchStyle
+      );
     } else {
-      resizeDesktopWindow(false, settings.pillWidth, settings.pillHeight);
+      resizeDesktopWindow(
+        false,
+        settings.pillWidth,
+        settings.pillHeight,
+        settings.screenPosition,
+        settings.notchStyle
+      );
     }
-  }, [isExpanded, settings.expandedWidth, settings.expandedHeight, settings.pillWidth, settings.pillHeight]);
+  }, [
+    isExpanded,
+    settings.expandedWidth,
+    settings.expandedHeight,
+    settings.pillWidth,
+    settings.pillHeight,
+    settings.screenPosition,
+    settings.notchStyle,
+  ]);
 
   // Global hotkey listener from Electron IPC
   useEffect(() => {
@@ -93,16 +113,27 @@ export const IslandContainer: React.FC = () => {
     setExpanded(false);
   };
 
+  const isBottom = settings.screenPosition?.startsWith('bottom');
+  const isLeft = settings.screenPosition?.endsWith('left');
+  const isRight = settings.screenPosition?.endsWith('right');
+
+  const justifyContent = isLeft ? 'flex-start' : isRight ? 'flex-end' : 'center';
+  const alignItems = isBottom ? 'flex-end' : 'flex-start';
+
   return (
     <div
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       style={{
         display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'flex-start',
+        justifyContent,
+        alignItems,
         width: '100vw',
-        paddingTop: settings.notchStyle === 'notch-attached' ? 0 : 8,
+        height: '100vh',
+        paddingTop: !isBottom && settings.notchStyle !== 'notch-attached' ? 8 : 0,
+        paddingBottom: isBottom ? 10 : 0,
+        paddingLeft: isLeft ? 14 : 0,
+        paddingRight: isRight ? 14 : 0,
         pointerEvents: 'none', // pass through outside clicks
       }}
     >

@@ -28,6 +28,7 @@ function createWindow() {
     y: y,
     frame: false,
     transparent: true,
+    backgroundColor: '#00000000',
     alwaysOnTop: true,
     skipTaskbar: false, // Make sure it appears in the taskbar!
     resizable: false,
@@ -75,15 +76,55 @@ function createWindow() {
 
   // Window is ready and visible
 
-  // Dynamic sizing IPC
-  ipcMain.on('set-island-state', (event, { expanded, width, height }) => {
+  // Dynamic sizing & positioning IPC
+  ipcMain.on('set-island-state', (event, { expanded, width, height, position, notchStyle }) => {
     if (mainWindow) {
-      const newX = Math.round((screenWidth - width) / 2);
+      const currentDisplay = screen.getPrimaryDisplay();
+      const { width: screenWidth, height: screenHeight } = currentDisplay.workAreaSize;
+
+      // Provide generous breathing room around the window so shadows and rounded corners are never clipped
+      const padX = expanded ? 40 : 48;
+      const padY = expanded ? 40 : 32;
+      const winW = Math.round(width + padX);
+      const winH = Math.round(height + padY);
+
+      let targetX, targetY;
+      const pos = position || 'top-center';
+      const margin = 12;
+
+      switch (pos) {
+        case 'top-left':
+          targetX = margin;
+          targetY = margin;
+          break;
+        case 'top-right':
+          targetX = screenWidth - winW - margin;
+          targetY = margin;
+          break;
+        case 'bottom-center':
+          targetX = Math.round((screenWidth - winW) / 2);
+          targetY = screenHeight - winH - margin;
+          break;
+        case 'bottom-left':
+          targetX = margin;
+          targetY = screenHeight - winH - margin;
+          break;
+        case 'bottom-right':
+          targetX = screenWidth - winW - margin;
+          targetY = screenHeight - winH - margin;
+          break;
+        case 'top-center':
+        default:
+          targetX = Math.round((screenWidth - winW) / 2);
+          targetY = notchStyle === 'notch-attached' ? 0 : 8;
+          break;
+      }
+
       mainWindow.setBounds({
-        x: newX,
-        y: expanded ? 8 : 0,
-        width: Math.round(width),
-        height: Math.round(height),
+        x: targetX,
+        y: targetY,
+        width: winW,
+        height: winH,
       });
     }
   });

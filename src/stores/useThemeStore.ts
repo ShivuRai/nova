@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { AppearanceSettings } from '../types';
+import { AppearanceSettings, ThemeMode, ScreenPosition, NotchStyle } from '../types';
 
 interface ThemeState {
   settings: AppearanceSettings;
@@ -9,23 +9,46 @@ interface ThemeState {
 const DEFAULT_SETTINGS: AppearanceSettings = {
   themeMode: 'minimal',
   notchStyle: 'floating-pill',
+  screenPosition: 'top-center',
   enableRgbBorder: false,
   enableGlow: true,
-  pillWidth: 190,
-  pillHeight: 34,
-  expandedWidth: 640,
-  expandedHeight: 460,
+  pillWidth: 230,
+  pillHeight: 38,
+  expandedWidth: 680,
+  expandedHeight: 500,
   hoverDelayMs: 120,
   collapseDelayMs: 320,
 };
 
+// Load saved settings if present
+const getSavedSettings = (): AppearanceSettings => {
+  try {
+    const raw = localStorage.getItem('nova_theme_settings');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return { ...DEFAULT_SETTINGS, ...parsed };
+    }
+  } catch (e) {}
+  return DEFAULT_SETTINGS;
+};
+
+const initialSettings = getSavedSettings();
+if (typeof document !== 'undefined') {
+  document.documentElement.setAttribute('data-theme', initialSettings.themeMode);
+}
+
 export const useThemeStore = create<ThemeState>((set) => ({
-  settings: DEFAULT_SETTINGS,
+  settings: initialSettings,
   updateSettings: (partial) =>
     set((state) => {
       const updated = { ...state.settings, ...partial };
       // Sync to document element data-theme attribute
-      document.documentElement.setAttribute('data-theme', updated.themeMode);
+      if (typeof document !== 'undefined') {
+        document.documentElement.setAttribute('data-theme', updated.themeMode);
+      }
+      try {
+        localStorage.setItem('nova_theme_settings', JSON.stringify(updated));
+      } catch (e) {}
       return { settings: updated };
     }),
 }));

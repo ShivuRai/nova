@@ -19,7 +19,7 @@ interface IslandState {
 }
 
 export const useIslandStore = create<IslandState>((set) => ({
-  isExpanded: true, // Start expanded so user immediately sees the running companion!
+  isExpanded: false, // Default to sleek rounded capsule pill
   isPinned: false,
   isInteracting: false,
   activeModule: 'home',

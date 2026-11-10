@@ -1,41 +1,42 @@
 :root {
-  /* Surfaces */
+  /* Surfaces & Glass (Default: Minimal Obsidian) */
   --nova-background: #0B0D12;
-  --nova-surface: #141720;
-  --nova-surface-elevated: #1C2130;
-  --nova-surface-glass: rgba(20, 23, 32, 0.85);
-  --nova-pill-bg: rgba(12, 15, 22, 0.94);
+  --nova-surface: #131722;
+  --nova-surface-elevated: #1B2130;
+  --nova-surface-glass: rgba(18, 22, 32, 0.78);
+  --nova-pill-bg: rgba(14, 18, 26, 0.82);
 
   /* Typography */
-  --nova-text-primary: #F5F6FA;
-  --nova-text-secondary: #9BA3B4;
-  --nova-text-muted: #626A7A;
+  --nova-text-primary: #F8FAFC;
+  --nova-text-secondary: #94A3B8;
+  --nova-text-muted: #64748B;
 
   /* Accent Brand Colors */
-  --nova-blue: #6688FF;
-  --nova-violet: #956AFF;
-  --nova-cyan: #54D7E8;
+  --nova-blue: #60A5FA;
+  --nova-violet: #A78BFA;
+  --nova-cyan: #38BDF8;
 
   /* Semantic Feedback */
-  --nova-success: #49C98A;
-  --nova-warning: #F3B95B;
-  --nova-danger: #F16C78;
+  --nova-success: #34D399;
+  --nova-warning: #FBBF24;
+  --nova-danger: #F87171;
 
   /* Borders & Shadows */
-  --nova-border: rgba(255, 255, 255, 0.08);
-  --nova-border-hover: rgba(255, 255, 255, 0.16);
-  --nova-border-focus: rgba(102, 136, 255, 0.45);
-  --nova-shadow-pill: 0 8px 30px rgba(0, 0, 0, 0.5), 0 0 1px rgba(255, 255, 255, 0.15);
-  --nova-shadow-card: 0 24px 60px -12px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  --nova-border: rgba(255, 255, 255, 0.10);
+  --nova-border-hover: rgba(255, 255, 255, 0.20);
+  --nova-border-focus: rgba(96, 165, 250, 0.50);
+  --nova-specular-highlight: inset 0 1px 1px 0 rgba(255, 255, 255, 0.18);
+  --nova-shadow-pill: 0 12px 32px -4px rgba(0, 0, 0, 0.55), inset 0 1px 1px 0 rgba(255, 255, 255, 0.20);
+  --nova-shadow-card: 0 24px 64px -8px rgba(0, 0, 0, 0.70), 0 0 1px 1px rgba(255, 255, 255, 0.08), inset 0 1px 1px 0 rgba(255, 255, 255, 0.12);
 
   /* RGB / Glow Animation */
-  --nova-rgb-gradient: linear-gradient(135deg, #6688FF, #956AFF, #54D7E8, #49C98A);
-  --nova-glow-rgb: 0 0 20px rgba(102, 136, 255, 0.35);
+  --nova-rgb-gradient: linear-gradient(135deg, #60A5FA, #A78BFA, #38BDF8, #34D399);
+  --nova-glow-rgb: 0 0 24px rgba(96, 165, 250, 0.35);
 
-  /* Radii */
+  /* Radii - Modern Squircles */
   --nova-radius-pill: 9999px;
-  --nova-radius-card: 22px;
-  --nova-radius-widget: 14px;
+  --nova-radius-card: 28px;
+  --nova-radius-widget: 16px;
   --nova-radius-button: 10px;
   --nova-radius-input: 8px;
 
@@ -44,27 +45,141 @@
   --font-mono: 'JetBrains Mono', monospace;
 }
 
-/* Light Theme Override */
-[data-theme='light'] {
-  --nova-background: #F4F6FB;
-  --nova-surface: #FFFFFF;
-  --nova-surface-elevated: #EBF0F8;
-  --nova-surface-glass: rgba(255, 255, 255, 0.88);
-  --nova-pill-bg: rgba(255, 255, 255, 0.95);
+/* 1. Aurora Northern Lights (Emerald / Cyan) */
+[data-theme='aurora'] {
+  --nova-background: #061412;
+  --nova-surface: #0B201D;
+  --nova-surface-elevated: #112F2B;
+  --nova-surface-glass: rgba(11, 32, 29, 0.80);
+  --nova-pill-bg: rgba(8, 24, 21, 0.85);
 
-  --nova-text-primary: #151821;
-  --nova-text-secondary: #586174;
-  --nova-text-muted: #8E99AF;
+  --nova-text-primary: #F0FDF4;
+  --nova-text-secondary: #86EFAC;
+  --nova-text-muted: #4ADE80;
 
-  --nova-border: rgba(0, 0, 0, 0.08);
-  --nova-border-hover: rgba(0, 0, 0, 0.15);
-  --nova-shadow-pill: 0 8px 24px rgba(0, 0, 0, 0.08), 0 0 1px rgba(0, 0, 0, 0.12);
-  --nova-shadow-card: 0 20px 40px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.06);
+  --nova-blue: #34D399;
+  --nova-violet: #2DD4BF;
+  --nova-cyan: #38BDF8;
+
+  --nova-border: rgba(52, 211, 153, 0.22);
+  --nova-border-hover: rgba(52, 211, 153, 0.40);
+  --nova-shadow-pill: 0 12px 32px -4px rgba(0, 0, 0, 0.6), 0 0 16px rgba(52, 211, 153, 0.25), inset 0 1px 1px 0 rgba(255, 255, 255, 0.25);
+  --nova-shadow-card: 0 24px 64px -8px rgba(0, 0, 0, 0.75), 0 0 24px rgba(52, 211, 153, 0.20), inset 0 1px 1px 0 rgba(255, 255, 255, 0.15);
 }
 
-/* RGB Gaming Mode */
+/* 2. Cyberpunk Neon (Magenta / Cyan / Purple) */
+[data-theme='cyberpunk'] {
+  --nova-background: #11091C;
+  --nova-surface: #1E1030;
+  --nova-surface-elevated: #2B1645;
+  --nova-surface-glass: rgba(28, 14, 46, 0.82);
+  --nova-pill-bg: rgba(20, 10, 34, 0.88);
+
+  --nova-text-primary: #FDF4FF;
+  --nova-text-secondary: #F0ABFC;
+  --nova-text-muted: #C084FC;
+
+  --nova-blue: #F43F5E;
+  --nova-violet: #C026D3;
+  --nova-cyan: #06B6D4;
+
+  --nova-border: rgba(244, 63, 94, 0.28);
+  --nova-border-hover: rgba(244, 63, 94, 0.50);
+  --nova-shadow-pill: 0 12px 32px -4px rgba(0, 0, 0, 0.65), 0 0 20px rgba(244, 63, 94, 0.30), inset 0 1px 1px 0 rgba(255, 255, 255, 0.25);
+  --nova-shadow-card: 0 24px 64px -8px rgba(0, 0, 0, 0.8), 0 0 32px rgba(192, 38, 211, 0.25), inset 0 1px 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+/* 3. Deep Space (Sapphire / Ice Blue) */
+[data-theme='deep-space'] {
+  --nova-background: #080D1A;
+  --nova-surface: #0E172E;
+  --nova-surface-elevated: #162447;
+  --nova-surface-glass: rgba(14, 23, 46, 0.80);
+  --nova-pill-bg: rgba(10, 17, 34, 0.86);
+
+  --nova-text-primary: #F0F9FF;
+  --nova-text-secondary: #93C5FD;
+  --nova-text-muted: #60A5FA;
+
+  --nova-blue: #3B82F6;
+  --nova-violet: #6366F1;
+  --nova-cyan: #38BDF8;
+
+  --nova-border: rgba(59, 130, 246, 0.24);
+  --nova-border-hover: rgba(59, 130, 246, 0.45);
+  --nova-shadow-pill: 0 12px 32px -4px rgba(0, 0, 0, 0.6), 0 0 20px rgba(59, 130, 246, 0.25), inset 0 1px 1px 0 rgba(255, 255, 255, 0.25);
+  --nova-shadow-card: 0 24px 64px -8px rgba(0, 0, 0, 0.75), 0 0 28px rgba(59, 130, 246, 0.22), inset 0 1px 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+/* 4. Sunset Amber (Warm Gold / Rose / Twilight) */
+[data-theme='sunset'] {
+  --nova-background: #180D10;
+  --nova-surface: #26141A;
+  --nova-surface-elevated: #361C25;
+  --nova-surface-glass: rgba(36, 18, 25, 0.80);
+  --nova-pill-bg: rgba(25, 12, 17, 0.86);
+
+  --nova-text-primary: #FFF1F2;
+  --nova-text-secondary: #FDA4AF;
+  --nova-text-muted: #FB7185;
+
+  --nova-blue: #F59E0B;
+  --nova-violet: #F43F5E;
+  --nova-cyan: #FB923C;
+
+  --nova-border: rgba(245, 158, 11, 0.24);
+  --nova-border-hover: rgba(245, 158, 11, 0.45);
+  --nova-shadow-pill: 0 12px 32px -4px rgba(0, 0, 0, 0.6), 0 0 18px rgba(245, 158, 11, 0.25), inset 0 1px 1px 0 rgba(255, 255, 255, 0.25);
+  --nova-shadow-card: 0 24px 64px -8px rgba(0, 0, 0, 0.75), 0 0 28px rgba(244, 63, 94, 0.22), inset 0 1px 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+/* 5. Vivid Electric (High Chroma Gradient) */
+[data-theme='vivid'] {
+  --nova-background: #0E0E18;
+  --nova-surface: #18182B;
+  --nova-surface-elevated: #24243F;
+  --nova-surface-glass: rgba(24, 24, 43, 0.82);
+  --nova-pill-bg: rgba(16, 16, 30, 0.88);
+
+  --nova-text-primary: #FFFFFF;
+  --nova-text-secondary: #C7D2FE;
+  --nova-text-muted: #818CF8;
+
+  --nova-blue: #6366F1;
+  --nova-violet: #8B5CF6;
+  --nova-cyan: #06B6D4;
+
+  --nova-border: rgba(139, 92, 246, 0.30);
+  --nova-border-hover: rgba(139, 92, 246, 0.50);
+  --nova-shadow-pill: 0 12px 32px -4px rgba(0, 0, 0, 0.6), 0 0 20px rgba(139, 92, 246, 0.30), inset 0 1px 1px 0 rgba(255, 255, 255, 0.25);
+  --nova-shadow-card: 0 24px 64px -8px rgba(0, 0, 0, 0.75), 0 0 32px rgba(139, 92, 246, 0.25), inset 0 1px 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+/* 6. Light Frosted Quartz (Bright Glass Acrylic) */
+[data-theme='light'] {
+  --nova-background: #F1F5F9;
+  --nova-surface: #FFFFFF;
+  --nova-surface-elevated: #F8FAFC;
+  --nova-surface-glass: rgba(255, 255, 255, 0.78);
+  --nova-pill-bg: rgba(255, 255, 255, 0.88);
+
+  --nova-text-primary: #0F172A;
+  --nova-text-secondary: #475569;
+  --nova-text-muted: #94A3B8;
+
+  --nova-blue: #2563EB;
+  --nova-violet: #7C3AED;
+  --nova-cyan: #0284C7;
+
+  --nova-border: rgba(0, 0, 0, 0.10);
+  --nova-border-hover: rgba(0, 0, 0, 0.20);
+  --nova-shadow-pill: 0 10px 28px -4px rgba(0, 0, 0, 0.12), inset 0 1px 1px 0 rgba(255, 255, 255, 0.8);
+  --nova-shadow-card: 0 20px 48px -8px rgba(0, 0, 0, 0.15), 0 0 1px 1px rgba(0, 0, 0, 0.06), inset 0 1px 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+/* 7. RGB Gaming Mode */
 [data-theme='rgb'] {
-  --nova-border: rgba(102, 136, 255, 0.25);
-  --nova-shadow-pill: 0 8px 30px rgba(0, 0, 0, 0.6), 0 0 12px rgba(102, 136, 255, 0.4);
-  --nova-shadow-card: 0 24px 60px rgba(0, 0, 0, 0.8), 0 0 24px rgba(149, 106, 255, 0.25);
+  --nova-border: rgba(96, 165, 250, 0.35);
+  --nova-shadow-pill: 0 12px 32px -4px rgba(0, 0, 0, 0.65), 0 0 20px rgba(96, 165, 250, 0.45), inset 0 1px 1px 0 rgba(255, 255, 255, 0.25);
+  --nova-shadow-card: 0 24px 64px -8px rgba(0, 0, 0, 0.8), 0 0 32px rgba(167, 139, 250, 0.30), inset 0 1px 1px 0 rgba(255, 255, 255, 0.18);
 }
