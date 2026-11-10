@@ -46,9 +46,26 @@ export const SettingsView: React.FC = () => {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxHeight: 330, overflowY: 'auto', paddingRight: 6 }}>
       {/* Section 1: Themes & Glass Aesthetics */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--nova-text-secondary)', display: 'flex', alignItems: 'center', gap: 6 }}>
-          <Palette size={13} style={{ color: 'var(--nova-blue)' }} />
-          <span>GLASS THEMES & COLOR PALETTES</span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--nova-text-secondary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Palette size={13} style={{ color: 'var(--nova-blue)' }} />
+            <span>GLASS THEMES & COLOR PALETTES</span>
+          </div>
+          <button
+            onClick={() => updateSettings({ themeMode: 'minimal', enableRgbBorder: false, enableGlow: true })}
+            style={{
+              fontSize: '10px',
+              padding: '3px 8px',
+              borderRadius: 'var(--nova-radius-pill)',
+              backgroundColor: 'var(--nova-surface)',
+              border: '1px solid var(--nova-border)',
+              color: 'var(--nova-cyan)',
+              fontWeight: 600,
+            }}
+            title="Reset theme and colors back to original default"
+          >
+            Reset to Default
+          </button>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>

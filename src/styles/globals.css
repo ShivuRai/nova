@@ -31,7 +31,7 @@ button {
   transition: all 0.15s ease;
 }
 
-input, textarea {
+input, textarea, select {
   font-family: inherit;
   outline: none;
 }
@@ -52,34 +52,21 @@ input, textarea {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.16);
   border-radius: 9999px;
   transition: background 0.2s ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.32);
+  background: rgba(255, 255, 255, 0.35);
 }
 
 [data-theme='light'] ::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.15);
+  background: rgba(0, 0, 0, 0.20);
 }
 
 [data-theme='light'] ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.30);
-}
-
-/* Glassmorphism Utility Classes */
-.glass-panel {
-  backdrop-filter: blur(28px) saturate(180%) contrast(105%);
-  -webkit-backdrop-filter: blur(28px) saturate(180%) contrast(105%);
-  box-shadow: var(--nova-shadow-card);
-}
-
-.glass-pill {
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  box-shadow: var(--nova-shadow-pill);
+  background: rgba(0, 0, 0, 0.38);
 }
 
 /* Animations */
@@ -93,23 +80,12 @@ input, textarea {
   50% { opacity: 1; transform: scale(1.05); }
 }
 
-@keyframes float-subtle {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-2px); }
-}
-
+/* Safe, Perfectly Rounded RGB Gradient Border (Never draws a square box!) */
 .rgb-border {
-  position: relative;
-}
-
-.rgb-border::before {
-  content: '';
-  position: absolute;
-  inset: -1.5px;
-  border-radius: inherit;
-  background: linear-gradient(90deg, #60A5FA, #A78BFA, #38BDF8, #34D399, #60A5FA);
-  background-size: 300% 300%;
+  border: 1.5px solid transparent !important;
+  background-image: linear-gradient(var(--nova-pill-bg), var(--nova-pill-bg)),
+                    linear-gradient(90deg, #60A5FA, #A78BFA, #F43F5E, #38BDF8, #34D399, #60A5FA) !important;
+  background-origin: border-box !important;
+  background-clip: padding-box, border-box !important;
   animation: rgb-flow 8s linear infinite;
-  z-index: -1;
-  opacity: 0.90;
 }
