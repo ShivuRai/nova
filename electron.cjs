@@ -35,8 +35,34 @@ let activeDropPort = 5980;
 // Single-instance lock: if NOVA is already running, focus and bring the existing instance to front
 const gotTheLock = app.requestSingleInstanceLock();
 debugLog('gotTheLock value: ' + gotTheLock);
+
+let shouldQuit = false;
 if (!gotTheLock) {
-  debugLog('Exiting because gotTheLock is false');
+  debugLog('gotTheLock is false. Checking if another NOVA process is actually alive in Windows...');
+  let isAnotherInstanceActuallyRunning = false;
+  try {
+    const { execSync } = require('child_process');
+    const checkCmd = `powershell -NoProfile -Command "@(Get-Process -Name NOVA -ErrorAction SilentlyContinue | Where-Object { $_.Id -ne ${process.pid} }).Count"`;
+    const countStr = execSync(checkCmd, { timeout: 2000, windowsHide: true }).toString().trim();
+    const count = parseInt(countStr, 10) || 0;
+    debugLog('Active other NOVA process count: ' + count);
+    if (count > 0) {
+      isAnotherInstanceActuallyRunning = true;
+    }
+  } catch (e) {
+    debugLog('Process check exception: ' + e.message);
+  }
+
+  if (isAnotherInstanceActuallyRunning) {
+    debugLog('Another NOVA instance is verified running. Quitting duplicate.');
+    shouldQuit = true;
+  } else {
+    debugLog('No other NOVA process is running! Stale lock detected, bypassing lock and launching NOVA.');
+    shouldQuit = false;
+  }
+}
+
+if (shouldQuit) {
   app.quit();
 } else {
   app.on('second-instance', () => {

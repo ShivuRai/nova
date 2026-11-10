@@ -29,6 +29,7 @@ namespace NovaLauncher
                 string candidate2 = Path.Combine(baseDir, "..", "dist-app", "NOVA.exe");
                 string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
                 string candidate3 = Path.Combine(userProfile, @".gemini\antigravity\scratch\nova\dist-app\NOVA.exe");
+                string candidate4 = @"C:\Users\shivu\.gemini\antigravity\scratch\nova\dist-app\NOVA.exe";
 
                 string targetExe = null;
                 if (File.Exists(candidate1))
@@ -42,6 +43,10 @@ namespace NovaLauncher
                 else if (File.Exists(candidate3))
                 {
                     targetExe = Path.GetFullPath(candidate3);
+                }
+                else if (File.Exists(candidate4))
+                {
+                    targetExe = Path.GetFullPath(candidate4);
                 }
 
                 if (string.IsNullOrEmpty(targetExe) || !File.Exists(targetExe))
@@ -58,22 +63,18 @@ namespace NovaLauncher
                 string workingDir = Path.GetDirectoryName(targetExe);
 
                 // 2. Clear environment variables in current process
-                Environment.SetEnvironmentVariable("ELECTRON_RUN_AS_NODE", null, EnvironmentVariableTarget.Process);
+                try {
+                    Environment.SetEnvironmentVariable("ELECTRON_RUN_AS_NODE", null, EnvironmentVariableTarget.Process);
+                    Environment.SetEnvironmentVariable("ELECTRON_RUN_AS_NODE", null, EnvironmentVariableTarget.User);
+                } catch {}
 
-                // 3. Start NOVA directly
+                // 3. Start NOVA directly via Windows Shell
                 var startInfo = new ProcessStartInfo
                 {
                     FileName = targetExe,
                     WorkingDirectory = workingDir,
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
+                    UseShellExecute = true,
                 };
-
-                // Clear from child environment
-                if (startInfo.EnvironmentVariables.ContainsKey("ELECTRON_RUN_AS_NODE"))
-                {
-                    startInfo.EnvironmentVariables.Remove("ELECTRON_RUN_AS_NODE");
-                }
 
                 if (args != null && args.Length > 0)
                 {
