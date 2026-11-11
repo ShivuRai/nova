@@ -111,7 +111,8 @@ export type NotchStyle =
   | 'stealth-blade'
   | 'cyber-diamond'
   | 'liquid-droplet'
-  | 'split-capsule';
+  | 'split-capsule'
+  | 'custom-shape';
 
 export type PillBrandBadge =
   | 'robot'
@@ -144,6 +145,11 @@ export type EdgeLightingMode =
   | 'laser-chase'
   | 'neon-ripple'
   | 'strobe-flow'
+  | 'aurora-sweep'
+  | 'comet-tail'
+  | 'dual-spin'
+  | 'plasma-flow'
+  | 'rainbow-cycle'
   | 'off';
 
 export type EdgeLightingColor =
@@ -173,7 +179,7 @@ export type PillDisplayContent =
   | 'dual-net-ping'
   | 'custom';
 
-export type AmbientParticleMode = 'off' | 'snow' | 'sakura' | 'stardust' | 'bubbles' | 'matrix';
+export type AmbientParticleMode = 'off' | 'snow' | 'sakura' | 'stardust' | 'bubbles' | 'matrix' | 'fireflies' | 'embers';
 
 export interface AppearanceSettings {
   themeMode: ThemeMode;
@@ -204,6 +210,9 @@ export interface AppearanceSettings {
   soundPack?: 'glass' | 'cyber' | 'mech' | 'retro';
   enable3dGyroGlare?: boolean;
   ambientParticles?: AmbientParticleMode;
+  customNotchChamfer?: number;
+  customNotchRadius?: number;
+  customNotchWingDepth?: number;
   pillWidth: number;
   pillHeight: number;
   expandedWidth: number;

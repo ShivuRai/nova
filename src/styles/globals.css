@@ -246,6 +246,31 @@ input, textarea, select {
   animation: edge-flow-strobe-flow 1.8s steps(20, end) infinite;
 }
 
+.edge-lighting-trail.mode-aurora-sweep {
+  background-size: 250% 200%;
+  animation: edge-flow-continuous 5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.edge-lighting-trail.mode-comet-tail {
+  background-size: 250% 200%;
+  animation: edge-flow-laser-chase 1.6s linear infinite;
+}
+
+.edge-lighting-trail.mode-dual-spin {
+  background-size: 200% 100%;
+  animation: edge-flow-corners-inward 2.8s ease-in-out infinite;
+}
+
+.edge-lighting-trail.mode-plasma-flow {
+  background-size: 200% 200%;
+  animation: edge-flow-continuous 3s ease-in-out infinite;
+}
+
+.edge-lighting-trail.mode-rainbow-cycle {
+  background-size: 300% 300%;
+  animation: rgb-flow 4s linear infinite, edge-flow-continuous 3.5s linear infinite;
+}
+
 .edge-lighting-trail.speed-slow {
   animation-duration: 6.5s !important;
 }

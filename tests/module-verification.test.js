@@ -251,15 +251,15 @@ test('Verification 11: Real Quick Actions, File Shelf, File Tools, Launcher, Ana
   assert.strictEqual(revenueContent.includes('+ Add Income'), true);
   assert.strictEqual(revenueContent.includes('$4,820.00'), false);
 
-  // Verify Desktop Mascot has 4 species and interactive care
+  // Verify Desktop Mascot has companion species and interactive care
   const petPath = path.join(projectRoot, 'src', 'modules', 'pet', 'PetView.tsx');
   const petContent = fs.readFileSync(petPath, 'utf8');
   assert.strictEqual(petContent.includes('cat'), true);
-  assert.strictEqual(petContent.includes('dog'), true);
-  assert.strictEqual(petContent.includes('bunny'), true);
+  assert.strictEqual(petContent.includes('robot'), true);
   assert.strictEqual(petContent.includes('fox'), true);
+  assert.strictEqual(petContent.includes('dragon'), true);
   assert.strictEqual(petContent.includes('handleFeed'), true);
-  assert.strictEqual(petContent.includes('handlePlay'), true);
+  assert.strictEqual(petContent.includes('handlePet'), true);
 });
 
 test('Verification 12: Customization Studio, 12 Notch Shapes, and Animated Mascot Brand Badges', () => {
@@ -489,4 +489,76 @@ test('Verification 18: Real Media Detection Listener and Geometric SVG Edge Ligh
   assert.strictEqual(containerContent.includes('getShapePath'), true);
   assert.strictEqual(containerContent.includes('shapePath'), true);
   assert.strictEqual(containerContent.includes('notch-edge-lighting-svg-grad'), true);
+});
+
+test('Verification 19: Seasonal Canvas Particles, Custom Notch Shape Studio, New Edge Lighting Modes, and Pet Module Overhaul', () => {
+  // 1. Types verification
+  const typesPath = path.join(projectRoot, 'src', 'types', 'index.ts');
+  const typesContent = fs.readFileSync(typesPath, 'utf8');
+  assert.strictEqual(typesContent.includes("'custom-shape'"), true);
+  assert.strictEqual(typesContent.includes('customNotchChamfer?:'), true);
+  assert.strictEqual(typesContent.includes('customNotchRadius?:'), true);
+  assert.strictEqual(typesContent.includes('customNotchWingDepth?:'), true);
+  assert.strictEqual(typesContent.includes("'aurora-sweep'"), true);
+  assert.strictEqual(typesContent.includes("'comet-tail'"), true);
+  assert.strictEqual(typesContent.includes("'dual-spin'"), true);
+  assert.strictEqual(typesContent.includes("'plasma-flow'"), true);
+  assert.strictEqual(typesContent.includes("'rainbow-cycle'"), true);
+  assert.strictEqual(typesContent.includes("'fireflies'"), true);
+  assert.strictEqual(typesContent.includes("'embers'"), true);
+
+  // 2. High-performance HTML5 Canvas physics engine in AmbientParticles.tsx
+  const particlesPath = path.join(projectRoot, 'src', 'components', 'island', 'AmbientParticles.tsx');
+  const particlesContent = fs.readFileSync(particlesPath, 'utf8');
+  assert.strictEqual(particlesContent.includes('<canvas'), true);
+  assert.strictEqual(particlesContent.includes('requestAnimationFrame'), true);
+  assert.strictEqual(particlesContent.includes("mode === 'fireflies'"), true);
+  assert.strictEqual(particlesContent.includes("mode === 'embers'"), true);
+  assert.strictEqual(particlesContent.includes("mode === 'snow'"), true);
+  assert.strictEqual(particlesContent.includes("mode === 'sakura'"), true);
+  assert.strictEqual(particlesContent.includes("mode === 'stardust'"), true);
+  assert.strictEqual(particlesContent.includes("mode === 'bubbles'"), true);
+  assert.strictEqual(particlesContent.includes("mode === 'matrix'"), true);
+
+  // 3. Custom Notch Shape geometric calculation in IslandContainer.tsx
+  const containerPath = path.join(projectRoot, 'src', 'components', 'island', 'IslandContainer.tsx');
+  const containerContent = fs.readFileSync(containerPath, 'utf8');
+  assert.strictEqual(containerContent.includes('isCustomShape'), true);
+  assert.strictEqual(containerContent.includes('customChamfer'), true);
+  assert.strictEqual(containerContent.includes('customWingDepth'), true);
+  assert.strictEqual(containerContent.includes("'aurora-sweep'"), true);
+  assert.strictEqual(containerContent.includes("'comet-tail'"), true);
+  assert.strictEqual(containerContent.includes("'dual-spin'"), true);
+  assert.strictEqual(containerContent.includes("'plasma-flow'"), true);
+  assert.strictEqual(containerContent.includes("'rainbow-cycle'"), true);
+
+  // 4. Custom Notch Shape Studio in RgbView.tsx
+  const rgbPath = path.join(projectRoot, 'src', 'modules', 'rgb', 'RgbView.tsx');
+  const rgbContent = fs.readFileSync(rgbPath, 'utf8');
+  assert.strictEqual(rgbContent.includes('CUSTOM NOTCH SHAPE STUDIO'), true);
+  assert.strictEqual(rgbContent.includes('Chamfer Cut'), true);
+  assert.strictEqual(rgbContent.includes('Wing Inset Depth'), true);
+  assert.strictEqual(rgbContent.includes('Corner Radius'), true);
+  assert.strictEqual(rgbContent.includes('Cyber Octagon'), true);
+  assert.strictEqual(rgbContent.includes('Aero Winglet'), true);
+
+  // 5. Mascot Pet Module Overhaul in PetView.tsx
+  const petPath = path.join(projectRoot, 'src', 'modules', 'pet', 'PetView.tsx');
+  const petContent = fs.readFileSync(petPath, 'utf8');
+  assert.strictEqual(petContent.includes('COMPANIONS'), true);
+  assert.strictEqual(petContent.includes('LVL'), true);
+  assert.strictEqual(petContent.includes('addXp'), true);
+  assert.strictEqual(petContent.includes('handleFeed'), true);
+  assert.strictEqual(petContent.includes('handlePlayMiniGame'), true);
+  assert.strictEqual(petContent.includes('playPetSound'), true);
+  assert.strictEqual(petContent.includes('Astro'), true);
+  assert.strictEqual(petContent.includes('Mochi'), true);
+  assert.strictEqual(petContent.includes('Kitsune'), true);
+  assert.strictEqual(petContent.includes('Draco'), true);
+  assert.strictEqual(petContent.includes('Bao'), true);
+  assert.strictEqual(petContent.includes('Pippin'), true);
+  assert.strictEqual(petContent.includes('Spooky'), true);
+  assert.strictEqual(petContent.includes('Hoot'), true);
+  assert.strictEqual(petContent.includes('Quantum'), true);
+  assert.strictEqual(petContent.includes('Byte'), true);
 });

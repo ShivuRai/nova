@@ -53,6 +53,7 @@ const THEMES: Array<{ id: ThemeMode; label: string; primary: string; secondary: 
 
 const NOTCH_STYLES: Array<{ id: NotchStyle; label: string; desc: string; tag?: string }> = [
   { id: 'floating-pill', label: 'Floating Pill', desc: 'Smooth floating dynamic island' },
+  { id: 'custom-shape', label: 'Custom Shape Studio', desc: 'Tailor your own notch cuts, chamfers, bevels & wings', tag: 'BUILDER' },
   { id: 'notch-attached', label: 'Notch Attached', desc: 'Organic curved bezel anchor' },
   { id: 'chamfered-notch', label: 'Chamfered Notch', desc: '45° beveled cyber notch' },
   { id: 'dynamic-wing', label: 'Dynamic Wing', desc: 'Sculpted aero winglets on sides' },
@@ -77,6 +78,11 @@ const POSITIONS: Array<{ id: ScreenPosition; label: string }> = [
 
 const EDGE_MODES: Array<{ id: EdgeLightingMode; label: string; desc: string }> = [
   { id: 'continuous', label: 'Continuous Flow', desc: 'Perpetual perimeter border sweep' },
+  { id: 'aurora-sweep', label: 'Aurora Sweep', desc: 'Flowing multi-spectrum northern lights wave' },
+  { id: 'comet-tail', label: 'Comet Tail', desc: 'High-speed celestial shooting star with fading wake' },
+  { id: 'dual-spin', label: 'Dual Orbital', desc: 'Twin counter-rotating light beams orbiting in harmony' },
+  { id: 'plasma-flow', label: 'Plasma Surge', desc: 'Fluid dynamic liquid chromatic plasma waves' },
+  { id: 'rainbow-cycle', label: 'Rainbow Spectrum', desc: 'Continuous silky 60fps full-spectrum RGB rotation' },
   { id: 'laser-chase', label: 'Laser Comet', desc: 'Ultra-fast trailing laser comet running along the contour' },
   { id: 'corners-inward', label: 'Corners Inward', desc: 'Dual beams sweeping from both corners inward' },
   { id: 'center-outward', label: 'Center Outward', desc: 'Radiant pulse flowing outward to corners' },
@@ -157,6 +163,8 @@ const PARTICLE_OPTIONS: Array<{ id: AmbientParticleMode; label: string; icon: st
   { id: 'stardust', label: 'Stardust', icon: '✨' },
   { id: 'bubbles', label: 'Bubbles', icon: '🫧' },
   { id: 'matrix', label: 'Matrix', icon: '🟢' },
+  { id: 'fireflies', label: 'Fireflies', icon: '🏮' },
+  { id: 'embers', label: 'Embers', icon: '🔥' },
 ];
 
 export const RgbView: React.FC = () => {
@@ -432,7 +440,7 @@ export const RgbView: React.FC = () => {
                 {settings.ambientParticles && settings.ambientParticles !== 'off' ? `Active: ${settings.ambientParticles}` : 'Disabled'}
               </span>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 4 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 5 }}>
               {PARTICLE_OPTIONS.map((part) => {
                 const isSelected = (settings.ambientParticles || 'off') === part.id;
                 return (
@@ -606,6 +614,129 @@ export const RgbView: React.FC = () => {
             })}
           </div>
 
+          {/* Custom Notch Shape Studio Builder */}
+          <div
+            style={{
+              padding: '10px 12px',
+              backgroundColor: settings.notchStyle === 'custom-shape' ? 'rgba(56, 189, 248, 0.08)' : 'var(--nova-surface)',
+              border: settings.notchStyle === 'custom-shape' ? '1.5px solid var(--nova-cyan)' : '1px solid var(--nova-border)',
+              borderRadius: 'var(--nova-radius-widget)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 8,
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <SlidersHorizontal size={13} style={{ color: 'var(--nova-cyan)' }} />
+                <span style={{ fontSize: '10px', fontWeight: 600, color: 'var(--nova-text-secondary)', letterSpacing: '0.04em' }}>
+                  CUSTOM NOTCH SHAPE STUDIO
+                </span>
+              </div>
+              <button
+                onClick={() => updateSettings({ notchStyle: 'custom-shape' })}
+                style={{
+                  fontSize: '9px',
+                  padding: '2px 8px',
+                  borderRadius: 'var(--nova-radius-pill)',
+                  backgroundColor: settings.notchStyle === 'custom-shape' ? 'var(--nova-cyan)' : 'rgba(255,255,255,0.06)',
+                  color: settings.notchStyle === 'custom-shape' ? '#000' : 'var(--nova-text-muted)',
+                  fontWeight: 700,
+                  border: 'none',
+                  cursor: 'pointer',
+                }}
+              >
+                {settings.notchStyle === 'custom-shape' ? 'Active Shape' : 'Select Custom Shape'}
+              </button>
+            </div>
+
+            {/* Quick Shape Presets */}
+            <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+              {[
+                { label: 'Cyber Octagon', chamfer: 16, wing: 0, radius: 0 },
+                { label: 'Aero Winglet', chamfer: 14, wing: 10, radius: 6 },
+                { label: 'Blade Bevel', chamfer: 8, wing: 0, radius: 4 },
+                { label: 'Deep Wing Bat', chamfer: 18, wing: 16, radius: 8 },
+                { label: 'Smooth Squircle', chamfer: 0, wing: 0, radius: 18 },
+              ].map((pst) => (
+                <button
+                  key={pst.label}
+                  onClick={() => {
+                    updateSettings({
+                      notchStyle: 'custom-shape',
+                      customNotchChamfer: pst.chamfer,
+                      customNotchWingDepth: pst.wing,
+                      customNotchRadius: pst.radius,
+                    });
+                    playSound('action');
+                  }}
+                  style={{
+                    padding: '3px 8px',
+                    fontSize: '9px',
+                    borderRadius: 4,
+                    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                    border: '1px solid var(--nova-border)',
+                    color: 'var(--nova-text-primary)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {pst.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Sliders */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, paddingTop: 4 }}>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px', color: 'var(--nova-text-muted)', marginBottom: 2 }}>
+                  <span>Chamfer Cut</span>
+                  <span style={{ color: 'var(--nova-cyan)', fontWeight: 600 }}>{settings.customNotchChamfer ?? 14}px</span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={28}
+                  value={settings.customNotchChamfer ?? 14}
+                  onChange={(e) => updateSettings({ notchStyle: 'custom-shape', customNotchChamfer: Number(e.target.value) })}
+                  style={{ width: '100%' }}
+                />
+              </div>
+
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px', color: 'var(--nova-text-muted)', marginBottom: 2 }}>
+                  <span>Wing Inset Depth</span>
+                  <span style={{ color: 'var(--nova-cyan)', fontWeight: 600 }}>{settings.customNotchWingDepth ?? 0}px</span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={24}
+                  value={settings.customNotchWingDepth ?? 0}
+                  onChange={(e) => updateSettings({ notchStyle: 'custom-shape', customNotchWingDepth: Number(e.target.value) })}
+                  style={{ width: '100%' }}
+                />
+              </div>
+
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px', color: 'var(--nova-text-muted)', marginBottom: 2 }}>
+                  <span>Corner Radius</span>
+                  <span style={{ color: 'var(--nova-cyan)', fontWeight: 600 }}>{settings.customNotchRadius ?? 12}px</span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={28}
+                  value={settings.customNotchRadius ?? 12}
+                  onChange={(e) => updateSettings({ notchStyle: 'custom-shape', customNotchRadius: Number(e.target.value) })}
+                  style={{ width: '100%' }}
+                />
+              </div>
+            </div>
+            <div style={{ fontSize: '8.5px', color: 'var(--nova-text-muted)', fontStyle: 'italic' }}>
+              💡 The animated SVG edge lighting automatically computes and traces your custom chamfers and wing cutouts in real-time.
+            </div>
+          </div>
+
           {/* Spacing & Offset Adjuster Box */}
           <div
             style={{
@@ -631,7 +762,7 @@ export const RgbView: React.FC = () => {
             </div>
 
             {/* Position Selector */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 4 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 5 }}>
               {POSITIONS.map((pos) => {
                 const isSelected = settings.screenPosition === pos.id;
                 return (

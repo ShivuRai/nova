@@ -237,7 +237,12 @@ export const IslandContainer: React.FC = () => {
   const isDiamond = settings.notchStyle === 'cyber-diamond';
   const isDroplet = settings.notchStyle === 'liquid-droplet';
   const isSplit = settings.notchStyle === 'split-capsule';
+  const isCustomShape = settings.notchStyle === 'custom-shape';
   const isRgb = settings.enableRgbBorder || settings.themeMode === 'rgb';
+
+  const customChamfer = Math.max(0, Math.min(28, settings.customNotchChamfer ?? 14));
+  const customWingDepth = Math.max(0, Math.min(24, settings.customNotchWingDepth ?? 0));
+  const customRadiusVal = Math.max(0, Math.min(28, settings.customNotchRadius ?? 12));
 
   const effectivePillWidth = isCompact
     ? 170
@@ -255,6 +260,8 @@ export const IslandContainer: React.FC = () => {
   let currentRadius = '20px';
   if (isChamfered) {
     currentRadius = '0px';
+  } else if (isCustomShape) {
+    currentRadius = customChamfer > 0 || customWingDepth > 0 ? '0px' : (isExpanded ? '24px' : `${customRadiusVal}px`);
   } else if (isDynamicWing) {
     currentRadius = isExpanded ? '6px' : '4px';
   } else if (isNotch) {
@@ -283,6 +290,8 @@ export const IslandContainer: React.FC = () => {
   let glowRadius = '24px';
   if (isChamfered || isNotch) {
     glowRadius = isExpanded ? '0 0 28px 28px' : '0 0 24px 24px';
+  } else if (isCustomShape) {
+    glowRadius = isExpanded ? '28px' : `${Math.max(16, customRadiusVal + 6)}px`;
   } else if (isDynamicWing) {
     glowRadius = isExpanded ? '20px' : '16px';
   } else if (isSquircle) {
@@ -310,7 +319,15 @@ export const IslandContainer: React.FC = () => {
 
   // Explicit clip-path for faceted geometric notch shapes
   let currentClipPath = 'none';
-  if (isChamfered) {
+  if (isCustomShape) {
+    if (customWingDepth > 0) {
+      currentClipPath = `polygon(${customChamfer}px 0%, calc(100% - ${customChamfer}px) 0%, 100% ${customChamfer}px, 100% 26%, calc(100% - ${customWingDepth}px) 50%, 100% 74%, 100% calc(100% - ${customChamfer}px), calc(100% - ${customChamfer}px) 100%, ${customChamfer}px 100%, 0% calc(100% - ${customChamfer}px), 0% 74%, ${customWingDepth}px 50%, 0% 26%, 0% ${customChamfer}px)`;
+    } else if (customChamfer > 0) {
+      currentClipPath = `polygon(${customChamfer}px 0%, calc(100% - ${customChamfer}px) 0%, 100% ${customChamfer}px, 100% calc(100% - ${customChamfer}px), calc(100% - ${customChamfer}px) 100%, ${customChamfer}px 100%, 0% calc(100% - ${customChamfer}px), 0% ${customChamfer}px)`;
+    } else {
+      currentClipPath = 'none';
+    }
+  } else if (isChamfered) {
     if (isExpanded) {
       currentClipPath = 'polygon(16px 0%, calc(100% - 16px) 0%, 100% 16px, 100% calc(100% - 16px), calc(100% - 16px) 100%, 16px 100%, 0% calc(100% - 16px), 0% 16px)';
     } else if (!isBottom && topGap === 0) {
@@ -362,6 +379,21 @@ export const IslandContainer: React.FC = () => {
     const w = currentWidth;
     const h = currentHeight;
     const isAttachedToTop = !isBottom && topGap === 0 && !isExpanded;
+
+    if (isCustomShape) {
+      const c = customChamfer;
+      const wd = customWingDepth;
+      const r = customRadiusVal;
+
+      if (wd > 0) {
+        return `M ${c},0.75 L ${w - c},0.75 L ${w - 0.75},${c} L ${w - 0.75},${h * 0.26} L ${w - wd},${h * 0.5} L ${w - 0.75},${h * 0.74} L ${w - 0.75},${h - c} L ${w - c},${h - 0.75} L ${c},${h - 0.75} L 0.75,${h - c} L 0.75,${h * 0.74} L ${wd},${h * 0.5} L 0.75,${h * 0.26} L 0.75,${c} Z`;
+      }
+      if (c > 0) {
+        return `M ${c},0.75 L ${w - c},0.75 L ${w - 0.75},${c} L ${w - 0.75},${h - c} L ${w - c},${h - 0.75} L ${c},${h - 0.75} L 0.75,${h - c} L 0.75,${c} Z`;
+      }
+      const cr = isExpanded ? 24 : Math.min(r, (h - 1.5) / 2);
+      return `M ${cr + 0.75},0.75 L ${w - cr - 0.75},0.75 A ${cr} ${cr} 0 0 1 ${w - 0.75},${cr + 0.75} L ${w - 0.75},${h - cr - 0.75} A ${cr} ${cr} 0 0 1 ${w - cr - 0.75},${h - 0.75} L ${cr + 0.75},${h - 0.75} A ${cr} ${cr} 0 0 1 0.75,${h - cr - 0.75} L 0.75,${cr + 0.75} A ${cr} ${cr} 0 0 1 ${cr + 0.75},0.75 Z`;
+    }
 
     if (isChamfered) {
       if (isAttachedToTop) {
@@ -785,6 +817,11 @@ export const IslandContainer: React.FC = () => {
                     settings.edgeLightingMode === 'center-outward' ? '80 120' :
                     settings.edgeLightingMode === 'strobe-flow' ? '50 180' :
                     settings.edgeLightingMode === 'neon-ripple' ? '120 120' :
+                    settings.edgeLightingMode === 'aurora-sweep' ? '110 220' :
+                    settings.edgeLightingMode === 'comet-tail' ? '60 320' :
+                    settings.edgeLightingMode === 'dual-spin' ? '60 160 60 160' :
+                    settings.edgeLightingMode === 'plasma-flow' ? '140 100' :
+                    settings.edgeLightingMode === 'rainbow-cycle' ? '220 120' :
                     settings.edgeLightingMode === 'breathing-glow' ? 'none' :
                     '90 180' // continuous
                   }
@@ -799,10 +836,25 @@ export const IslandContainer: React.FC = () => {
                       ? { opacity: [0.4, 1, 0.4], strokeDashoffset: [0, -320] }
                       : settings.edgeLightingMode === 'laser-chase'
                       ? { strokeDashoffset: [0, -650] }
+                      : settings.edgeLightingMode === 'aurora-sweep'
+                      ? { opacity: [0.45, 1, 0.45], strokeDashoffset: [0, -680] }
+                      : settings.edgeLightingMode === 'comet-tail'
+                      ? { strokeWidth: [1.8, 3.2, 1.8], strokeDashoffset: [0, -760] }
+                      : settings.edgeLightingMode === 'dual-spin'
+                      ? { strokeDashoffset: [0, -440] }
+                      : settings.edgeLightingMode === 'plasma-flow'
+                      ? { opacity: [0.55, 1, 0.55], strokeDashoffset: [160, -360], strokeWidth: [1.8, 3, 1.8] }
+                      : settings.edgeLightingMode === 'rainbow-cycle'
+                      ? { strokeDashoffset: [0, -680] }
                       : { strokeDashoffset: [0, -540] } // continuous & strobe
                   }
                   transition={{
-                    duration: settings.edgeLightingMode === 'laser-chase' ? edgeDuration * 0.6 : edgeDuration,
+                    duration:
+                      settings.edgeLightingMode === 'laser-chase' || settings.edgeLightingMode === 'comet-tail'
+                        ? edgeDuration * 0.6
+                        : settings.edgeLightingMode === 'aurora-sweep'
+                        ? edgeDuration * 1.2
+                        : edgeDuration,
                     repeat: Infinity,
                     ease: settings.edgeLightingMode === 'strobe-flow' ? 'linear' : 'easeInOut',
                   }}

@@ -33,6 +33,9 @@ const DEFAULT_SETTINGS: AppearanceSettings = {
   soundPack: 'glass',
   enable3dGyroGlare: true,
   ambientParticles: 'off',
+  customNotchChamfer: 14,
+  customNotchRadius: 12,
+  customNotchWingDepth: 0,
   customPillCenter: 'clock',
   customPillRight: 'telemetry',
   pillWidth: 268,
@@ -57,6 +60,7 @@ const VALID_NOTCH_STYLES: NotchStyle[] = [
   'cyber-diamond',
   'liquid-droplet',
   'split-capsule',
+  'custom-shape',
 ];
 
 const applyCustomStyles = (settings: AppearanceSettings) => {
