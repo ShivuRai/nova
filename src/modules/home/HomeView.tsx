@@ -43,7 +43,7 @@ export const HomeView: React.FC = () => {
     media.album?.toLowerCase().includes('chrome');
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%', minHeight: '100%', overflowX: 'hidden' }}>
       {/* Sleek Micro Search / Launcher Trigger */}
       <div
         onClick={() => setActiveModule('launcher')}
@@ -293,15 +293,16 @@ export const HomeView: React.FC = () => {
         </span>
       </div>
 
-      {/* Quick Action Micro-Pills */}
-      <div style={{ display: 'flex', gap: 5, overflowX: 'auto', paddingBottom: 2, scrollbarWidth: 'none' }}>
+      {/* Quick Action Grid - No horizontal overflow, smoothly wraps */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(98px, 1fr))', gap: 6 }}>
         <button
           onClick={() => setActiveModule('clipboard')}
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 4,
-            padding: '4px 8px',
+            justifyContent: 'center',
+            gap: 5,
+            padding: '5px 8px',
             backgroundColor: 'var(--nova-surface)',
             border: '1px solid var(--nova-border)',
             borderRadius: 'var(--nova-radius-pill)',
@@ -320,8 +321,9 @@ export const HomeView: React.FC = () => {
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 4,
-            padding: '4px 8px',
+            justifyContent: 'center',
+            gap: 5,
+            padding: '5px 8px',
             backgroundColor: 'var(--nova-surface)',
             border: '1px solid var(--nova-border)',
             borderRadius: 'var(--nova-radius-pill)',
@@ -340,8 +342,9 @@ export const HomeView: React.FC = () => {
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 4,
-            padding: '4px 8px',
+            justifyContent: 'center',
+            gap: 5,
+            padding: '5px 8px',
             backgroundColor: 'var(--nova-surface)',
             border: '1px solid var(--nova-border)',
             borderRadius: 'var(--nova-radius-pill)',
@@ -360,8 +363,9 @@ export const HomeView: React.FC = () => {
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 4,
-            padding: '4px 8px',
+            justifyContent: 'center',
+            gap: 5,
+            padding: '5px 8px',
             backgroundColor: 'var(--nova-surface)',
             border: '1px solid var(--nova-border)',
             borderRadius: 'var(--nova-radius-pill)',
@@ -380,8 +384,9 @@ export const HomeView: React.FC = () => {
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 4,
-            padding: '4px 8px',
+            justifyContent: 'center',
+            gap: 5,
+            padding: '5px 8px',
             backgroundColor: 'var(--nova-surface)',
             border: '1px solid var(--nova-border)',
             borderRadius: 'var(--nova-radius-pill)',
@@ -393,6 +398,27 @@ export const HomeView: React.FC = () => {
         >
           <CloudSun size={11} style={{ color: 'var(--nova-blue)' }} />
           <span>Weather</span>
+        </button>
+
+        <button
+          onClick={() => setActiveModule('shelf')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 5,
+            padding: '5px 8px',
+            backgroundColor: 'var(--nova-surface)',
+            border: '1px solid var(--nova-border)',
+            borderRadius: 'var(--nova-radius-pill)',
+            fontSize: '10px',
+            fontWeight: 500,
+            whiteSpace: 'nowrap',
+            cursor: 'pointer',
+          }}
+        >
+          <Sparkles size={11} style={{ color: 'var(--nova-success)' }} />
+          <span>File Shelf</span>
         </button>
       </div>
 

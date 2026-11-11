@@ -113,7 +113,18 @@ export type NotchStyle =
   | 'liquid-droplet'
   | 'split-capsule';
 
-export type PillBrandBadge = 'robot' | 'cat' | 'quantum' | 'pixel-alien' | 'text';
+export type PillBrandBadge =
+  | 'robot'
+  | 'cat'
+  | 'fox'
+  | 'dragon'
+  | 'panda'
+  | 'penguin'
+  | 'ghost'
+  | 'owl'
+  | 'quantum'
+  | 'pixel-alien'
+  | 'text';
 
 export type ScreenPosition =
   | 'top-center'
@@ -180,6 +191,8 @@ export interface AppearanceSettings {
   enableAudioReactiveLighting?: boolean;
   enableSoundEffects?: boolean;
   soundVolume?: number;
+  soundPack?: 'glass' | 'cyber' | 'mech' | 'retro';
+  enable3dGyroGlare?: boolean;
   ambientParticles?: AmbientParticleMode;
   pillWidth: number;
   pillHeight: number;

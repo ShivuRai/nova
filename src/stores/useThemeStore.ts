@@ -30,6 +30,8 @@ const DEFAULT_SETTINGS: AppearanceSettings = {
   enableAudioReactiveLighting: false,
   enableSoundEffects: true,
   soundVolume: 70,
+  soundPack: 'glass',
+  enable3dGyroGlare: true,
   ambientParticles: 'off',
   pillWidth: 255,
   pillHeight: 38,

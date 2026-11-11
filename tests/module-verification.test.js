@@ -282,8 +282,8 @@ test('Verification 12: Customization Studio, 12 Notch Shapes, and Animated Masco
   const pillPath = path.join(projectRoot, 'src', 'components', 'island', 'IslandPill.tsx');
   const pillContent = fs.readFileSync(pillPath, 'utf8');
   assert.strictEqual(pillContent.includes('IslandBrandMascot'), true);
-  assert.strictEqual(pillContent.includes('ASTRO'), true);
-  assert.strictEqual(pillContent.includes('MOCHI'), true);
+  assert.strictEqual(pillContent.includes('fox'), true);
+  assert.strictEqual(pillContent.includes('dragon'), true);
 
   // Verify Customization Studio in registry and RgbView.tsx
   const regPath = path.join(projectRoot, 'src', 'modules', 'registry.ts');
@@ -390,4 +390,42 @@ test('Verification 15: Compact Proportioned HomeView and Dynamic Expressive Masc
   assert.strictEqual(pillContent.includes('Signal Beacon Wave Pulse'), true, 'Antenna beacon wave pulse exists');
   assert.strictEqual(pillContent.includes('isHappy'), true, 'Happy smile eye expression exists');
   assert.strictEqual(pillContent.includes('handleMascotClick'), true, 'Interactive mascot click handler exists');
+});
+
+test('Verification 16: 10 Mascots, No Crowded Names, Vertical Smooth Scroll, 3D Gyro Glare, and Soundpacks', () => {
+  // 1. Types check for soundpacks and gyro glare
+  const typesPath = path.join(projectRoot, 'src', 'types', 'index.ts');
+  const typesContent = fs.readFileSync(typesPath, 'utf8');
+  assert.strictEqual(typesContent.includes('soundPack?:'), true);
+  assert.strictEqual(typesContent.includes('enable3dGyroGlare?:'), true);
+  assert.strictEqual(typesContent.includes("'panda'"), true);
+  assert.strictEqual(typesContent.includes("'penguin'"), true);
+  assert.strictEqual(typesContent.includes("'ghost'"), true);
+  assert.strictEqual(typesContent.includes("'owl'"), true);
+
+  // 2. IslandExpanded has vertical smooth scrolling and no horizontal overflow
+  const expandedPath = path.join(projectRoot, 'src', 'components', 'island', 'IslandExpanded.tsx');
+  const expandedContent = fs.readFileSync(expandedPath, 'utf8');
+  assert.strictEqual(expandedContent.includes("overflowY: 'auto'"), true);
+  assert.strictEqual(expandedContent.includes("overflowX: 'hidden'"), true);
+
+  // 3. HomeView has no horizontal overflow
+  const homePath = path.join(projectRoot, 'src', 'modules', 'home', 'HomeView.tsx');
+  const homeContent = fs.readFileSync(homePath, 'utf8');
+  assert.strictEqual(homeContent.includes("overflowX: 'hidden'"), true);
+
+  // 4. IslandContainer has 3D Gyro Glare and Drag & Drop file handler
+  const containerPath = path.join(projectRoot, 'src', 'components', 'island', 'IslandContainer.tsx');
+  const containerContent = fs.readFileSync(containerPath, 'utf8');
+  assert.strictEqual(containerContent.includes('enable3dGyroGlare'), true);
+  assert.strictEqual(containerContent.includes('onDragOver'), true);
+  assert.strictEqual(containerContent.includes('onDrop'), true);
+
+  // 5. Sound Service has soundpacks and playPetSound
+  const soundPath = path.join(projectRoot, 'src', 'services', 'soundService.ts');
+  const soundContent = fs.readFileSync(soundPath, 'utf8');
+  assert.strictEqual(soundContent.includes('playPetSound'), true);
+  assert.strictEqual(soundContent.includes('cyber'), true);
+  assert.strictEqual(soundContent.includes('mech'), true);
+  assert.strictEqual(soundContent.includes('retro'), true);
 });

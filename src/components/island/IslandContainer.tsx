@@ -12,6 +12,7 @@ import {
   playClickSound,
   playExpandSound,
   playCollapseSound,
+  playSound,
 } from '../../services/soundService';
 
 export const IslandContainer: React.FC = () => {
@@ -29,6 +30,8 @@ export const IslandContainer: React.FC = () => {
   const { settings } = useThemeStore();
 
   const [wallpaperPalette, setWallpaperPalette] = useState<{ accent: string; glow: string; tint: string } | null>(null);
+  const [glarePos, setGlarePos] = useState<{ x: number; y: number } | null>(null);
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
 
   useEffect(() => {
     if (settings.enableWallpaperTinting) {
@@ -45,7 +48,7 @@ export const IslandContainer: React.FC = () => {
   const windowResizeTimerRef = useRef<number | null>(null);
 
   const MODULE_HEIGHTS: Record<string, number> = {
-    home: 295,
+    home: 395,
     timers: 330,
     pet: 330,
     clock: 330,
@@ -532,7 +535,79 @@ export const IslandContainer: React.FC = () => {
             cursor: isExpanded ? 'default' : 'pointer',
           }}
           className={isRgb && !(isSplit && !isExpanded) ? 'rgb-border' : ''}
+          onMouseMove={(e) => {
+            if (settings.enable3dGyroGlare !== false) {
+              const rect = e.currentTarget.getBoundingClientRect();
+              setGlarePos({
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top,
+              });
+            }
+          }}
+          onMouseLeave={() => {
+            setGlarePos(null);
+            setIsDraggingOver(false);
+          }}
+          onDragOver={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (!isDraggingOver) setIsDraggingOver(true);
+          }}
+          onDragLeave={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsDraggingOver(false);
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsDraggingOver(false);
+            if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+              playSound('action');
+              setActiveModule('drop');
+              setExpanded(true);
+            }
+          }}
         >
+          {/* Dynamic 3D Gyro Glass Glare Specular Highlight */}
+          {settings.enable3dGyroGlare !== false && glarePos && !(isSplit && !isExpanded) && (
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                borderRadius: currentRadius,
+                pointerEvents: 'none',
+                zIndex: 4,
+                background: `radial-gradient(circle 140px at ${glarePos.x}px ${glarePos.y}px, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.03) 50%, transparent 80%)`,
+                mixBlendMode: 'overlay',
+              }}
+            />
+          )}
+
+          {/* Global Desktop File Drop Indicator */}
+          {isDraggingOver && (
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                borderRadius: currentRadius,
+                border: '2px dashed var(--nova-cyan)',
+                backgroundColor: 'rgba(56, 189, 248, 0.2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                zIndex: 10,
+                pointerEvents: 'none',
+                backdropFilter: 'blur(6px)',
+              }}
+            >
+              <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--nova-cyan)' }}>
+                📥 Drop File onto NOVA Shelf
+              </span>
+            </div>
+          )}
+
           {/* Seasonal Ambient Particles Engine */}
           <AmbientParticles mode={settings.ambientParticles} width={currentWidth} height={currentHeight} />
 

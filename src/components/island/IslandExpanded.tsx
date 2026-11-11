@@ -703,8 +703,18 @@ export const IslandExpandedContent: React.FC<IslandExpandedProps> = ({ onCollaps
         </div>
       )}
 
-      {/* Main View Area - Fluid crossfade transition on module switch, zero wasted space */}
-      <div style={{ padding: '10px 14px', overflowY: 'auto', flex: 1 }}>
+      {/* Main View Area - Fluid crossfade transition with butter-smooth vertical scrolling */}
+      <div
+        style={{
+          padding: '10px 14px',
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          flex: 1,
+          minHeight: 0,
+          scrollbarWidth: 'thin',
+          scrollbarColor: 'rgba(255, 255, 255, 0.2) transparent',
+        }}
+      >
         <AnimatePresence mode="wait">
           <motion.div
             key={activeModule}
@@ -712,7 +722,7 @@ export const IslandExpandedContent: React.FC<IslandExpandedProps> = ({ onCollaps
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -5 }}
             transition={{ duration: 0.14, ease: 'easeOut' }}
-            style={{ height: '100%' }}
+            style={{ minHeight: '100%', width: '100%' }}
           >
             {renderModuleContent()}
           </motion.div>

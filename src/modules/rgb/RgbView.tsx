@@ -22,6 +22,7 @@ import {
   Radio,
 } from 'lucide-react';
 import { useThemeStore } from '../../stores/useThemeStore';
+import { playSound } from '../../services/soundService';
 import {
   RgbPreset,
   NotchStyle,
@@ -94,11 +95,24 @@ const EDGE_COLORS: Array<{ id: EdgeLightingColor; label: string; dot: string }> 
 ];
 
 const MASCOT_OPTIONS: Array<{ id: PillBrandBadge; label: string; desc: string; preview: string }> = [
-  { id: 'robot', label: 'Astro Robot', desc: 'Cute animated mini-bot with blinking visor & antenna', preview: '🤖' },
-  { id: 'cat', label: 'Mochi Cat', desc: 'Sweet kitten with blushing cheeks & blinking eyes', preview: '🐱' },
-  { id: 'quantum', label: 'Quantum Core', desc: 'Spinning sci-fi holographic energy orb', preview: '⚡' },
+  { id: 'robot', label: 'Astro Robot', desc: 'Cute animated mini-bot with blinking visor & antenna beacon', preview: '🤖' },
+  { id: 'cat', label: 'Mochi Cat', desc: 'Sweet kitten with blushing cheeks & reactive ear twitches', preview: '🐱' },
+  { id: 'fox', label: 'Kitsune Fox', desc: 'Mystic glowing fox companion with twin tails & spirit aura', preview: '🦊' },
+  { id: 'dragon', label: 'Draco Dragon', desc: 'Legendary mini dragon with friendly fiery spirit & wings', preview: '🐲' },
+  { id: 'panda', label: 'Bao Panda', desc: 'Chubby bamboo panda with gentle blinking eyes & cute ears', preview: '🐼' },
+  { id: 'penguin', label: 'Pippin Penguin', desc: 'Playful arctic penguin with waddling charm & cozy scarf', preview: '🐧' },
+  { id: 'ghost', label: 'Spooky Ghost', desc: 'Adorable floating phantom companion that winks and hovers', preview: '👻' },
+  { id: 'owl', label: 'Hoot Owl', desc: 'Wise night owl with curious large amber eyes & feathered tufts', preview: '🦉' },
+  { id: 'quantum', label: 'Quantum Core', desc: 'Spinning sci-fi holographic gyroscopic energy orb', preview: '⚡' },
   { id: 'pixel-alien', label: 'Pixel Byte', desc: 'Retro 8-bit arcade space invader mascot', preview: '👾' },
   { id: 'text', label: 'Classic Text', desc: 'Clean typographic wordmark "NOVA"', preview: '✨' },
+];
+
+const SOUNDPACK_OPTIONS: Array<{ id: 'glass' | 'cyber' | 'mech' | 'retro'; label: string; desc: string; icon: string }> = [
+  { id: 'glass', label: 'Crystal Glass', desc: 'Resonant pure sine chimes & soft bells', icon: '💎' },
+  { id: 'cyber', label: 'Cyber Synth', desc: 'Futuristic sci-fi pulses & laser chirps', icon: '⚡' },
+  { id: 'mech', label: 'Mechanical', desc: 'Tactile vintage clicky switch pops', icon: '⌨️' },
+  { id: 'retro', label: '8-Bit Retro', desc: 'Chiptune square-wave arpeggio blips', icon: '🕹️' },
 ];
 
 const PILL_DISPLAY_OPTIONS: Array<{ id: PillDisplayContent; label: string; desc: string; icon: string }> = [
@@ -345,6 +359,33 @@ export const RgbView: React.FC = () => {
                 {settings.enableWallpaperTinting ? 'Active' : 'Off'}
               </button>
             </div>
+
+            {/* Dynamic 3D Gyro Glass Glare Toggle */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 4, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+              <div>
+                <div style={{ fontSize: '10px', fontWeight: 600, color: 'var(--nova-text-primary)' }}>
+                  Dynamic 3D Gyro Glass Glare
+                </div>
+                <div style={{ fontSize: '9px', color: 'var(--nova-text-muted)' }}>
+                  Simulates a 3D specular light sheen dynamically tracking your mouse cursor across the glass
+                </div>
+              </div>
+              <button
+                onClick={() => updateSettings({ enable3dGyroGlare: settings.enable3dGyroGlare === false ? true : false })}
+                style={{
+                  padding: '3px 9px',
+                  borderRadius: 'var(--nova-radius-pill)',
+                  backgroundColor: settings.enable3dGyroGlare !== false ? 'var(--nova-blue)' : 'rgba(255,255,255,0.06)',
+                  color: settings.enable3dGyroGlare !== false ? '#fff' : 'var(--nova-text-muted)',
+                  fontSize: '9px',
+                  fontWeight: 600,
+                  border: 'none',
+                  cursor: 'pointer',
+                }}
+              >
+                {settings.enable3dGyroGlare !== false ? 'Active' : 'Off'}
+              </button>
+            </div>
           </div>
 
           {/* Seasonal Ambient Particles Studio */}
@@ -440,19 +481,59 @@ export const RgbView: React.FC = () => {
             </div>
 
             {settings.enableSoundEffects !== false && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 4 }}>
-                <span style={{ fontSize: '9px', color: 'var(--nova-text-muted)', whiteSpace: 'nowrap' }}>
-                  Volume: {settings.soundVolume ?? 70}%
-                </span>
-                <input
-                  type="range"
-                  min={10}
-                  max={100}
-                  value={settings.soundVolume ?? 70}
-                  onChange={(e) => updateSettings({ soundVolume: Number(e.target.value) })}
-                  style={{ flex: 1 }}
-                />
-              </div>
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 4 }}>
+                  <span style={{ fontSize: '9px', color: 'var(--nova-text-muted)', whiteSpace: 'nowrap' }}>
+                    Volume: {settings.soundVolume ?? 70}%
+                  </span>
+                  <input
+                    type="range"
+                    min={10}
+                    max={100}
+                    value={settings.soundVolume ?? 70}
+                    onChange={(e) => updateSettings({ soundVolume: Number(e.target.value) })}
+                    style={{ flex: 1 }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, paddingTop: 6, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                  <span style={{ fontSize: '9px', fontWeight: 600, color: 'var(--nova-text-secondary)', letterSpacing: '0.04em' }}>
+                    ACOUSTIC SOUNDPACK
+                  </span>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 5 }}>
+                    {SOUNDPACK_OPTIONS.map((sp) => {
+                      const isSelected = (settings.soundPack || 'glass') === sp.id;
+                      return (
+                        <button
+                          key={sp.id}
+                          onClick={() => {
+                            updateSettings({ soundPack: sp.id });
+                            playSound('action');
+                          }}
+                          style={{
+                            padding: '6px 4px',
+                            backgroundColor: isSelected ? 'rgba(56, 189, 248, 0.15)' : 'rgba(255,255,255,0.03)',
+                            border: isSelected ? '1px solid var(--nova-cyan)' : '1px solid var(--nova-border)',
+                            borderRadius: 6,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            gap: 2,
+                            cursor: 'pointer',
+                            textAlign: 'center',
+                          }}
+                          title={sp.desc}
+                        >
+                          <span style={{ fontSize: '13px' }}>{sp.icon}</span>
+                          <span style={{ fontSize: '9px', fontWeight: isSelected ? 600 : 400, color: isSelected ? 'var(--nova-cyan)' : 'var(--nova-text-primary)' }}>
+                            {sp.label}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </>
             )}
           </div>
         </div>

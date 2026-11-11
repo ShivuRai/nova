@@ -727,10 +727,17 @@ function uploadFiles() {
 
         server.on('error', (err) => {
           debugLog(`[NOVA Drop] Server notice on port ${portToTry}: ${err.code || err.message}`);
+          try { server.close(); } catch (e) {}
           if (err.code === 'EADDRINUSE') {
             if (portToTry === 5980) {
               debugLog('[NOVA Drop] Port 5980 in use, binding to ephemeral dynamic port (port 0)...');
-              startDropServer(0);
+              setTimeout(() => {
+                try {
+                  startDropServer(0);
+                } catch (e) {
+                  debugLog('[NOVA Drop] Ephemeral retry exception: ' + e.message);
+                }
+              }, 100);
             } else {
               debugLog('[NOVA Drop] Fallback server port error: ' + err.message);
             }
