@@ -157,13 +157,21 @@ export type EdgeLightingColor =
 
 export type EdgeLightingSpeed = 'slow' | 'normal' | 'fast';
 
+export type CustomPillCenter = 'clock' | 'clock-seconds' | 'date-clock' | 'media-title' | 'network' | 'weather';
+export type CustomPillRight = 'telemetry' | 'network' | 'weather' | 'visualizer' | 'battery' | 'status-dot' | 'none';
+
 export type PillDisplayContent =
   | 'smart-auto'
   | 'media-priority'
   | 'telemetry'
   | 'clock-weather'
   | 'network-speed'
-  | 'minimal-zen';
+  | 'minimal-zen'
+  | 'crypto-stock'
+  | 'pomodoro-focus'
+  | 'battery-power'
+  | 'dual-net-ping'
+  | 'custom';
 
 export type AmbientParticleMode = 'off' | 'snow' | 'sakura' | 'stardust' | 'bubbles' | 'matrix';
 
@@ -179,6 +187,8 @@ export interface AppearanceSettings {
   customEdgeLightingColor?: string;
   edgeLightingSpeed?: EdgeLightingSpeed;
   pillDisplayContent?: PillDisplayContent;
+  customPillCenter?: CustomPillCenter;
+  customPillRight?: CustomPillRight;
   pillBrandBadge?: PillBrandBadge;
   topOffset?: number;
   sideMargin?: number;

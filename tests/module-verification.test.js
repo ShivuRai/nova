@@ -361,11 +361,11 @@ test('Verification 14: Dynamic Wing, Chamfered Notch, Split Capsule Twin-Pod, Ce
   assert.strictEqual(containerContent.includes('customEdgeLightingColor'), true, 'customEdgeLightingColor must be supported');
   assert.strictEqual(containerContent.includes('resolvedEdgeBackground'), true, 'resolvedEdgeBackground must resolve custom color');
 
-  // 4. Split Capsule twin-pod architecture in IslandPill & dead-centered clock
+  // 4. Split Capsule twin-pod architecture in IslandPill & dedicated center slot
   const pillPath = path.join(projectRoot, 'src', 'components', 'island', 'IslandPill.tsx');
   const pillContent = fs.readFileSync(pillPath, 'utf8');
   assert.strictEqual(pillContent.includes('isSplitCapsule'), true, 'isSplitCapsule twin-pod check must exist');
-  assert.strictEqual(pillContent.includes("left: '50%'") && pillContent.includes("transform: 'translate(-50%, -50%)'"), true, 'Clock must be dead-centered with absolute transform positioning');
+  assert.strictEqual(pillContent.includes('renderCenterContent') && pillContent.includes('renderRightContent'), true, 'Collision-proof 3-zone flex slots must exist');
 
   // 5. Fixed + Category and Manage buttons in IslandExpanded
   const expandedPath = path.join(projectRoot, 'src', 'components', 'island', 'IslandExpanded.tsx');
@@ -428,4 +428,39 @@ test('Verification 16: 10 Mascots, No Crowded Names, Vertical Smooth Scroll, 3D 
   assert.strictEqual(soundContent.includes('cyber'), true);
   assert.strictEqual(soundContent.includes('mech'), true);
   assert.strictEqual(soundContent.includes('retro'), true);
+});
+
+test('Verification 17: No Overlapping Layout, Custom Modular Builder, and Enlarged Mascots with Tailored Animations', () => {
+  // 1. Custom slots in types
+  const typesPath = path.join(projectRoot, 'src', 'types', 'index.ts');
+  const typesContent = fs.readFileSync(typesPath, 'utf8');
+  assert.strictEqual(typesContent.includes('customPillCenter?: CustomPillCenter;'), true);
+  assert.strictEqual(typesContent.includes('customPillRight?: CustomPillRight;'), true);
+  assert.strictEqual(typesContent.includes('crypto-stock'), true);
+  assert.strictEqual(typesContent.includes('pomodoro-focus'), true);
+  assert.strictEqual(typesContent.includes('battery-power'), true);
+
+  // 2. Custom modular builder and new options in RgbView.tsx
+  const studioPath = path.join(projectRoot, 'src', 'modules', 'rgb', 'RgbView.tsx');
+  const studioContent = fs.readFileSync(studioPath, 'utf8');
+  assert.strictEqual(studioContent.includes('CUSTOM MODULAR NOTCH BUILDER'), true);
+  assert.strictEqual(studioContent.includes('CENTER SLOT WIDGET'), true);
+  assert.strictEqual(studioContent.includes('RIGHT SLOT WIDGET'), true);
+  assert.strictEqual(studioContent.includes('crypto-stock'), true);
+
+  // 3. Collision-free layout in IslandPill.tsx
+  const pillPath = path.join(projectRoot, 'src', 'components', 'island', 'IslandPill.tsx');
+  const pillContent = fs.readFileSync(pillPath, 'utf8');
+  assert.strictEqual(pillContent.includes('renderCenterContent'), true);
+  assert.strictEqual(pillContent.includes('renderRightContent'), true);
+  // Dedicated network-speed check without CPU/RAM collision
+  assert.strictEqual(pillContent.includes("pillContentMode === 'network-speed'"), true);
+  // Enlarged mascot size
+  assert.strictEqual(pillContent.includes('viewBox="0 0 28 26"'), true);
+  // Tailored mascot animations
+  assert.strictEqual(pillContent.includes('Twin Swaying Spirit Tails'), true);
+  assert.strictEqual(pillContent.includes('Animated Flapping Wings'), true);
+  assert.strictEqual(pillContent.includes('Chewing Bamboo Stalk'), true);
+  assert.strictEqual(pillContent.includes('Cozy Fluttering Winter Scarf'), true);
+  assert.strictEqual(pillContent.includes('Glowing Aura Sparkles'), true);
 });

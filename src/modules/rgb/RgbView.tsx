@@ -34,6 +34,8 @@ import {
   PillDisplayContent,
   PillBrandBadge,
   AmbientParticleMode,
+  CustomPillCenter,
+  CustomPillRight,
 } from '../../types';
 
 type StudioTab = 'themes' | 'shapes' | 'edge' | 'mascot' | 'display';
@@ -117,11 +119,35 @@ const SOUNDPACK_OPTIONS: Array<{ id: 'glass' | 'cyber' | 'mech' | 'retro'; label
 
 const PILL_DISPLAY_OPTIONS: Array<{ id: PillDisplayContent; label: string; desc: string; icon: string }> = [
   { id: 'smart-auto', label: 'Smart Contextual', desc: 'Auto-adapts to media playback, timers, or clock', icon: '⚡' },
-  { id: 'network-speed', label: 'Network Speed', desc: 'Real-time internet download & upload speed (KB/s)', icon: '📶' },
-  { id: 'media-priority', label: 'Media & YouTube Focus', desc: 'Always displays active track, artist & visualizer', icon: '🎵' },
+  { id: 'network-speed', label: 'Network Speed', desc: 'Dedicated real-time download & upload speed (KB/s & MB/s)', icon: '📶' },
   { id: 'telemetry', label: 'Hardware Telemetry', desc: 'Live CPU %, RAM %, and thermals right on the capsule', icon: '📊' },
+  { id: 'media-priority', label: 'Media & YouTube Focus', desc: 'Always displays active track, artist & 5-bar visualizer', icon: '🎵' },
   { id: 'clock-weather', label: 'Clock & Weather', desc: 'Minimalist clock with temperature and sky conditions', icon: '⛅' },
+  { id: 'crypto-stock', label: 'Crypto & Market', desc: 'Live market ticker & cryptocurrency glance (BTC / S&P)', icon: '📈' },
+  { id: 'pomodoro-focus', label: 'Deep Work Focus', desc: 'Focus timer mode with session streaks & Pomodoro badge', icon: '🍅' },
+  { id: 'battery-power', label: 'Battery & Power', desc: 'Live battery percentage, power mode, and charging state', icon: '🔋' },
+  { id: 'dual-net-ping', label: 'Network & Latency', desc: 'High-precision bandwidth meter with ping latency ms', icon: '🚀' },
   { id: 'minimal-zen', label: 'Minimal Zen', desc: 'Subtle breathing beacon with system clock only', icon: '🧘' },
+  { id: 'custom', label: 'Custom Modular', desc: 'Build your own custom layout with modular center & right slots', icon: '🛠️' },
+];
+
+const CUSTOM_CENTER_OPTIONS: Array<{ id: CustomPillCenter; label: string; desc: string; icon: string }> = [
+  { id: 'clock', label: 'Standard Clock', desc: 'Clean 12h/24h hour and minute time', icon: '🕒' },
+  { id: 'clock-seconds', label: 'Precision Seconds', desc: 'Live time with ticking second indicator', icon: '⏱️' },
+  { id: 'date-clock', label: 'Date & Time', desc: 'Weekday, month, day, and current time', icon: '📅' },
+  { id: 'media-title', label: 'Now Playing', desc: 'Currently playing media track or YouTube title', icon: '🎵' },
+  { id: 'network', label: 'Network Speed', desc: 'Live download and upload transfer rates', icon: '📶' },
+  { id: 'weather', label: 'Weather & Sky', desc: 'Current temperature and sky condition', icon: '☀️' },
+];
+
+const CUSTOM_RIGHT_OPTIONS: Array<{ id: CustomPillRight; label: string; desc: string; icon: string }> = [
+  { id: 'telemetry', label: 'CPU & RAM', desc: 'Live processor and memory load %', icon: '📊' },
+  { id: 'network', label: 'Network Speed', desc: 'Download and upload bandwidth meters', icon: '📶' },
+  { id: 'visualizer', label: '5-Bar Equalizer', desc: 'Dancing audio equalizer frequency bars', icon: '🎶' },
+  { id: 'weather', label: 'Weather Glance', desc: 'Temperature and sky condition badge', icon: '⛅' },
+  { id: 'battery', label: 'Battery & Power', desc: 'Battery charge level percentage', icon: '⚡' },
+  { id: 'status-dot', label: 'Breathing Dot', desc: 'Subtle pulsating cyber LED beacon', icon: '🟢' },
+  { id: 'none', label: 'Empty Margin', desc: 'Clean open space on right side', icon: '🚫' },
 ];
 
 const PARTICLE_OPTIONS: Array<{ id: AmbientParticleMode; label: string; icon: string }> = [
@@ -964,6 +990,101 @@ export const RgbView: React.FC = () => {
               );
             })}
           </div>
+
+          {/* Interactive Custom Modular Builder (Active when 'custom' is selected) */}
+          {settings.pillDisplayContent === 'custom' && (
+            <div
+              style={{
+                marginTop: 6,
+                padding: '12px 14px',
+                backgroundColor: 'rgba(56, 189, 248, 0.05)',
+                border: '1.5px solid var(--nova-cyan)',
+                borderRadius: 'var(--nova-radius-widget)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 12,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Sparkles size={14} style={{ color: 'var(--nova-cyan)' }} />
+                <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--nova-cyan)', letterSpacing: '0.03em' }}>
+                  CUSTOM MODULAR NOTCH BUILDER
+                </span>
+              </div>
+
+              {/* Slot 1: Center Widget Selector */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <span style={{ fontSize: '10px', fontWeight: 600, color: 'var(--nova-text-secondary)' }}>
+                  CENTER SLOT WIDGET
+                </span>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+                  {CUSTOM_CENTER_OPTIONS.map((slot) => {
+                    const isSelected = (settings.customPillCenter || 'clock') === slot.id;
+                    return (
+                      <button
+                        key={slot.id}
+                        onClick={() => updateSettings({ customPillCenter: slot.id })}
+                        style={{
+                          padding: '6px 8px',
+                          backgroundColor: isSelected ? 'rgba(56, 189, 248, 0.2)' : 'var(--nova-surface)',
+                          border: isSelected ? '1px solid var(--nova-cyan)' : '1px solid var(--nova-border)',
+                          borderRadius: 6,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                        }}
+                      >
+                        <span style={{ fontSize: '13px' }}>{slot.icon}</span>
+                        <div>
+                          <div style={{ fontSize: '10px', fontWeight: isSelected ? 600 : 400, color: isSelected ? 'var(--nova-cyan)' : 'var(--nova-text-primary)' }}>
+                            {slot.label}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Slot 2: Right Auxiliary Widget Selector */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <span style={{ fontSize: '10px', fontWeight: 600, color: 'var(--nova-text-secondary)' }}>
+                  RIGHT SLOT WIDGET
+                </span>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+                  {CUSTOM_RIGHT_OPTIONS.map((slot) => {
+                    const isSelected = (settings.customPillRight || 'telemetry') === slot.id;
+                    return (
+                      <button
+                        key={slot.id}
+                        onClick={() => updateSettings({ customPillRight: slot.id })}
+                        style={{
+                          padding: '6px 8px',
+                          backgroundColor: isSelected ? 'rgba(56, 189, 248, 0.2)' : 'var(--nova-surface)',
+                          border: isSelected ? '1px solid var(--nova-cyan)' : '1px solid var(--nova-border)',
+                          borderRadius: 6,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                        }}
+                      >
+                        <span style={{ fontSize: '13px' }}>{slot.icon}</span>
+                        <div>
+                          <div style={{ fontSize: '10px', fontWeight: isSelected ? 600 : 400, color: isSelected ? 'var(--nova-cyan)' : 'var(--nova-text-primary)' }}>
+                            {slot.label}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
