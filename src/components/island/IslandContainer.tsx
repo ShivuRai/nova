@@ -357,6 +357,62 @@ export const IslandContainer: React.FC = () => {
       ? `linear-gradient(90deg, ${customEdgeColor}, #ffffff, ${customEdgeColor})`
       : (EDGE_GRADIENTS[settings.edgeLightingColor || 'cyan-pulse'] || EDGE_GRADIENTS['cyan-pulse']);
 
+  // Mathematically exact geometric outline path following the real notch shape
+  const getShapePath = () => {
+    const w = currentWidth;
+    const h = currentHeight;
+    const isAttachedToTop = !isBottom && topGap === 0 && !isExpanded;
+
+    if (isChamfered) {
+      if (isAttachedToTop) {
+        return `M 0.75,0 L ${w - 0.75},0 L ${w - 0.75},${h - 16} L ${w - 16},${h - 0.75} L 16,${h - 0.75} L 0.75,${h - 16} Z`;
+      }
+      return `M 14,0.75 L ${w - 14},0.75 L ${w - 0.75},14 L ${w - 0.75},${h - 14} L ${w - 14},${h - 0.75} L 14,${h - 0.75} L 0.75,${h - 14} L 0.75,14 Z`;
+    }
+
+    if (isDynamicWing) {
+      if (isExpanded) {
+        return `M 16,0.75 L ${w - 16},0.75 L ${w - 0.75},16 L ${w - 0.75},${h - 16} L ${w - 16},${h - 0.75} L 16,${h - 0.75} L 0.75,${h - 16} L 0.75,16 Z`;
+      }
+      return `M 16,0.75 L ${w - 16},0.75 L ${w - 0.75},${h * 0.26} L ${w - 8},${h * 0.5} L ${w - 0.75},${h * 0.74} L ${w - 16},${h - 0.75} L 16,${h - 0.75} L 0.75,${h * 0.74} L 8,${h * 0.5} L 0.75,${h * 0.26} Z`;
+    }
+
+    if (!isExpanded) {
+      if (isBlade) {
+        return `M 0.75,0.75 L ${w - 0.75},0.75 L ${w - 10},${h - 0.75} L 10,${h - 0.75} Z`;
+      }
+      if (isDiamond) {
+        return `M 12,0.75 L ${w - 12},0.75 L ${w - 0.75},${h * 0.5} L ${w - 12},${h - 0.75} L 12,${h - 0.75} L 0.75,${h * 0.5} Z`;
+      }
+      if (isHexPill) {
+        return `M 8,0.75 L ${w - 8},0.75 L ${w - 0.75},${h * 0.5} L ${w - 8},${h - 0.75} L 8,${h - 0.75} L 0.75,${h * 0.5} Z`;
+      }
+    }
+
+    if (isNotch && isAttachedToTop) {
+      const r = 20;
+      return `M 0.75,0 L 0.75,${h - r} A ${r} ${r} 0 0 0 ${r + 0.75},${h - 0.75} L ${w - r - 0.75},${h - 0.75} A ${r} ${r} 0 0 0 ${w - 0.75},${h - r} L ${w - 0.75},0`;
+    }
+
+    if (isTeardrop && !isExpanded) {
+      return `M 22,0.75 L ${w - 8},0.75 A 8 8 0 0 1 ${w - 0.75},8.75 L ${w - 0.75},${h - 18} A 18 18 0 0 1 ${w - 18},${h - 0.75} L 22,${h - 0.75} A 22 22 0 0 1 0.75,${h - 22} L 0.75,22 A 22 22 0 0 1 22,0.75 Z`;
+    }
+
+    if (isDroplet && !isExpanded) {
+      return `M 24,0.75 L ${w - 24},0.75 A 24 24 0 0 1 ${w - 0.75},24.75 L ${w - 0.75},${h - 24} A 24 24 0 0 1 ${w - 24},${h - 0.75} L 8,${h - 0.75} A 8 8 0 0 1 0.75,${h - 8} L 0.75,24 A 24 24 0 0 1 24,0.75 Z`;
+    }
+
+    const rx = isExpanded ? 24 : isSquircle ? 14 : isCompact ? 16 : Math.min(20, (h - 1.5) / 2);
+    return `M ${rx + 0.75},0.75 L ${w - rx - 0.75},0.75 A ${rx} ${rx} 0 0 1 ${w - 0.75},${rx + 0.75} L ${w - 0.75},${h - rx - 0.75} A ${rx} ${rx} 0 0 1 ${w - rx - 0.75},${h - 0.75} L ${rx + 0.75},${h - 0.75} A ${rx} ${rx} 0 0 1 0.75,${h - rx - 0.75} L 0.75,${rx + 0.75} A ${rx} ${rx} 0 0 1 ${rx + 0.75},0.75 Z`;
+  };
+
+  const edgeDuration =
+    settings.edgeLightingSpeed === 'slow' ? 6.5 :
+    settings.edgeLightingSpeed === 'fast' ? 1.5 :
+    3.2;
+
+  const shapePath = getShapePath();
+
   const justifyContent = isLeft ? 'flex-start' : isRight ? 'flex-end' : 'center';
   const alignItems = isBottom ? 'flex-end' : 'flex-start';
 
@@ -518,7 +574,7 @@ export const IslandContainer: React.FC = () => {
           style={{
             backgroundColor: isSplit && !isExpanded ? 'transparent' : dynamicBg,
             boxShadow: isSplit && !isExpanded ? 'none' : (isExpanded ? 'var(--nova-shadow-card)' : 'var(--nova-shadow-pill)'),
-            border: isSplit && !isExpanded ? 'none' : (
+            border: (isSplit && !isExpanded) || currentClipPath !== 'none' ? 'none' : (
               isRgb
                 ? '1.5px solid rgba(96, 165, 250, 0.6)'
                 : wallpaperPalette && settings.enableWallpaperTinting
@@ -637,14 +693,122 @@ export const IslandContainer: React.FC = () => {
             />
           )}
 
-          {/* Minimalistic Edge Lighting Overlay */}
-          {!(isSplit && !isExpanded) && settings.edgeLightingMode && settings.edgeLightingMode !== 'off' && (
-            <div
-              className={`edge-lighting-trail mode-${settings.edgeLightingMode} speed-${settings.edgeLightingSpeed || 'normal'}`}
+          {/* Geometric SVG Edge Lighting & Precise Glass Rim Engine */}
+          {!(isSplit && !isExpanded) && (
+            <svg
               style={{
-                background: resolvedEdgeBackground,
+                position: 'absolute',
+                inset: 0,
+                width: '100%',
+                height: '100%',
+                pointerEvents: 'none',
+                zIndex: 5,
+                overflow: 'visible',
               }}
-            />
+            >
+              <defs>
+                <linearGradient id="notch-edge-lighting-svg-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  {settings.edgeLightingColor === 'emerald-beam' ? (
+                    <>
+                      <stop offset="0%" stopColor="#10B981" />
+                      <stop offset="50%" stopColor="#34D399" />
+                      <stop offset="100%" stopColor="#06B6D4" />
+                    </>
+                  ) : settings.edgeLightingColor === 'sunset-flare' ? (
+                    <>
+                      <stop offset="0%" stopColor="#F59E0B" />
+                      <stop offset="50%" stopColor="#F43F5E" />
+                      <stop offset="100%" stopColor="#EC4899" />
+                    </>
+                  ) : settings.edgeLightingColor === 'violet-aurora' ? (
+                    <>
+                      <stop offset="0%" stopColor="#8B5CF6" />
+                      <stop offset="50%" stopColor="#A855F7" />
+                      <stop offset="100%" stopColor="#EC4899" />
+                    </>
+                  ) : settings.edgeLightingColor === 'pure-white' ? (
+                    <>
+                      <stop offset="0%" stopColor="#FFFFFF" />
+                      <stop offset="50%" stopColor="rgba(255,255,255,0.4)" />
+                      <stop offset="100%" stopColor="#FFFFFF" />
+                    </>
+                  ) : settings.edgeLightingColor === 'chromatic' ? (
+                    <>
+                      <stop offset="0%" stopColor="#60A5FA" />
+                      <stop offset="33%" stopColor="#F43F5E" />
+                      <stop offset="66%" stopColor="#34D399" />
+                      <stop offset="100%" stopColor="#38BDF8" />
+                    </>
+                  ) : settings.edgeLightingColor === 'custom' ? (
+                    <>
+                      <stop offset="0%" stopColor={customEdgeColor} />
+                      <stop offset="50%" stopColor="#FFFFFF" />
+                      <stop offset="100%" stopColor={customEdgeColor} />
+                    </>
+                  ) : (
+                    <>
+                      <stop offset="0%" stopColor="#38BDF8" />
+                      <stop offset="50%" stopColor="#3B82F6" />
+                      <stop offset="100%" stopColor="#60A5FA" />
+                    </>
+                  )}
+                </linearGradient>
+              </defs>
+
+              {/* Static Geometric Rim Highlight - Outlines chamfers, wings, blades, and pills */}
+              {currentClipPath !== 'none' && (
+                <path
+                  d={shapePath}
+                  fill="none"
+                  stroke={
+                    isRgb
+                      ? 'rgba(96, 165, 250, 0.7)'
+                      : wallpaperPalette && settings.enableWallpaperTinting
+                      ? `${wallpaperPalette.accent}80`
+                      : `rgba(255, 255, 255, ${Math.max(0.12, ((settings.glassmorphismBorderGlow ?? 35) / 100) * 0.5)})`
+                  }
+                  strokeWidth="1.2"
+                />
+              )}
+
+              {/* Active Animated Edge Lighting Stroke following exact notch shape contour */}
+              {settings.edgeLightingMode && settings.edgeLightingMode !== 'off' && (
+                <motion.path
+                  d={shapePath}
+                  fill="none"
+                  stroke="url(#notch-edge-lighting-svg-grad)"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeDasharray={
+                    settings.edgeLightingMode === 'laser-chase' ? '45 260' :
+                    settings.edgeLightingMode === 'corners-inward' ? '70 140' :
+                    settings.edgeLightingMode === 'center-outward' ? '80 120' :
+                    settings.edgeLightingMode === 'strobe-flow' ? '50 180' :
+                    settings.edgeLightingMode === 'neon-ripple' ? '120 120' :
+                    settings.edgeLightingMode === 'breathing-glow' ? 'none' :
+                    '90 180' // continuous
+                  }
+                  animate={
+                    settings.edgeLightingMode === 'breathing-glow'
+                      ? { opacity: [0.35, 1, 0.35], strokeWidth: [1.2, 2.5, 1.2] }
+                      : settings.edgeLightingMode === 'corners-inward'
+                      ? { strokeDashoffset: [0, -210, 0] }
+                      : settings.edgeLightingMode === 'center-outward'
+                      ? { strokeDashoffset: [100, -100] }
+                      : settings.edgeLightingMode === 'neon-ripple'
+                      ? { opacity: [0.4, 1, 0.4], strokeDashoffset: [0, -320] }
+                      : settings.edgeLightingMode === 'laser-chase'
+                      ? { strokeDashoffset: [0, -650] }
+                      : { strokeDashoffset: [0, -540] } // continuous & strobe
+                  }
+                  transition={{
+                    duration: settings.edgeLightingMode === 'laser-chase' ? edgeDuration * 0.6 : edgeDuration,
+                    repeat: Infinity,
+                    ease: settings.edgeLightingMode === 'strobe-flow' ? 'linear' : 'easeInOut',
+                  }}
+                />
+              )}
+            </svg>
           )}
           <AnimatePresence mode="wait">
             {!isExpanded ? (

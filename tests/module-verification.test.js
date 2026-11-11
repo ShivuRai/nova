@@ -464,3 +464,29 @@ test('Verification 17: No Overlapping Layout, Custom Modular Builder, and Enlarg
   assert.strictEqual(pillContent.includes('Cozy Fluttering Winter Scarf'), true);
   assert.strictEqual(pillContent.includes('Glowing Aura Sparkles'), true);
 });
+
+test('Verification 18: Real Media Detection Listener and Geometric SVG Edge Lighting Engine', () => {
+  // 1. App.tsx listens to real media updates from Windows SMTC
+  const appPath = path.join(projectRoot, 'src', 'App.tsx');
+  const appContent = fs.readFileSync(appPath, 'utf8');
+  assert.strictEqual(appContent.includes('media-status-update'), true);
+  assert.strictEqual(appContent.includes('updateMedia'), true);
+  assert.strictEqual(appContent.includes('get-media-status'), true);
+
+  // 2. electron.cjs has get-media-status IPC handler
+  const electronPath = path.join(projectRoot, 'electron.cjs');
+  const electronContent = fs.readFileSync(electronPath, 'utf8');
+  assert.strictEqual(electronContent.includes("'get-media-status'"), true);
+
+  // 3. IslandPill strictly requires media.isPlaying for equalizer
+  const pillPath = path.join(projectRoot, 'src', 'components', 'island', 'IslandPill.tsx');
+  const pillContent = fs.readFileSync(pillPath, 'utf8');
+  assert.strictEqual(pillContent.includes('media.isPlaying && (pillContentMode ==='), true);
+
+  // 4. IslandContainer geometric SVG edge lighting engine
+  const containerPath = path.join(projectRoot, 'src', 'components', 'island', 'IslandContainer.tsx');
+  const containerContent = fs.readFileSync(containerPath, 'utf8');
+  assert.strictEqual(containerContent.includes('getShapePath'), true);
+  assert.strictEqual(containerContent.includes('shapePath'), true);
+  assert.strictEqual(containerContent.includes('notch-edge-lighting-svg-grad'), true);
+});

@@ -376,6 +376,13 @@ function createWindow() {
   const mediaInterval = setInterval(pollMedia, 1500);
   setTimeout(pollMedia, 800);
 
+  ipcMain.handle('get-media-status', () => {
+    try {
+      if (lastMediaRaw) return JSON.parse(lastMediaRaw);
+    } catch (e) {}
+    return { title: '', artist: '', album: '', isPlaying: false, status: 'Closed' };
+  });
+
   // IPC media playback controls (Windows SMTC & Keystroke fallback)
   ipcMain.on('control-media', (event, action) => {
     let scriptPath = path.join(__dirname, 'scripts', 'control-media.ps1');

@@ -879,6 +879,14 @@ export const IslandPillContent: React.FC<{ isCompact?: boolean }> = ({ isCompact
       return visualizer;
     }
 
+    if (pillContentMode === 'media-priority') {
+      return (
+        <span style={{ fontSize: '9.5px', color: 'var(--nova-text-muted)', fontFamily: 'var(--font-mono)' }}>
+          {media.title ? 'Paused' : 'No Media'}
+        </span>
+      );
+    }
+
     // Dedicated Network Speed Mode - Clean & Dedicated, NO CPU/RAM OVERLAY!
     if (pillContentMode === 'network-speed') {
       return (
@@ -969,7 +977,11 @@ export const IslandPillContent: React.FC<{ isCompact?: boolean }> = ({ isCompact
           </span>
         );
       }
-      if (rightOpt === 'visualizer') return visualizer;
+      if (rightOpt === 'visualizer') {
+        return media.isPlaying ? visualizer : (
+          <span style={{ fontSize: '9px', color: 'var(--nova-text-muted)', fontFamily: 'var(--font-mono)' }}>Idle</span>
+        );
+      }
       if (rightOpt === 'battery') {
         return (
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '9.5px', fontFamily: 'var(--font-mono)', color: 'var(--nova-cyan)' }}>

@@ -3,9 +3,9 @@ import { IslandContainer } from './components/island/IslandContainer';
 import { useSystemStore } from './stores/useSystemStore';
 
 export const App: React.FC = () => {
-  const { updateMetrics } = useSystemStore();
+  const { updateMetrics, updateMedia } = useSystemStore();
 
-  // Polling for live real-time system metrics from Electron or Tauri
+  // Polling for live real-time system metrics and media playback from Electron or Tauri
   useEffect(() => {
     if (typeof window !== 'undefined' && (window as any).require) {
       try {
@@ -13,15 +13,32 @@ export const App: React.FC = () => {
         const handleMetricsUpdate = (_event: any, data: any) => {
           if (data) updateMetrics(data);
         };
-        ipcRenderer.on('system-metrics-update', handleMetricsUpdate);
+        const handleMediaUpdate = (_event: any, data: any) => {
+          if (data && typeof data === 'object') {
+            updateMedia({
+              title: data.title || '',
+              artist: data.artist || '',
+              album: data.album || '',
+              isPlaying: Boolean(data.isPlaying),
+            });
+          }
+        };
 
-        // Fetch initial snapshot
+        ipcRenderer.on('system-metrics-update', handleMetricsUpdate);
+        ipcRenderer.on('media-status-update', handleMediaUpdate);
+
+        // Fetch initial snapshots
         ipcRenderer.invoke('get-system-metrics').then((data: any) => {
           if (data) updateMetrics(data);
         }).catch(() => {});
 
+        ipcRenderer.invoke('get-media-status').then((data: any) => {
+          if (data) handleMediaUpdate(null, data);
+        }).catch(() => {});
+
         return () => {
           ipcRenderer.removeListener('system-metrics-update', handleMetricsUpdate);
+          ipcRenderer.removeListener('media-status-update', handleMediaUpdate);
         };
       } catch (e) {}
     } else if (typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window) {
@@ -35,7 +52,7 @@ export const App: React.FC = () => {
         return () => clearInterval(interval);
       });
     }
-  }, [updateMetrics]);
+  }, [updateMetrics, updateMedia]);
 
   return (
     <main
