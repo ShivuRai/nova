@@ -9,34 +9,31 @@ interface AppStat {
 }
 
 export const ScreenTimeView: React.FC = () => {
-  const [totalTime, setTotalTime] = useState<string>('7h 20m');
-  const [focusPercent, setFocusPercent] = useState<number>(84);
-  const [idleMins, setIdleMins] = useState<number>(35);
-  const [apps, setApps] = useState<AppStat[]>([
-    { name: 'Google Chrome', duration: '5h 15m', percent: 68, color: 'var(--nova-blue)' },
-    { name: 'Antigravity IDE', duration: '1h 20m', percent: 18, color: 'var(--nova-cyan)' },
-    { name: 'ChatGPT Desktop', duration: '35m', percent: 8, color: 'var(--nova-violet)' },
-    { name: 'NOVA Companion', duration: '20m', percent: 6, color: 'var(--nova-warning)' },
-  ]);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [totalTime, setTotalTime] = useState('—');
+  const [focusPercent, setFocusPercent] = useState<number | null>(null);
+  const [idleMins, setIdleMins] = useState<number | null>(null);
+  const [apps, setApps] = useState<AppStat[]>([]);
+  const [loading, setLoading] = useState(false);
 
   const fetchStats = async () => {
+    const ipc = window.novaDesktop;
+    if (!ipc) return;
     setLoading(true);
-    if (typeof window !== 'undefined' && (window as any).require) {
-      try {
-        const { ipcRenderer } = (window as any).require('electron');
-        const data = await ipcRenderer.invoke('get-screen-time');
-        if (data) {
-          if (data.totalScreenTime) setTotalTime(data.totalScreenTime);
-          if (typeof data.focusPercent === 'number') setFocusPercent(data.focusPercent);
-          if (typeof data.idleMinutes === 'number') setIdleMins(data.idleMinutes);
-          if (Array.isArray(data.apps) && data.apps.length > 0) {
-            setApps(data.apps);
-          }
-        }
-      } catch (e) {}
+    try {
+      const data = await ipc.invoke('get-screen-time');
+      if (!data) return;
+      setTotalTime(data.totalScreenTime);
+      setFocusPercent(data.focusPercent);
+      setIdleMins(data.idleMinutes);
+      setApps(data.apps);
+    } catch {
+      setTotalTime('—');
+      setFocusPercent(null);
+      setIdleMins(null);
+      setApps([]);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -70,7 +67,7 @@ export const ScreenTimeView: React.FC = () => {
 
         <div style={{ textAlign: 'right', fontSize: '10.5px', color: 'var(--nova-text-muted)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
-            <span>Active Focus: <strong style={{ color: 'var(--nova-success)' }}>{focusPercent}%</strong></span>
+            <span>Active Focus: <strong style={{ color: 'var(--nova-success)' }}>{focusPercent === null ? '—' : focusPercent + '%'}</strong></span>
             <button
               onClick={fetchStats}
               disabled={loading}
@@ -88,12 +85,13 @@ export const ScreenTimeView: React.FC = () => {
               <RefreshCw size={11} className={loading ? 'spin' : ''} />
             </button>
           </div>
-          <div style={{ marginTop: 2 }}>Idle Excluded: {idleMins}m</div>
+          <div style={{ marginTop: 2 }}>Idle Excluded: {idleMins === null ? '—' : idleMins + 'm'}</div>
         </div>
       </div>
 
       {/* Real Application Usage Breakdown */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 7, overflowY: 'auto', flex: 1, paddingRight: 4 }}>
+        {apps.length === 0 && <p style={{ fontSize: 12, color: 'var(--nova-text-secondary)' }}>No app usage sampled yet.</p>}
         {apps.map((app) => (
           <div key={app.name} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10.5px' }}>
@@ -133,7 +131,7 @@ export const ScreenTimeView: React.FC = () => {
         }}
       >
         <ShieldCheck size={11} style={{ color: 'var(--nova-success)' }} />
-        <span>Real process CPU & active foreground tracking • 100% private on-device data</span>
+        <span>Foreground app time and idle time sampled locally while NOVA runs.</span>
       </div>
     </div>
   );

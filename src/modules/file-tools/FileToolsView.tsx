@@ -11,7 +11,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { useIslandStore } from '../../stores/useIslandStore';
-import { runComputeFileHash } from '../../services/platformService';
+import { getLocalFilePath, runComputeFileHash } from '../../services/platformService';
 
 export const FileToolsView: React.FC = () => {
   const { setInteracting } = useIslandStore();
@@ -98,7 +98,7 @@ export const FileToolsView: React.FC = () => {
 
     try {
       // If native path is available, compute via main process for instant large file hashing
-      const filePath = (file as any).path;
+      const filePath = getLocalFilePath(file);
       if (filePath) {
         const res256 = await runComputeFileHash(filePath, 'sha256');
         const res1 = await runComputeFileHash(filePath, 'sha1');

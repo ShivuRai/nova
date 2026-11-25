@@ -4,6 +4,7 @@ import { AppearanceSettings, ThemeMode, ScreenPosition, NotchStyle, RgbPreset } 
 interface ThemeState {
   settings: AppearanceSettings;
   updateSettings: (partial: Partial<AppearanceSettings>) => void;
+  resetSettings: () => void;
 }
 
 const DEFAULT_SETTINGS: AppearanceSettings = {
@@ -13,7 +14,7 @@ const DEFAULT_SETTINGS: AppearanceSettings = {
   enableRgbBorder: false,
   enableGlow: true,
   rgbPreset: 'rainbow',
-  edgeLightingMode: 'continuous',
+  edgeLightingMode: 'off',
   edgeLightingColor: 'cyan-pulse',
   customEdgeLightingColor: '#38BDF8',
   edgeLightingSpeed: 'normal',
@@ -31,11 +32,16 @@ const DEFAULT_SETTINGS: AppearanceSettings = {
   enableSoundEffects: true,
   soundVolume: 70,
   soundPack: 'glass',
-  enable3dGyroGlare: true,
+  enable3dGyroGlare: false,
   ambientParticles: 'off',
   customNotchChamfer: 14,
   customNotchRadius: 12,
   customNotchWingDepth: 0,
+  enableAutoRetract: true,
+  autoRetractDelaySec: 4,
+  wakeHoverDelayMs: 650,
+  retractOnlyOnApps: true,
+  enableMultiMonitorRoaming: true,
   customPillCenter: 'clock',
   customPillRight: 'telemetry',
   pillWidth: 268,
@@ -67,28 +73,30 @@ const applyCustomStyles = (settings: AppearanceSettings) => {
   if (typeof document === 'undefined') return;
   const root = document.documentElement;
 
-  if (settings.customAccentColor) {
-    root.style.setProperty('--nova-blue', settings.customAccentColor);
-    root.style.setProperty('--nova-accent', settings.customAccentColor);
+  const accent = settings.customAccentColor;
+  const background = settings.customBgColor;
+  const customAccent = accent && accent.toUpperCase() !== DEFAULT_SETTINGS.customAccentColor && /^#[0-9a-f]{6}$/i.test(accent);
+  if (customAccent) root.style.setProperty('--nova-blue', accent);
+  else root.style.removeProperty('--nova-blue');
+
+  root.style.setProperty('--nova-glass-blur', `${settings.glassmorphismBlur ?? 24}px`);
+  const customBackground = background && background.toUpperCase() !== DEFAULT_SETTINGS.customBgColor && /^#[0-9a-f]{6}$/i.test(background);
+  const opacity = Math.min(100, Math.max(25, settings.glassmorphismOpacity ?? 85));
+  if (customBackground) root.style.setProperty('--nova-background', background);
+  else root.style.removeProperty('--nova-background');
+  if (customBackground || opacity !== 85) {
+    root.style.setProperty('--nova-surface-glass', `color-mix(in srgb, var(--nova-background) ${opacity}%, transparent)`);
+    root.style.setProperty('--nova-pill-bg', `color-mix(in srgb, var(--nova-background) ${Math.min(100, opacity + 6)}%, transparent)`);
+  } else {
+    root.style.removeProperty('--nova-surface-glass');
+    root.style.removeProperty('--nova-pill-bg');
   }
 
-  if (settings.glassmorphismBlur !== undefined) {
-    root.style.setProperty('--nova-glass-blur', `${settings.glassmorphismBlur}px`);
-  }
-
-  if (settings.glassmorphismOpacity !== undefined && settings.customBgColor) {
-    const hex = settings.customBgColor.replace('#', '');
-    const r = parseInt(hex.substring(0, 2), 16) || 11;
-    const g = parseInt(hex.substring(2, 4), 16) || 13;
-    const b = parseInt(hex.substring(4, 6), 16) || 18;
-    const alpha = settings.glassmorphismOpacity / 100;
-    root.style.setProperty('--nova-surface', `rgba(${r}, ${g}, ${b}, ${alpha})`);
-    root.style.setProperty('--nova-bg', `rgba(${r}, ${g}, ${b}, ${Math.min(1, alpha + 0.1)})`);
-  }
-
-  if (settings.glassmorphismBorderGlow !== undefined) {
-    const borderAlpha = (settings.glassmorphismBorderGlow / 100) * 0.4;
-    root.style.setProperty('--nova-border', `rgba(255, 255, 255, ${borderAlpha})`);
+  if ((settings.glassmorphismBorderGlow ?? 35) !== 35) {
+    const alpha = Math.min(100, Math.max(0, settings.glassmorphismBorderGlow ?? 35)) * 0.004;
+    root.style.setProperty('--nova-border', settings.themeMode === 'light' ? `rgba(0, 0, 0, ${alpha})` : `rgba(255, 255, 255, ${alpha})`);
+  } else {
+    root.style.removeProperty('--nova-border');
   }
 };
 
@@ -126,8 +134,9 @@ if (typeof document !== 'undefined') {
   applyCustomStyles(initialSettings);
 }
 
-export const useThemeStore = create<ThemeState>((set) => ({
+export const useThemeStore = create<ThemeState>((set, get) => ({
   settings: initialSettings,
+  resetSettings: () => get().updateSettings(DEFAULT_SETTINGS),
   updateSettings: (partial) =>
     set((state) => {
       const updated = { ...state.settings, ...partial };

@@ -6,7 +6,14 @@ const host = process.env.TAURI_DEV_HOST;
 
 // https://vitejs.dev/config/
 export default defineConfig(async () => ({
-  plugins: [react()],
+  plugins: [
+    react(),
+    {
+      name: 'nova-production-csp',
+      apply: 'build',
+      transformIndexHtml: (html) => html.replace(/<!-- NOVA_CSP (.*?) -->/, '$1'),
+    },
+  ],
   base: './',
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`

@@ -3,24 +3,23 @@ import { SystemMetrics, MediaState } from '../types';
 
 interface SystemState {
   metrics: SystemMetrics;
+  hasMetrics: boolean;
   media: MediaState;
   updateMetrics: (partial: Partial<SystemMetrics>) => void;
   updateMedia: (partial: Partial<MediaState>) => void;
 }
 
 const DEFAULT_METRICS: SystemMetrics = {
-  cpuUsagePercent: 12,
-  cpuTempCelsius: 44,
-  ramUsagePercent: 48,
-  ramUsedGb: 7.6,
-  ramTotalGb: 16.0,
-  diskUsagePercent: 62,
-  diskFreeGb: 182,
-  networkDownloadKbps: 450,
-  networkUploadKbps: 80,
-  batteryPercent: 88,
-  isCharging: true,
-  gpuUsagePercent: 15,
+  cpuUsagePercent: 0,
+  ramUsagePercent: 0,
+  ramUsedGb: 0,
+  ramTotalGb: 0,
+  diskUsagePercent: 0,
+  diskFreeGb: 0,
+  networkDownloadKbps: 0,
+  networkUploadKbps: 0,
+  batteryPercent: 0,
+  isCharging: false,
 };
 
 const DEFAULT_MEDIA: MediaState = {
@@ -34,9 +33,10 @@ const DEFAULT_MEDIA: MediaState = {
 
 export const useSystemStore = create<SystemState>((set) => ({
   metrics: DEFAULT_METRICS,
+  hasMetrics: false,
   media: DEFAULT_MEDIA,
   updateMetrics: (partial) =>
-    set((state) => ({ metrics: { ...state.metrics, ...partial } })),
+    set((state) => ({ hasMetrics: true, metrics: { ...state.metrics, ...partial } })),
   updateMedia: (partial) =>
     set((state) => ({ media: { ...state.media, ...partial } })),
 }));

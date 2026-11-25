@@ -16,7 +16,7 @@ import {
   Plus,
 } from 'lucide-react';
 import { useIslandStore } from '../../stores/useIslandStore';
-import { runOpenPath, runShowItemInFolder } from '../../services/platformService';
+import { getLocalFilePath, runOpenPath, runShowItemInFolder } from '../../services/platformService';
 
 interface ParkedFile {
   id: string;
@@ -79,8 +79,7 @@ export const ShelfView: React.FC = () => {
     const newItems: ParkedFile[] = [];
     for (let i = 0; i < files.length; i++) {
       const f = files[i];
-      // In Electron, File objects have a 'path' property
-      const filePath = (f as any).path || f.name;
+      const filePath = getLocalFilePath(f);
       newItems.push({
         id: 'file-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7),
         shelfId: activeShelf,

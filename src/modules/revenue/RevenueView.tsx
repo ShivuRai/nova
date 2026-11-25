@@ -71,12 +71,17 @@ export const RevenueView: React.FC = () => {
   }, [monthlyGoal]);
 
   const totalRevenue = entries.reduce((acc, curr) => acc + curr.amount, 0);
-  const progressPercent = monthlyGoal > 0 ? Math.min(100, Math.round((totalRevenue / monthlyGoal) * 100)) : 0;
+  const now = new Date();
+  const monthlyRevenue = entries.reduce((total, entry) => {
+    const date = new Date(entry.createdAt);
+    return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear() ? total + entry.amount : total;
+  }, 0);
+  const progressPercent = monthlyGoal > 0 ? Math.min(100, Math.round((monthlyRevenue / monthlyGoal) * 100)) : 0;
 
   const handleAddEntry = (e: React.FormEvent) => {
     e.preventDefault();
     const amountNum = parseFloat(formAmount);
-    if (isNaN(amountNum) || amountNum <= 0) return;
+    if (!Number.isFinite(amountNum) || amountNum <= 0) return;
 
     const newEntry: IncomeEntry = {
       id: 'rev-' + Date.now(),

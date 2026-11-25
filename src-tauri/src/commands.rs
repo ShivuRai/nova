@@ -1,6 +1,6 @@
 use crate::database::Database;
 use crate::system::{SystemMetrics, SystemMonitor};
-use tauri::{AppHandle, Manager, State, Window};
+use tauri::{State, Window};
 
 #[tauri::command]
 pub fn get_system_metrics(monitor: State<'_, SystemMonitor>) -> Result<SystemMetrics, String> {

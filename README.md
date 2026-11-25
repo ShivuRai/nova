@@ -3,9 +3,8 @@
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6.svg)
 ![Tech Stack](https://img.shields.io/badge/stack-Electron%20%7C%20React%2019%20%7C%20TypeScript%20%7C%20Vite-6688FF.svg)
-![Tests](https://img.shields.io/badge/tests-19%20passing-success.svg)
 
-**NOVA** is a modular, high-performance, local-first Windows desktop companion anchored at the top-centre of your screen. Inspired by the Dynamic Island concept, NOVA transforms dead screen bezel space into an intelligent, interactive workspace housing 23 essential micro-tools, real-time telemetry, companion mascots, and customizable geometric notch contours.
+**NOVA** is a modular, high-performance, local-first Windows desktop companion anchored at the top-centre of your screen. Inspired by the Dynamic Island concept, NOVA transforms dead screen bezel space into an intelligent, interactive workspace housing 24 tools, real-time telemetry, companion mascots, and customizable geometric notch contours.
 
 ---
 
@@ -20,7 +19,7 @@
 - **Audio-Reactive Equalizer & Media Detection:** Synchronized in real-time with Windows System Media Transport Controls (SMTC) to display active YouTube, Chrome, and Spotify playback.
 - **Hardware Telemetry:** Real-time CPU, RAM, and network transfer meters right on the collapsed pill.
 - **NOVA Drop:** Wireless, QR-paired phone-to-PC file transfer over local Wi-Fi without cloud intermediaries.
-- **100% Offline & Private:** No subscriptions, no telemetry, no mandatory cloud accounts.
+- **Local Desktop Tools:** Notes, timers, and clipboard work offline. Weather and website checks use the network.
 
 ---
 
@@ -28,9 +27,9 @@
 
 ```
 Frontend:   React 19, TypeScript, Vite, Framer Motion, Zustand, Lucide Icons, Canvas 2D
-Desktop:    Electron 39 / Tauri 2, Node.js, C# Native Launcher (.NET Framework 4.8)
+Desktop:    Electron / Tauri 2, Node.js, C# Native Launcher (.NET Framework 4.8)
 Audio:      Web Audio API Procedural Synthesizer (Glass, Cyber, Mechanical, 8-Bit)
-Security:   Authenticode Self-Signed Certificate, AppLocker & Windows SmartScreen Compliance
+Security:   Isolated Electron renderer, limited desktop bridge
 ```
 
 ---
@@ -38,7 +37,7 @@ Security:   Authenticode Self-Signed Certificate, AppLocker & Windows SmartScree
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js 20+ (Node v22 / v24 tested)
+- Node.js 24 LTS
 - Windows 10 or 11 (64-bit)
 
 ### Installation & Run
@@ -58,7 +57,7 @@ npm run build
 npm start
 ```
 
-Alternatively, run `NOVA.bat` or double-click `NOVA.exe` to start the companion.
+Run `npm run build:desktop` to prepare or refresh the portable version. Launch `NOVA.bat` or `dist-app\NOVA.exe`. Alt + Space opens the command bar. Alt + Shift + Space expands or collapses the island.
 
 ---
 
@@ -72,6 +71,7 @@ Alternatively, run `NOVA.bat` or double-click `NOVA.exe` to start the companion.
 - [Testing Matrix](docs/TESTING.md)
 - [Release Guide](docs/RELEASE.md)
 - [Implementation Progress](docs/IMPLEMENTATION_STATUS.md)
+- [Project Audit and Priorities](docs/AUDIT.md)
 
 ---
 

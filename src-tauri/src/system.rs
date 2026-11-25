@@ -3,6 +3,7 @@ use std::sync::Mutex;
 use sysinfo::{Disks, Networks, System};
 
 #[derive(Serialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct SystemMetrics {
     pub cpu_usage_percent: u32,
     pub ram_usage_percent: u32,
@@ -12,17 +13,13 @@ pub struct SystemMetrics {
     pub disk_free_gb: u64,
     pub network_download_kbps: u64,
     pub network_upload_kbps: u64,
-    pub battery_percent: u32,
-    pub is_charging: bool,
-    pub gpu_usage_percent: u32,
 }
 
 pub struct SystemMonitor {
     sys: Mutex<System>,
     disks: Mutex<Disks>,
     networks: Mutex<Networks>,
-    last_rx: Mutex<u64>,
-    last_tx: Mutex<u64>,
+    last_network_refresh: Mutex<std::time::Instant>,
 }
 
 impl SystemMonitor {
@@ -36,8 +33,7 @@ impl SystemMonitor {
             sys: Mutex::new(sys),
             disks: Mutex::new(disks),
             networks: Mutex::new(networks),
-            last_rx: Mutex::new(0),
-            last_tx: Mutex::new(0),
+            last_network_refresh: Mutex::new(std::time::Instant::now()),
         }
     }
 
@@ -84,17 +80,12 @@ impl SystemMonitor {
             current_tx += data.transmitted();
         }
 
-        let mut last_rx_guard = self.last_rx.lock().unwrap();
-        let mut last_tx_guard = self.last_tx.lock().unwrap();
-
-        let delta_rx = current_rx.saturating_sub(*last_rx_guard);
-        let delta_tx = current_tx.saturating_sub(*last_tx_guard);
-
-        *last_rx_guard = current_rx;
-        *last_tx_guard = current_tx;
-
-        let network_download_kbps = delta_rx / 1024;
-        let network_upload_kbps = delta_tx / 1024;
+        let mut last_refresh = self.last_network_refresh.lock().unwrap();
+        let elapsed = last_refresh.elapsed().as_secs_f64();
+        *last_refresh = std::time::Instant::now();
+        let seconds = elapsed.max(0.1);
+        let network_download_kbps = (current_rx as f64 / 1024.0 / seconds) as u64;
+        let network_upload_kbps = (current_tx as f64 / 1024.0 / seconds) as u64;
 
         SystemMetrics {
             cpu_usage_percent,
@@ -105,9 +96,6 @@ impl SystemMonitor {
             disk_free_gb,
             network_download_kbps,
             network_upload_kbps,
-            battery_percent: 92, // Native Windows fallback
-            is_charging: true,
-            gpu_usage_percent: 14,
         }
     }
 }

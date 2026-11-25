@@ -3,7 +3,8 @@ import { useSystemStore } from '../../stores/useSystemStore';
 import { Cpu, Activity, HardDrive, Wifi, Battery, Zap, Server } from 'lucide-react';
 
 export const SystemView: React.FC = () => {
-  const { metrics } = useSystemStore();
+  const { metrics, hasMetrics } = useSystemStore();
+  if (!hasMetrics) return <p className="nova-system-empty">Waiting for system metrics.</p>;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -48,8 +49,7 @@ export const SystemView: React.FC = () => {
             />
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: '10px', color: 'var(--nova-text-muted)' }}>
-            <span>Core Temp: {metrics.cpuTempCelsius || 42}°C</span>
-            <span>Freq: 3.8 GHz</span>
+            <span>{metrics.cpuTempCelsius === undefined ? 'Temperature unavailable' : 'Temperature ' + metrics.cpuTempCelsius + '°C'}</span>
           </div>
         </div>
 
@@ -107,7 +107,7 @@ export const SystemView: React.FC = () => {
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: '11px', color: 'var(--nova-text-secondary)', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <HardDrive size={14} style={{ color: 'var(--nova-violet)' }} /> Primary NVMe
+              <HardDrive size={14} style={{ color: 'var(--nova-violet)' }} /> System storage
             </span>
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 600 }}>
               {metrics.diskUsagePercent}%
@@ -201,7 +201,7 @@ export const SystemView: React.FC = () => {
           <Server size={12} style={{ color: 'var(--nova-blue)' }} /> Windows D3D Hardware Acceleration Active
         </span>
         <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--nova-text-primary)' }}>
-          GPU: {metrics.gpuUsagePercent}% VRAM: 1.2 GB
+          GPU: {metrics.gpuUsagePercent === undefined ? 'Unavailable' : metrics.gpuUsagePercent + '%'}
         </span>
       </div>
     </div>

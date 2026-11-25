@@ -16,7 +16,7 @@ interface MonitoredSite {
   id: string;
   name: string;
   url: string;
-  lastStatus: number | 'ERR' | null;
+  lastStatus: 'REACHED' | 'ERR' | null;
   lastLatencyMs: number | null;
   lastChecked: number | null;
   history: number[]; // recent latencies
@@ -78,12 +78,12 @@ export const AnalyticsView: React.FC = () => {
     const start = performance.now();
     try {
       // Use mode 'no-cors' so arbitrary domains can be pinged from the renderer without CORS blocking
-      await fetch(url, { method: 'HEAD', mode: 'no-cors', cache: 'no-store' });
+      await fetch(url, { method: 'HEAD', mode: 'no-cors', cache: 'no-store', credentials: 'omit', signal: AbortSignal.timeout(8000) });
       const latency = Math.round(performance.now() - start);
       const newHistory = [...(site.history || []).slice(-9), latency];
       return {
         ...site,
-        lastStatus: 200,
+        lastStatus: 'REACHED',
         lastLatencyMs: latency,
         lastChecked: Date.now(),
         history: newHistory,
@@ -103,7 +103,7 @@ export const AnalyticsView: React.FC = () => {
   const pingAll = async () => {
     setIsCheckingAll(true);
     const updated = await Promise.all(sites.map((s) => pingSite(s)));
-    setSites(updated);
+    setSites((current) => current.map((site) => updated.find((result) => result.id === site.id) || site));
     setIsCheckingAll(false);
   };
 
@@ -120,7 +120,9 @@ export const AnalyticsView: React.FC = () => {
     if (!/^https?:\/\//i.test(url)) {
       url = 'https://' + url;
     }
-    const name = newSiteName.trim() || new URL(url).hostname;
+    let host;
+    try { host = new URL(url).hostname; } catch { return; }
+    const name = newSiteName.trim() || host;
 
     const newSite: MonitoredSite = {
       id: 'site-' + Date.now(),
@@ -279,7 +281,7 @@ export const AnalyticsView: React.FC = () => {
           </div>
         ) : (
           sites.map((site) => {
-            const isOk = site.lastStatus === 200;
+            const isOk = site.lastStatus === 'REACHED';
             const isErr = site.lastStatus === 'ERR';
             const latency = site.lastLatencyMs;
 

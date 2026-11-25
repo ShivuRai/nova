@@ -1,338 +1,72 @@
-import React, { useState } from 'react';
-import {
-  Volume2,
-  VolumeX,
-  Volume1,
-  Wifi,
-  Bluetooth,
-  Moon,
-  Monitor,
-  Scissors,
-  Activity,
-  Calculator,
-  Lock,
-  Settings,
-  CheckCircle2,
-  Sliders,
-} from 'lucide-react';
-import { runQuickAction } from '../../services/platformService';
+import { useState } from 'react';
+import { Bluetooth, Calculator, Lock, Monitor, Moon, Scissors, Settings, Sun, Volume2, Wifi, Activity, VolumeX } from 'lucide-react';
+import { isElectron, runQuickAction } from '../../services/platformService';
 
-export const QuickSettingsView: React.FC = () => {
-  const [feedback, setFeedback] = useState<string | null>(null);
+const connections = [
+  { id: 'open-wifi', name: 'Wi-Fi', detail: 'Choose a network', icon: Wifi, color: 'lavender' },
+  { id: 'open-bluetooth', name: 'Bluetooth', detail: 'Pair or manage devices', icon: Bluetooth, color: 'mint' },
+  { id: 'open-nightlight', name: 'Night light', detail: 'Open Windows settings', icon: Moon, color: 'peach' },
+];
 
-  const triggerAction = async (action: string, label: string) => {
-    setFeedback(`Triggered: ${label}`);
+const shortcuts = [
+  { id: 'open-snipping-tool', name: 'Screenshot', icon: Scissors },
+  { id: 'open-task-manager', name: 'Task Manager', icon: Activity },
+  { id: 'open-calc', name: 'Calculator', icon: Calculator },
+  { id: 'open-display-settings', name: 'Display', icon: Monitor },
+  { id: 'open-windows-settings', name: 'Windows', icon: Settings },
+  { id: 'lock-workstation', name: 'Lock PC', icon: Lock },
+];
+
+export function QuickSettingsView() {
+  const [feedback, setFeedback] = useState<{ text: string; success: boolean } | null>(null);
+  const [pending, setPending] = useState(false);
+  const desktop = isElectron();
+
+  const run = async (action: string, label: string) => {
+    setPending(true);
+    setFeedback(null);
     try {
-      await runQuickAction(action);
-    } catch (e) {
-      console.warn('Quick action error:', e);
+      const result = await runQuickAction(action);
+      setFeedback({ success: result.success, text: result.success ? result.message || label : result.error || 'Windows could not complete this action.' });
+    } catch {
+      setFeedback({ success: false, text: 'Windows could not complete this action.' });
+    } finally {
+      setPending(false);
     }
-    setTimeout(() => {
-      setFeedback((current) => (current?.includes(label) ? null : current));
-    }, 2400);
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, height: 320, boxSizing: 'border-box' }}>
-      {/* Header with real-time feedback toast */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ fontSize: '11px', color: 'var(--nova-text-secondary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-          <Sliders size={13} style={{ color: 'var(--nova-blue)' }} />
-          <span>WINDOWS SYSTEM QUICK ACTIONS</span>
-        </div>
-        {feedback && (
-          <div
-            style={{
-              fontSize: '10px',
-              color: 'var(--nova-success)',
-              backgroundColor: 'rgba(74, 222, 128, 0.12)',
-              padding: '2px 8px',
-              borderRadius: 12,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-              fontWeight: 500,
-            }}
-          >
-            <CheckCircle2 size={11} />
-            <span>{feedback}</span>
-          </div>
-        )}
+    <div className="nova-settings nova-quick-settings">
+      <div className="nova-section-heading"><h2>Quick Settings</h2><p role="status" data-error={feedback?.success === false}>{feedback?.text || (!desktop ? 'Available in the Windows app' : '')}</p></div>
+      <div className="nova-connection-grid">
+        {connections.map(({ id, name, detail, icon: Icon, color }) => (
+          <button className="nova-panel nova-connection" key={id} disabled={!desktop || pending} onClick={() => run(id, `Opened ${name}`)}>
+            <span className={'nova-tool-icon ' + color}><Icon size={16} /></span><span><strong>{name}</strong><small>{detail}</small></span>
+          </button>
+        ))}
       </div>
-
-      {/* Main Connectivity Toggles */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-        <button
-          onClick={() => triggerAction('open-wifi', 'Wi-Fi Networks')}
-          style={{
-            padding: '10px 12px',
-            backgroundColor: 'rgba(102, 136, 255, 0.12)',
-            border: '1px solid rgba(102, 136, 255, 0.3)',
-            borderRadius: 'var(--nova-radius-widget)',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'flex-start',
-            gap: 6,
-            cursor: 'pointer',
-            textAlign: 'left',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--nova-blue)' }}>
-            <Wifi size={15} />
-            <span style={{ fontSize: '12px', fontWeight: 600 }}>Wi-Fi</span>
+      <div className="nova-control-grid">
+        <section className="nova-panel nova-control">
+          <div className="nova-section-heading"><h3><Volume2 size={15} /> Volume</h3><button className="nova-text-action" disabled={!desktop || pending} onClick={() => run('open-sound-settings', 'Opened Sound settings')}>Sound settings</button></div>
+          <div className="nova-control-actions">
+            <button disabled={!desktop || pending} onClick={() => run('volume-down', 'Volume decreased')}>Lower</button>
+            <button disabled={!desktop || pending} onClick={() => run('volume-mute', 'Mute toggled')}><VolumeX size={14} /> Mute</button>
+            <button disabled={!desktop || pending} onClick={() => run('volume-up', 'Volume increased')}>Raise</button>
           </div>
-          <span style={{ fontSize: '10px', color: 'var(--nova-text-muted)' }}>Manage Networks</span>
-        </button>
-
-        <button
-          onClick={() => triggerAction('open-bluetooth', 'Bluetooth Devices')}
-          style={{
-            padding: '10px 12px',
-            backgroundColor: 'rgba(84, 215, 232, 0.12)',
-            border: '1px solid rgba(84, 215, 232, 0.3)',
-            borderRadius: 'var(--nova-radius-widget)',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'flex-start',
-            gap: 6,
-            cursor: 'pointer',
-            textAlign: 'left',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--nova-cyan)' }}>
-            <Bluetooth size={15} />
-            <span style={{ fontSize: '12px', fontWeight: 600 }}>Bluetooth</span>
+        </section>
+        <section className="nova-panel nova-control">
+          <div className="nova-section-heading"><h3><Sun size={15} /> Brightness</h3></div>
+          <div className="nova-control-actions">
+            <button disabled={!desktop || pending} onClick={() => run('brightness-down', 'Brightness decreased')}>Dim</button>
+            <button disabled={!desktop || pending} onClick={() => run('brightness-up', 'Brightness increased')}>Brighten</button>
           </div>
-          <span style={{ fontSize: '10px', color: 'var(--nova-text-muted)' }}>Pair Devices</span>
-        </button>
-
-        <button
-          onClick={() => triggerAction('open-nightlight', 'Night Light')}
-          style={{
-            padding: '10px 12px',
-            backgroundColor: 'rgba(243, 185, 91, 0.12)',
-            border: '1px solid rgba(243, 185, 91, 0.3)',
-            borderRadius: 'var(--nova-radius-widget)',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'flex-start',
-            gap: 6,
-            cursor: 'pointer',
-            textAlign: 'left',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--nova-warning)' }}>
-            <Moon size={15} />
-            <span style={{ fontSize: '12px', fontWeight: 600 }}>Night Light</span>
-          </div>
-          <span style={{ fontSize: '10px', color: 'var(--nova-text-muted)' }}>Warm Colors</span>
-        </button>
+        </section>
       </div>
-
-      {/* Master Volume Controller Box */}
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 8,
-          padding: '10px 12px',
-          backgroundColor: 'var(--nova-surface)',
-          border: '1px solid var(--nova-border)',
-          borderRadius: 'var(--nova-radius-widget)',
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--nova-text-primary)' }}>
-            Master Windows Volume
-          </span>
-          <button
-            onClick={() => triggerAction('open-sound-settings', 'Sound Settings')}
-            style={{ fontSize: '10px', color: 'var(--nova-blue)', cursor: 'pointer', background: 'none', border: 'none' }}
-          >
-            Sound Settings ↗
-          </button>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <button
-            onClick={() => triggerAction('volume-mute', 'Toggle Mute')}
-            style={{
-              padding: '6px 12px',
-              backgroundColor: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid var(--nova-border)',
-              borderRadius: 6,
-              color: 'var(--nova-text-primary)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              fontSize: '11px',
-              cursor: 'pointer',
-            }}
-          >
-            <VolumeX size={14} style={{ color: 'var(--nova-danger)' }} />
-            <span>Mute</span>
-          </button>
-
-          <button
-            onClick={() => triggerAction('volume-down', 'Volume Down')}
-            style={{
-              flex: 1,
-              padding: '6px 10px',
-              backgroundColor: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid var(--nova-border)',
-              borderRadius: 6,
-              color: 'var(--nova-text-primary)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 6,
-              fontSize: '11px',
-              cursor: 'pointer',
-            }}
-          >
-            <Volume1 size={14} />
-            <span>Vol Down (-4%)</span>
-          </button>
-
-          <button
-            onClick={() => triggerAction('volume-up', 'Volume Up')}
-            style={{
-              flex: 1,
-              padding: '6px 10px',
-              backgroundColor: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid var(--nova-border)',
-              borderRadius: 6,
-              color: 'var(--nova-text-primary)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 6,
-              fontSize: '11px',
-              cursor: 'pointer',
-            }}
-          >
-            <Volume2 size={14} style={{ color: 'var(--nova-success)' }} />
-            <span>Vol Up (+4%)</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Windows Utility Shortcuts */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-        <button
-          onClick={() => triggerAction('open-snipping-tool', 'Snipping Tool')}
-          style={{
-            padding: '8px 10px',
-            backgroundColor: 'var(--nova-surface)',
-            border: '1px solid var(--nova-border)',
-            borderRadius: 'var(--nova-radius-widget)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            fontSize: '11px',
-            color: 'var(--nova-text-primary)',
-            cursor: 'pointer',
-          }}
-        >
-          <Scissors size={14} style={{ color: 'var(--nova-violet)' }} />
-          <span>Snipping Tool</span>
-        </button>
-
-        <button
-          onClick={() => triggerAction('open-task-manager', 'Task Manager')}
-          style={{
-            padding: '8px 10px',
-            backgroundColor: 'var(--nova-surface)',
-            border: '1px solid var(--nova-border)',
-            borderRadius: 'var(--nova-radius-widget)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            fontSize: '11px',
-            color: 'var(--nova-text-primary)',
-            cursor: 'pointer',
-          }}
-        >
-          <Activity size={14} style={{ color: 'var(--nova-cyan)' }} />
-          <span>Task Manager</span>
-        </button>
-
-        <button
-          onClick={() => triggerAction('open-calc', 'Calculator')}
-          style={{
-            padding: '8px 10px',
-            backgroundColor: 'var(--nova-surface)',
-            border: '1px solid var(--nova-border)',
-            borderRadius: 'var(--nova-radius-widget)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            fontSize: '11px',
-            color: 'var(--nova-text-primary)',
-            cursor: 'pointer',
-          }}
-        >
-          <Calculator size={14} style={{ color: 'var(--nova-warning)' }} />
-          <span>Calculator</span>
-        </button>
-
-        <button
-          onClick={() => triggerAction('open-display-settings', 'Display Settings')}
-          style={{
-            padding: '8px 10px',
-            backgroundColor: 'var(--nova-surface)',
-            border: '1px solid var(--nova-border)',
-            borderRadius: 'var(--nova-radius-widget)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            fontSize: '11px',
-            color: 'var(--nova-text-primary)',
-            cursor: 'pointer',
-          }}
-        >
-          <Monitor size={14} style={{ color: 'var(--nova-blue)' }} />
-          <span>Display Setup</span>
-        </button>
-
-        <button
-          onClick={() => triggerAction('lock-workstation', 'Lock Workstation')}
-          style={{
-            padding: '8px 10px',
-            backgroundColor: 'var(--nova-surface)',
-            border: '1px solid var(--nova-border)',
-            borderRadius: 'var(--nova-radius-widget)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            fontSize: '11px',
-            color: 'var(--nova-text-primary)',
-            cursor: 'pointer',
-          }}
-        >
-          <Lock size={14} style={{ color: 'var(--nova-danger)' }} />
-          <span>Lock Screen</span>
-        </button>
-
-        <button
-          onClick={() => triggerAction('open-windows-settings', 'Windows Settings')}
-          style={{
-            padding: '8px 10px',
-            backgroundColor: 'var(--nova-surface)',
-            border: '1px solid var(--nova-border)',
-            borderRadius: 'var(--nova-radius-widget)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            fontSize: '11px',
-            color: 'var(--nova-text-primary)',
-            cursor: 'pointer',
-          }}
-        >
-          <Settings size={14} style={{ color: 'var(--nova-text-secondary)' }} />
-          <span>All Settings</span>
-        </button>
+      <div className="nova-shortcuts" aria-label="Windows tools">
+        {shortcuts.map(({ id, name, icon: Icon }) => (
+          <button className="nova-panel" key={id} disabled={!desktop || pending} onClick={() => run(id, name + ' opened')}><Icon size={14} /> {name}</button>
+        ))}
       </div>
     </div>
   );
-};
+}

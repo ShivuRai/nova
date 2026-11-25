@@ -4,6 +4,7 @@ import { useIslandStore } from '../../stores/useIslandStore';
 import { useSystemStore } from '../../stores/useSystemStore';
 import { useThemeStore } from '../../stores/useThemeStore';
 import { useTimerStore } from '../../stores/useTimerStore';
+import { useAlertStore } from '../../stores/useAlertStore';
 import { Music, Activity, Battery, Timer, Cpu, ChevronDown, Wifi, Sparkles, TrendingUp, Sun, Flame, Zap } from 'lucide-react';
 import { playPetSound } from '../../services/soundService';
 
@@ -723,9 +724,10 @@ const EDGE_GRADIENTS: Record<string, string> = {
 };
 
 export const IslandPillContent: React.FC<{ isCompact?: boolean }> = ({ isCompact = false }) => {
-  const { liveActivity } = useIslandStore();
+  const { liveActivity, toggleAiWhisper } = useIslandStore();
   const { media, metrics } = useSystemStore();
   const { settings } = useThemeStore();
+  const { downloadStatus, buildStatus } = useAlertStore();
   const { isRunning: isTimerRunning, secondsRemaining, stopwatchSeconds, mode: timerMode } = useTimerStore();
   const [time, setTime] = useState<string>('');
   const [timeWithSeconds, setTimeWithSeconds] = useState<string>('');
@@ -781,11 +783,18 @@ export const IslandPillContent: React.FC<{ isCompact?: boolean }> = ({ isCompact
 
     if (pillContentMode === 'media-priority' || (pillContentMode === 'smart-auto' && media.isPlaying)) {
       return (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>
-          <Music size={11} style={{ color: 'var(--nova-blue)', flexShrink: 0 }} />
-          <span style={{ fontSize: '10.5px', fontWeight: 600, color: 'var(--nova-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', overflow: 'hidden' }}>
+          <Music size={11} style={{ color: 'var(--nova-cyan)', flexShrink: 0 }} />
+          <span style={{ fontSize: '10.5px', fontWeight: 600, color: 'var(--nova-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, minWidth: 0 }}>
             {media.title || 'YouTube Media'}
           </span>
+          <div style={{ width: 22, height: 2, borderRadius: 1, backgroundColor: 'rgba(255,255,255,0.15)', overflow: 'hidden', flexShrink: 0 }}>
+            <motion.div
+              animate={{ width: ['20%', '85%', '20%'] }}
+              transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
+              style={{ height: '100%', backgroundColor: 'var(--nova-cyan)' }}
+            />
+          </div>
         </div>
       );
     }
@@ -863,6 +872,38 @@ export const IslandPillContent: React.FC<{ isCompact?: boolean }> = ({ isCompact
 
   // 2. Render Right Auxiliary Badge Content
   const renderRightContent = () => {
+    // Priority 1: Active Browser Download Radar
+    if (downloadStatus && downloadStatus.active) {
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '9px', color: 'var(--nova-cyan)', fontFamily: 'var(--font-mono)' }} title={`Downloading: ${downloadStatus.filename}`}>
+          <motion.span animate={{ rotate: 360 }} transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}>
+            📥
+          </motion.span>
+          <span>{downloadStatus.sizeFormatted || 'Down'}</span>
+        </div>
+      );
+    }
+
+    // Priority 2: VS Code / Terminal Build Status Radar
+    if (buildStatus && buildStatus.state === 'building') {
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '9px', color: '#F59E0B', fontFamily: 'var(--font-mono)' }} title={`Compiling via ${buildStatus.tool}`}>
+          <motion.span animate={{ scale: [1, 1.25, 1] }} transition={{ duration: 0.8, repeat: Infinity }}>
+            🔨
+          </motion.span>
+          <span>Compiling</span>
+        </div>
+      );
+    }
+    if (buildStatus && buildStatus.state === 'success' && Date.now() - (buildStatus.timestamp || 0) < 6000) {
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: '9px', color: 'var(--nova-green)', fontFamily: 'var(--font-mono)' }}>
+          <span>✓</span>
+          <span>Build Passed</span>
+        </div>
+      );
+    }
+
     // 5-bar live micro-audio visualizer
     const visualizer = (
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 12 }}>
@@ -1149,8 +1190,32 @@ export const IslandPillContent: React.FC<{ isCompact?: boolean }> = ({ isCompact
       </div>
 
       {/* ZONE 3 (RIGHT): Contextual Telemetry, Equalizer, Network Speed, or Custom Badge */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, zIndex: 3, flexShrink: 0, lineHeight: 1 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 5, zIndex: 3, flexShrink: 0, lineHeight: 1 }}>
         {renderRightContent()}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleAiWhisper();
+          }}
+          style={{
+            background: 'rgba(56, 189, 248, 0.12)',
+            border: '1px solid rgba(56, 189, 248, 0.3)',
+            borderRadius: 'var(--nova-radius-pill)',
+            padding: '2px 5px',
+            color: 'var(--nova-cyan)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 2,
+            cursor: 'pointer',
+            fontSize: '8.5px',
+            fontWeight: 700,
+            lineHeight: 1,
+          }}
+          title="Open AI Whisper & Quick Command (Alt+Space)"
+        >
+          <Sparkles size={8} />
+          <span>AI</span>
+        </button>
       </div>
     </div>
   );

@@ -20,7 +20,7 @@ export const MODULE_REGISTRY: NovaModule[] = [
     version: '1.0.0',
     enabledByDefault: true,
     permissions: ['clipboard.read', 'clipboard.write'],
-    description: 'Searchable local clipboard history, pinned items, and sensitive exclusions.',
+    description: 'Searchable local text clipboard history, pins, and capture controls.',
   },
   {
     id: 'notes',
@@ -30,7 +30,7 @@ export const MODULE_REGISTRY: NovaModule[] = [
     version: '1.0.0',
     enabledByDefault: true,
     permissions: ['storage.write'],
-    description: 'Instant auto-saving markdown scratchpad, checklists, and local search.',
+    description: 'Auto-saving local notes and existing checklists.',
   },
   {
     id: 'links',
@@ -50,7 +50,7 @@ export const MODULE_REGISTRY: NovaModule[] = [
     version: '1.0.0',
     enabledByDefault: true,
     permissions: ['network.fetch'],
-    description: 'Real-time weather conditions, forecasts, and UV metrics via Open-Meteo.',
+    description: 'Weather forecasts from Open-Meteo with saved conditions for offline use.',
   },
   {
     id: 'units',
@@ -92,7 +92,7 @@ export const MODULE_REGISTRY: NovaModule[] = [
     version: '1.0.0',
     enabledByDefault: true,
     permissions: ['fs.read', 'fs.write'],
-    description: 'Batch convert images (PNG, WebP, JPG, BMP, ICO) and generate PDFs.',
+    description: 'Convert images to PNG, WebP, or JPEG, and text to TXT or JSON.',
   },
   {
     id: 'file-tools',
@@ -102,7 +102,7 @@ export const MODULE_REGISTRY: NovaModule[] = [
     version: '1.0.0',
     enabledByDefault: true,
     permissions: ['fs.read'],
-    description: 'Hash calculator (SHA-256, MD5), bulk rename, and file size inspector.',
+    description: 'Calculate SHA-256 and SHA-1 checksums and inspect file size.',
   },
 
   // Time & Focus
@@ -124,7 +124,7 @@ export const MODULE_REGISTRY: NovaModule[] = [
     version: '1.0.0',
     enabledByDefault: true,
     permissions: ['storage.read'],
-    description: 'Calendar glance, agenda view, and upcoming event notifications.',
+    description: 'Browse a monthly calendar and record local events.',
   },
   {
     id: 'clock',
@@ -144,7 +144,7 @@ export const MODULE_REGISTRY: NovaModule[] = [
     version: '1.0.0',
     enabledByDefault: true,
     permissions: ['windows.active_app'],
-    description: 'Foreground application usage tracking without content inspection.',
+    description: 'Foreground application usage sampled while NOVA runs.',
   },
 
   // Desktop & System
@@ -198,7 +198,7 @@ export const MODULE_REGISTRY: NovaModule[] = [
     version: '1.0.0',
     enabledByDefault: true,
     permissions: ['fs.read'],
-    description: 'Local Claude Code and LLM token usage logs and cost breakdown.',
+    description: 'Manually log model usage, tokens, and cost.',
   },
   {
     id: 'analytics',
@@ -208,7 +208,7 @@ export const MODULE_REGISTRY: NovaModule[] = [
     version: '1.0.0',
     enabledByDefault: false,
     permissions: ['network.fetch'],
-    description: 'Privacy-first traffic statistics via Plausible and DataFast.',
+    description: 'Check website reachability and response times.',
   },
   {
     id: 'revenue',
@@ -218,7 +218,7 @@ export const MODULE_REGISTRY: NovaModule[] = [
     version: '1.0.0',
     enabledByDefault: false,
     permissions: ['network.fetch'],
-    description: 'Read-only sales and gross income tracker for Stripe and Gumroad.',
+    description: 'Track payments manually and follow a monthly revenue goal.',
   },
   {
     id: 'pet',

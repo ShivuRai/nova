@@ -2,7 +2,7 @@
 
 **Document ID:** NOVA-STATUS-001  
 **Last Updated:** November 2026  
-**Overall Project Status:** Phase 0 & Phase 1 Complete and Verified  
+**Overall Project Status:** Historical phase tracker. See [the project audit](AUDIT.md) for current behavior and verification.
 
 ---
 
@@ -30,7 +30,7 @@
 | **Collapsed Pill (Resting State)** | Ultra-compact capsule (~190x34px), subtle glow | **Verified** | Rests at top edge with live vitals and media ticker. |
 | **Smooth Dynamic Expansion** | Spring/easing morphing into compact workspace (~640x460px) | **Verified** | Dynamic spring transition anchored to top edge. |
 | **Hover & Delay Detection** | Configurable hover (120ms) & collapse delay (320ms) | **Verified** | Interaction-aware: locks open while active. |
-| **Module Registry** | Typed dynamic module loader with permission controls | **Verified** | All 23 modules indexed in `src/modules/registry.ts`. |
+| **Module Registry** | Typed dynamic module loader with permission controls | **Verified** | All 24 modules indexed in `src/modules/registry.ts`. |
 | **SQLite Persistent Store** | Local-first relational database with migrations | **Verified** | Schema implemented in `src-tauri/src/database.rs`. |
 | **Windows Desktop Executable** | Working desktop application on real Windows | **Verified** | Live on Windows screen with full navigation and modules. |
 

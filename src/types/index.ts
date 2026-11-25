@@ -50,7 +50,7 @@ export interface LiveActivity {
 
 export interface ClipboardItem {
   id: string;
-  contentType: 'text' | 'image' | 'file';
+  contentType: 'text' | 'link' | 'image' | 'file';
   textContent: string;
   previewUrl?: string;
   sourceApp?: string;
@@ -213,6 +213,11 @@ export interface AppearanceSettings {
   customNotchChamfer?: number;
   customNotchRadius?: number;
   customNotchWingDepth?: number;
+  enableAutoRetract?: boolean;
+  autoRetractDelaySec?: number;
+  wakeHoverDelayMs?: number;
+  retractOnlyOnApps?: boolean;
+  enableMultiMonitorRoaming?: boolean;
   pillWidth: number;
   pillHeight: number;
   expandedWidth: number;
@@ -223,9 +228,11 @@ export interface AppearanceSettings {
 
 declare global {
   interface Window {
-    electron?: {
-      ipcRenderer?: any;
+    novaDesktop?: {
+      invoke(channel: string, ...args: unknown[]): Promise<any>;
+      send(channel: string, ...args: unknown[]): void;
+      on(channel: string, listener: (event: null, ...args: any[]) => void): () => void;
+      getFilePath(file: File): string;
     };
-    require?: any;
   }
 }

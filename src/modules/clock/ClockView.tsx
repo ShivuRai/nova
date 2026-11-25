@@ -3,8 +3,7 @@ import { Globe, Sun, Moon, Clock } from 'lucide-react';
 
 interface CityClock {
   name: string;
-  tz: string;
-  utcOffset: number;
+  tz?: string;
 }
 
 export const ClockView: React.FC = () => {
@@ -16,18 +15,18 @@ export const ClockView: React.FC = () => {
   }, []);
 
   const cities: CityClock[] = [
-    { name: 'Local Time (Bengaluru)', tz: 'Asia/Kolkata', utcOffset: 5.5 },
-    { name: 'London (GMT)', tz: 'Europe/London', utcOffset: 0 },
-    { name: 'San Francisco (PST)', tz: 'America/Los_Angeles', utcOffset: -8 },
-    { name: 'Tokyo (JST)', tz: 'Asia/Tokyo', utcOffset: 9 },
+    { name: 'Local time' },
+    { name: 'London', tz: 'Europe/London' },
+    { name: 'San Francisco', tz: 'America/Los_Angeles' },
+    { name: 'Tokyo', tz: 'Asia/Tokyo' },
   ];
 
-  const getTimeForTz = (tz: string) => {
-    return now.toLocaleTimeString('en-US', { timeZone: tz, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+  const getTimeForTz = (tz?: string) => {
+    return now.toLocaleTimeString('en-US', { timeZone: tz, hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' });
   };
 
-  const getIsDay = (tz: string) => {
-    const hr = parseInt(now.toLocaleTimeString('en-US', { timeZone: tz, hour: '2-digit', hour12: false }), 10);
+  const getIsDay = (tz?: string) => {
+    const hr = parseInt(now.toLocaleTimeString('en-US', { timeZone: tz, hour: '2-digit', hourCycle: 'h23' }), 10);
     return hr >= 6 && hr < 18;
   };
 
