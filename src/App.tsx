@@ -1,73 +1,53 @@
 import React, { useEffect } from 'react';
 import { IslandContainer } from './components/island/IslandContainer';
 import { useSystemStore } from './stores/useSystemStore';
+import { useClipboardStore } from './stores/useClipboardStore';
+import { MotionConfig } from 'framer-motion';
 
 export const App: React.FC = () => {
-  const { updateMetrics, updateMedia } = useSystemStore();
+  const updateMetrics = useSystemStore((state) => state.updateMetrics);
+  const updateMedia = useSystemStore((state) => state.updateMedia);
+  const capture = useClipboardStore((state) => state.capture);
 
-  // Polling for live real-time system metrics and media playback from Electron or Tauri
   useEffect(() => {
-    if (typeof window !== 'undefined' && (window as any).require) {
-      try {
-        const { ipcRenderer } = (window as any).require('electron');
-        const handleMetricsUpdate = (_event: any, data: any) => {
-          if (data) updateMetrics(data);
-        };
-        const handleMediaUpdate = (_event: any, data: any) => {
-          if (data && typeof data === 'object') {
-            updateMedia({
-              title: data.title || '',
-              artist: data.artist || '',
-              album: data.album || '',
-              isPlaying: Boolean(data.isPlaying),
-            });
-          }
-        };
+    const ipc = window.novaDesktop;
+    let cancelled = false;
+    const applyMetrics = (data: Parameters<typeof updateMetrics>[0] | null) => {
+      if (data && !cancelled) updateMetrics(data);
+    };
+    const applyMedia = (data: Parameters<typeof updateMedia>[0] | null) => {
+      if (!data || cancelled) return;
+      updateMedia({ title: data.title || '', artist: data.artist || '', album: data.album || '', isPlaying: Boolean(data.isPlaying) });
+    };
 
-        ipcRenderer.on('system-metrics-update', handleMetricsUpdate);
-        ipcRenderer.on('media-status-update', handleMediaUpdate);
-
-        // Fetch initial snapshots
-        ipcRenderer.invoke('get-system-metrics').then((data: any) => {
-          if (data) updateMetrics(data);
-        }).catch(() => {});
-
-        ipcRenderer.invoke('get-media-status').then((data: any) => {
-          if (data) handleMediaUpdate(null, data);
-        }).catch(() => {});
-
-        return () => {
-          ipcRenderer.removeListener('system-metrics-update', handleMetricsUpdate);
-          ipcRenderer.removeListener('media-status-update', handleMediaUpdate);
-        };
-      } catch (e) {}
-    } else if (typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window) {
-      import('@tauri-apps/api/core').then(({ invoke }) => {
-        const interval = setInterval(async () => {
-          try {
-            const res = await invoke<any>('get_system_metrics');
-            if (res) updateMetrics(res);
-          } catch (e) {}
-        }, 2000);
-        return () => clearInterval(interval);
+    if (ipc) {
+      ipc.invoke('get-system-metrics').then(applyMetrics).catch(() => {});
+      ipc.invoke('get-media-status').then(applyMedia).catch(() => {});
+      const stopMetrics = ipc.on('system-metrics-update', (_event, data) => applyMetrics(data));
+      const stopMedia = ipc.on('media-status-update', (_event, data) => applyMedia(data));
+      const stopClipboard = ipc.on('clipboard-copy-detected', (_event, data) => {
+        if (typeof data?.textContent === 'string') capture(data.textContent, data.timestamp);
       });
+      return () => { cancelled = true; stopMetrics(); stopMedia(); stopClipboard(); };
     }
-  }, [updateMetrics, updateMedia]);
+
+    if ('__TAURI_INTERNALS__' in window) {
+      const poll = async () => {
+        try {
+          const { invoke } = await import('@tauri-apps/api/core');
+          applyMetrics(await invoke('get_system_metrics'));
+        } catch {}
+      };
+      void poll();
+      const interval = window.setInterval(poll, 2000);
+      return () => { cancelled = true; window.clearInterval(interval); };
+    }
+  }, [updateMetrics, updateMedia, capture]);
 
   return (
-    <main
-      style={{
-        width: '100vw',
-        height: '100vh',
-        backgroundColor: 'transparent',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        overflow: 'hidden',
-      }}
-    >
-      <IslandContainer />
-    </main>
+    <MotionConfig reducedMotion="user">
+      <main><IslandContainer /></main>
+    </MotionConfig>
   );
 };
 export default App;

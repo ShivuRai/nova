@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Pin, Copy, Trash2, Check, Sparkles, Link as LinkIcon, FileText } from 'lucide-react';
 import { ClipboardItem } from '../../types';
+import { useClipboardStore } from '../../stores/useClipboardStore';
+import { copyText } from '../../services/platformService';
 import { useIslandStore } from '../../stores/useIslandStore';
 
 export const ClipboardView: React.FC = () => {
@@ -9,95 +11,12 @@ export const ClipboardView: React.FC = () => {
   const [filterType, setFilterType] = useState<'all' | 'text' | 'link'>('all');
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  // Load real user clipboard history from persistent storage
-  const [items, setItems] = useState<ClipboardItem[]>(() => {
-    try {
-      const saved = localStorage.getItem('nova_clipboard_history');
-      if (saved) {
-        return JSON.parse(saved);
-      }
-    } catch (e) {}
-    return [];
-  });
+  const { items, setItems: saveItems } = useClipboardStore();
 
-  // Sync to localStorage
-  const saveItems = (newItems: ClipboardItem[]) => {
-    setItems(newItems);
-    try {
-      localStorage.setItem('nova_clipboard_history', JSON.stringify(newItems));
-    } catch (e) {}
-  };
-
-  // Add a newly copied text snippet
-  const addCopiedText = (text: string) => {
-    if (!text || !text.trim()) return;
-    const trimmed = text.trim();
-    setItems((prev) => {
-      // Don't duplicate if it's already the most recent item
-      if (prev.length > 0 && prev[0].textContent === trimmed) {
-        return prev;
-      }
-      const existingFiltered = prev.filter((it) => it.textContent !== trimmed);
-      const isLink = trimmed.startsWith('http://') || trimmed.startsWith('https://');
-      const newItem: ClipboardItem = {
-        id: `clip-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-        contentType: isLink ? 'link' as any : 'text',
-        textContent: trimmed,
-        charCount: trimmed.length,
-        isPinned: false,
-        createdAt: Date.now(),
-      };
-      const updated = [newItem, ...existingFiltered].slice(0, 50); // Store up to 50 recent clips
-      try {
-        localStorage.setItem('nova_clipboard_history', JSON.stringify(updated));
-      } catch (e) {}
-      return updated;
-    });
-  };
-
-  // Listen for real-time clipboard events from Electron main process
-  useEffect(() => {
-    if (typeof window !== 'undefined' && (window as any).require) {
-      try {
-        const { ipcRenderer } = (window as any).require('electron');
-        const handleCopyDetected = (_event: any, data: any) => {
-          if (data && data.textContent) {
-            addCopiedText(data.textContent);
-          }
-        };
-
-        ipcRenderer.on('clipboard-copy-detected', handleCopyDetected);
-
-        // Fetch current clipboard text immediately on mount
-        ipcRenderer.invoke('get-current-clipboard-text').then((text: string) => {
-          if (text) addCopiedText(text);
-        }).catch(() => {});
-
-        return () => {
-          ipcRenderer.removeListener('clipboard-copy-detected', handleCopyDetected);
-        };
-      } catch (e) {}
-    } else {
-      // Browser fallback: check navigator.clipboard
-      navigator.clipboard?.readText?.().then((text) => {
-        if (text) addCopiedText(text);
-      }).catch(() => {});
-    }
-  }, []);
-
-  const handleCopy = (item: ClipboardItem) => {
-    if (typeof window !== 'undefined' && (window as any).require) {
-      try {
-        const { ipcRenderer } = (window as any).require('electron');
-        ipcRenderer.invoke('write-clipboard-text', item.textContent);
-      } catch (e) {
-        navigator.clipboard?.writeText(item.textContent);
-      }
-    } else {
-      navigator.clipboard?.writeText(item.textContent);
-    }
+  const handleCopy = async (item: ClipboardItem) => {
+    if (!await copyText(item.textContent).catch(() => false)) return;
     setCopiedId(item.id);
-    setTimeout(() => setCopiedId(null), 1500);
+    window.setTimeout(() => setCopiedId((current) => current === item.id ? null : current), 1500);
   };
 
   const togglePin = (id: string, e: React.MouseEvent) => {

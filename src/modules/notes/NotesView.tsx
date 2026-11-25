@@ -1,55 +1,20 @@
 import React, { useState } from 'react';
 import { Plus, Trash2, CheckSquare, Square, Pin } from 'lucide-react';
-import { NoteItem } from '../../types';
+import { useNotesStore } from '../../stores/useNotesStore';
 import { useIslandStore } from '../../stores/useIslandStore';
 
 export const NotesView: React.FC = () => {
   const { setInteracting } = useIslandStore();
-  const [notes, setNotes] = useState<NoteItem[]>([
-    {
-      id: 'note-1',
-      title: 'Sprint Objectives',
-      content: 'Complete Phase 1 foundation for NOVA desktop bar.',
-      isPinned: true,
-      checklists: [
-        { id: 'c1', text: 'Top-centre transparent island window', done: true },
-        { id: 'c2', text: 'Hover expansion and interaction lock', done: true },
-        { id: 'c3', text: 'SQLite persistent schema integration', done: false },
-      ],
-      createdAt: Date.now() - 1000 * 60 * 60,
-      updatedAt: Date.now(),
-    },
-    {
-      id: 'note-2',
-      title: 'Design Decisions',
-      content: 'Use Inter for interface typography and JetBrains Mono for system vitals.',
-      isPinned: false,
-      createdAt: Date.now() - 1000 * 60 * 120,
-      updatedAt: Date.now(),
-    },
-  ]);
+  const { notes, save: setNotes, add } = useNotesStore();
+  const [selectedNoteId, setSelectedNoteId] = useState('');
+  const selectedNote = notes.find((note) => note.id === selectedNoteId) ?? notes[0];
 
-  const [selectedNoteId, setSelectedNoteId] = useState<string>(notes[0]?.id || '');
-  const selectedNote = notes.find((n) => n.id === selectedNoteId) || notes[0];
-
-  const handleAddNote = () => {
-    const newNote: NoteItem = {
-      id: `note-${Date.now()}`,
-      title: 'New Note',
-      content: '',
-      isPinned: false,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-      checklists: [],
-    };
-    setNotes([newNote, ...notes]);
-    setSelectedNoteId(newNote.id);
-  };
+  const handleAddNote = () => setSelectedNoteId(add());
 
   const handleUpdateNote = (field: 'title' | 'content', value: string) => {
     setNotes((prev) =>
       prev.map((n) =>
-        n.id === selectedNoteId ? { ...n, [field]: value, updatedAt: Date.now() } : n
+        n.id === selectedNote?.id ? { ...n, [field]: value, updatedAt: Date.now() } : n
       )
     );
   };
@@ -57,7 +22,7 @@ export const NotesView: React.FC = () => {
   const toggleChecklist = (checkId: string) => {
     setNotes((prev) =>
       prev.map((n) => {
-        if (n.id !== selectedNoteId || !n.checklists) return n;
+        if (n.id !== selectedNote?.id || !n.checklists) return n;
         return {
           ...n,
           checklists: n.checklists.map((c) =>
@@ -70,7 +35,7 @@ export const NotesView: React.FC = () => {
 
   const handleDeleteNote = (id: string) => {
     const remaining = notes.filter((n) => n.id !== id);
-    setNotes(remaining);
+    setNotes(() => remaining);
     if (selectedNoteId === id && remaining.length > 0) {
       setSelectedNoteId(remaining[0].id);
     }

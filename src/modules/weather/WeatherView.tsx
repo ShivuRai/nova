@@ -24,8 +24,10 @@ interface WeatherData {
   feelsLike: number;
   humidity: number;
   windSpeed: number;
-  uvIndex: number;
-  rainProb: number;
+  uvIndex: number | null;
+  rainProb: number | null;
+  source?: 'sample' | 'forecast' | 'manual';
+  updatedAt?: number;
   hourly: Array<{ time: string; temp: number }>;
 }
 
@@ -41,6 +43,7 @@ const PRESET_CITIES = [
 
 const DEFAULT_WEATHER: WeatherData = {
   city: 'London',
+  source: 'sample',
   country: 'United Kingdom',
   temp: 18,
   condition: 'Partly Cloudy',
@@ -71,6 +74,7 @@ export const WeatherView: React.FC = () => {
   const [searchResults, setSearchResults] = useState<Array<{ name: string; country: string; latitude: number; longitude: number }>>([]);
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [weatherStatus, setWeatherStatus] = useState('');
   const [isCustomizing, setIsCustomizing] = useState<boolean>(false);
   const [unit, setUnit] = useState<'C' | 'F'>('C');
 
@@ -94,18 +98,23 @@ export const WeatherView: React.FC = () => {
     if (!searchQuery.trim()) return;
 
     setIsSearching(true);
+    setWeatherStatus('');
     try {
       const res = await fetch(
-        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(searchQuery.trim())}&count=4&language=en&format=json`
+        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(searchQuery.trim())}&count=4&language=en&format=json`,
+        { signal: AbortSignal.timeout(8000) }
       );
+      if (!res.ok) throw new Error('City search unavailable');
       const data = await res.json();
       if (data.results && data.results.length > 0) {
         setSearchResults(data.results);
       } else {
         setSearchResults([]);
+        setWeatherStatus('No matching city found.');
       }
-    } catch (err) {
-      console.warn('Geocoding search error:', err);
+    } catch {
+      setSearchResults([]);
+      setWeatherStatus('City search is unavailable. Try again when online.');
     } finally {
       setIsSearching(false);
     }
@@ -113,17 +122,21 @@ export const WeatherView: React.FC = () => {
 
   // Fetch real live weather from coordinates
   const fetchLiveWeather = async (city: string, country: string, lat: number, lon: number) => {
+    if (isLoading) return;
     setIsLoading(true);
+    setWeatherStatus('');
     setSearchResults([]);
     setSearchQuery('');
     try {
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=temperature_2m,relativehumidity_2m,windspeed_10m,precipitation_probability&timezone=auto`;
-      const res = await fetch(url);
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code&hourly=temperature_2m,uv_index,precipitation_probability&timezone=auto`;
+      const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+      if (!res.ok) throw new Error('Forecast unavailable');
       const data = await res.json();
+      if (!Number.isFinite(data.current?.temperature_2m)) throw new Error('Forecast unavailable');
 
-      if (data.current_weather) {
-        const cur = data.current_weather;
-        const code = cur.weathercode;
+      if (data.current) {
+        const cur = data.current;
+        const code = cur.weather_code;
         let cond = 'Clear Sky';
         if (code >= 1 && code <= 3) cond = 'Partly Cloudy';
         else if (code >= 45 && code <= 48) cond = 'Foggy';
@@ -132,21 +145,26 @@ export const WeatherView: React.FC = () => {
         else if (code >= 80 && code <= 82) cond = 'Heavy Rain';
         else if (code >= 95) cond = 'Thunderstorm';
 
-        const hourlyData = data.hourly?.temperature_2m?.slice(0, 5).map((t: number, i: number) => ({
-          time: i === 0 ? 'Now' : `${(new Date().getHours() + i * 2) % 24}:00`,
-          temp: Math.round(t),
-        })) || DEFAULT_WEATHER.hourly;
+        const times: string[] = data.hourly?.time ?? [];
+        const currentHour = cur.time.slice(0, 13) + ':00';
+        const index = times.findIndex((time) => time >= currentHour);
+        const hourlyData = index < 0 ? [] : times.slice(index, index + 5).flatMap((time, offset) => {
+          const temperature = data.hourly.temperature_2m?.[index + offset];
+          return Number.isFinite(temperature) ? [{ time: time.slice(11, 16), temp: Math.round(temperature) }] : [];
+        });
 
         const updated: WeatherData = {
           city,
           country,
-          temp: Math.round(cur.temperature),
+          temp: Math.round(cur.temperature_2m),
           condition: cond,
-          feelsLike: Math.round(cur.temperature - (cur.windspeed > 15 ? 1 : 0)),
-          humidity: data.hourly?.relativehumidity_2m?.[0] || 60,
-          windSpeed: Math.round(cur.windspeed),
-          uvIndex: 4,
-          rainProb: data.hourly?.precipitation_probability?.[0] || 10,
+          source: 'forecast',
+          updatedAt: Date.now(),
+          feelsLike: Math.round(cur.apparent_temperature),
+          humidity: cur.relative_humidity_2m,
+          windSpeed: Math.round(cur.wind_speed_10m),
+          uvIndex: data.hourly?.uv_index?.[index] ?? null,
+          rainProb: data.hourly?.precipitation_probability?.[index] ?? null,
           hourly: hourlyData,
         };
 
@@ -154,9 +172,11 @@ export const WeatherView: React.FC = () => {
         setCustomCity(city);
         setCustomTemp(updated.temp);
         setCustomCondition(updated.condition);
+        setCustomHumidity(updated.humidity);
+        setCustomWind(updated.windSpeed);
       }
-    } catch (err) {
-      console.warn('Weather fetch error:', err);
+    } catch {
+      setWeatherStatus('Forecast unavailable. Showing the saved values.');
     } finally {
       setIsLoading(false);
     }
@@ -170,13 +190,12 @@ export const WeatherView: React.FC = () => {
       condition: customCondition,
       humidity: customHumidity,
       windSpeed: customWind,
-      feelsLike: customTemp - 1,
-      hourly: [
-        { time: 'Now', temp: customTemp },
-        { time: '+2h', temp: customTemp - 1 },
-        { time: '+4h', temp: customTemp - 2 },
-        { time: '+6h', temp: customTemp - 3 },
-      ],
+      feelsLike: customTemp,
+      source: 'manual',
+      updatedAt: Date.now(),
+      uvIndex: null,
+      rainProb: null,
+      hourly: [],
     };
     setWeather(updated);
     setIsCustomizing(false);
@@ -199,6 +218,13 @@ export const WeatherView: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 330, overflowY: 'auto', paddingRight: 4 }}>
+      {weatherStatus && <p role="status" style={{ color: 'var(--nova-warning)', fontSize: 11 }}>{weatherStatus}</p>}
+      <p style={{ color: 'var(--nova-text-secondary)', fontSize: 11 }}>
+        {weather.source === 'sample' ? 'Sample forecast. Choose a city to load weather.'
+          : weather.source === 'manual' ? 'Manually entered values'
+          : weather.updatedAt ? 'Last updated ' + new Date(weather.updatedAt).toLocaleString()
+          : 'Saved values. Choose a city to refresh.'}
+      </p>
       {/* Search & Location Bar */}
       <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
         <form onSubmit={handleSearch} style={{ display: 'flex', flex: 1, gap: 6 }}>
@@ -534,7 +560,7 @@ export const WeatherView: React.FC = () => {
         >
           <div style={{ fontSize: '10px', color: 'var(--nova-text-muted)' }}>UV INDEX</div>
           <div style={{ fontSize: '12px', fontWeight: 600, marginTop: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-            <Sun size={12} style={{ color: 'var(--nova-warning)' }} /> {weather.uvIndex}
+            <Sun size={12} style={{ color: 'var(--nova-warning)' }} /> {weather.uvIndex ?? '—'}
           </div>
         </div>
 
@@ -549,7 +575,7 @@ export const WeatherView: React.FC = () => {
         >
           <div style={{ fontSize: '10px', color: 'var(--nova-text-muted)' }}>RAIN CHANCE</div>
           <div style={{ fontSize: '12px', fontWeight: 600, marginTop: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-            <CloudRain size={12} style={{ color: 'var(--nova-blue)' }} /> {weather.rainProb}%
+            <CloudRain size={12} style={{ color: 'var(--nova-blue)' }} /> {weather.rainProb === null ? '—' : weather.rainProb + '%'}
           </div>
         </div>
       </div>
@@ -567,6 +593,7 @@ export const WeatherView: React.FC = () => {
           textAlign: 'center',
         }}
       >
+        {!weather.hourly.length && <span style={{ color: 'var(--nova-text-secondary)' }}>Hourly forecast unavailable</span>}
         {weather.hourly.map((slot, idx) => (
           <div key={idx}>
             <div style={{ color: 'var(--nova-text-secondary)', fontSize: '10px' }}>{slot.time}</div>

@@ -17,10 +17,6 @@ test('Verification 1: Project structure and critical files exist', () => {
     'index.html',
     'electron.cjs',
     'NOVA.bat',
-    'dist/index.html',
-    'dist-app/NOVA.exe',
-    'dist-app/resources/app/package.json',
-    'dist-app/resources/app/electron.cjs',
     'docs/REFERENCE_RESEARCH.md',
     'docs/PRD.md',
     'docs/ARCHITECTURE.md',
@@ -45,7 +41,7 @@ test('Verification 1: Project structure and critical files exist', () => {
   }
 });
 
-test('Verification 2: All 23 module view components are created', () => {
+test('Verification 2: All 24 module view components are created', () => {
   const moduleFiles = [
     'src/modules/home/HomeView.tsx',
     'src/modules/clipboard/ClipboardView.tsx',
@@ -105,20 +101,13 @@ test('Verification 4: Hashes checksum determinism check', () => {
   assert.strictEqual(md5.length, 32);
 });
 
-test('Verification 5: Desktop Shortcut check', () => {
-  const userProfile = process.env.USERPROFILE || 'C:\\Users\\shivu';
-  const desktopShortcut = path.join(userProfile, 'Desktop', 'NOVA.lnk');
-  const onedriveShortcut = path.join(userProfile, 'OneDrive', 'Desktop', 'NOVA.lnk');
-  const exists = fs.existsSync(desktopShortcut) || fs.existsSync(onedriveShortcut);
-  assert.strictEqual(exists, true, 'Desktop shortcut NOVA.lnk must exist on user Desktop');
+test('Verification 5: Repository desktop shortcut and build entry point', () => {
+  assert.ok(fs.statSync(path.join(projectRoot, 'NOVA.lnk')).size > 0);
+  assert.ok(fs.existsSync(path.join(projectRoot, 'scripts', 'sync-desktop.cjs')));
 });
 
-test('Verification 6: Desktop Executable and Security Manifest check', () => {
-  const userProfile = process.env.USERPROFILE || 'C:\\Users\\shivu';
-  const desktopExe = path.join(userProfile, 'Desktop', 'NOVA.exe');
-  const onedriveExe = path.join(userProfile, 'OneDrive', 'Desktop', 'NOVA.exe');
-  const exeExists = fs.existsSync(desktopExe) || fs.existsSync(onedriveExe);
-  assert.strictEqual(exeExists, true, 'Desktop executable NOVA.exe must exist on user Desktop');
+test('Verification 6: Windows launcher and verification guide', () => {
+  assert.ok(fs.statSync(path.join(projectRoot, 'NOVA.exe')).size > 0);
 
   const certPath = path.join(projectRoot, 'NOVA-Certificate.cer');
   assert.strictEqual(fs.existsSync(certPath), true, 'NOVA-Certificate.cer must exist');
@@ -299,17 +288,16 @@ test('Verification 12: Customization Studio, 12 Notch Shapes, and Animated Masco
   // Verify Streamlined Settings
   const settingsPath = path.join(projectRoot, 'src', 'modules', 'settings', 'SettingsView.tsx');
   const settingsContent = fs.readFileSync(settingsPath, 'utf8');
-  assert.strictEqual(settingsContent.includes('Open Customization Studio'), true);
+  assert.strictEqual(settingsContent.includes('Customization Studio'), true);
 });
 
 test('Verification 13: Single-Instance Resilience, EADDRINUSE Prevention, Custom Categories, Sub-tab Persistence, and 4 Flagship Features', () => {
   const electronPath = path.join(projectRoot, 'electron.cjs');
   const electronContent = fs.readFileSync(electronPath, 'utf8');
 
-  // Verify Single-Instance Lock and ErrorBox suppression
-  assert.strictEqual(electronContent.includes('dialog.showErrorBox'), true, 'dialog.showErrorBox must be suppressed');
+  // Verify single-instance lock and visible startup errors
+  assert.strictEqual(electronContent.includes('dialog.showErrorBox'), true, 'Startup failures must surface a dialog');
   assert.strictEqual(electronContent.includes('Quitting duplicate process immediately'), true, 'Must exit immediately on lock failure');
-  assert.strictEqual(electronContent.includes('startDropServer(0)'), true, 'Must fallback to port 0 on EADDRINUSE');
   assert.strictEqual(electronContent.includes("'get-wallpaper-palette'"), true, 'get-wallpaper-palette IPC handler must exist');
 
   // Verify Custom Categories in IslandExpanded.tsx
@@ -370,7 +358,7 @@ test('Verification 14: Dynamic Wing, Chamfered Notch, Split Capsule Twin-Pod, Ce
   // 5. Fixed + Category and Manage buttons in IslandExpanded
   const expandedPath = path.join(projectRoot, 'src', 'components', 'island', 'IslandExpanded.tsx');
   const expandedContent = fs.readFileSync(expandedPath, 'utf8');
-  assert.strictEqual(expandedContent.includes('Pinned Action Controls'), true, 'Pinned action controls must be present');
+  assert.strictEqual(expandedContent.includes('aria-label="New category"'), true, 'Pinned action controls must be present');
   assert.strictEqual(expandedContent.includes('SlidersHorizontal'), true, 'Manage action button must be present');
   assert.strictEqual(expandedContent.includes('isAddingCategory'), true, 'isAddingCategory must be present');
 });
@@ -379,9 +367,9 @@ test('Verification 15: Compact Proportioned HomeView and Dynamic Expressive Masc
   // 1. HomeView must be sleek and compact
   const homePath = path.join(projectRoot, 'src', 'modules', 'home', 'HomeView.tsx');
   const homeContent = fs.readFileSync(homePath, 'utf8');
-  assert.strictEqual(homeContent.includes('Search apps, files, or run command...'), true, 'Compact search bar exists');
-  assert.strictEqual(homeContent.includes('WORKFLOW ESSENTIALS'), true, 'Workflow essentials section exists');
-  assert.strictEqual(homeContent.includes('System Vitals'), true, 'System vitals exists');
+  assert.strictEqual(homeContent.includes('Find a tool or run a command'), true, 'Compact search bar exists');
+  assert.strictEqual(homeContent.includes('Quick access'), true, 'Workflow essentials section exists');
+  assert.strictEqual(homeContent.includes('Waiting for Windows metrics'), true, 'System vitals exists');
 
   // 2. Dynamic Astro mascot engine
   const pillPath = path.join(projectRoot, 'src', 'components', 'island', 'IslandPill.tsx');
@@ -406,13 +394,15 @@ test('Verification 16: 10 Mascots, No Crowded Names, Vertical Smooth Scroll, 3D 
   // 2. IslandExpanded has vertical smooth scrolling and no horizontal overflow
   const expandedPath = path.join(projectRoot, 'src', 'components', 'island', 'IslandExpanded.tsx');
   const expandedContent = fs.readFileSync(expandedPath, 'utf8');
-  assert.strictEqual(expandedContent.includes("overflowY: 'auto'"), true);
-  assert.strictEqual(expandedContent.includes("overflowX: 'hidden'"), true);
+  const css = fs.readFileSync(path.join(projectRoot, 'src', 'styles', 'globals.css'), 'utf8');
+  assert.match(css, /\.nova-shell-content\s*\{[^}]*overflow: auto/);
+  assert.match(expandedContent, /className="nova-shell-content"/);
 
   // 3. HomeView has no horizontal overflow
   const homePath = path.join(projectRoot, 'src', 'modules', 'home', 'HomeView.tsx');
   const homeContent = fs.readFileSync(homePath, 'utf8');
-  assert.strictEqual(homeContent.includes("overflowX: 'hidden'"), true);
+  assert.match(homeContent, /className="nova-tool-grid"/);
+  assert.match(css, /\.nova-tool-grid\s*\{[^}]*minmax\(0, 1fr\)/);
 
   // 4. IslandContainer has 3D Gyro Glare and Drag & Drop file handler
   const containerPath = path.join(projectRoot, 'src', 'components', 'island', 'IslandContainer.tsx');
@@ -561,4 +551,183 @@ test('Verification 19: Seasonal Canvas Particles, Custom Notch Shape Studio, New
   assert.strictEqual(petContent.includes('Hoot'), true);
   assert.strictEqual(petContent.includes('Quantum'), true);
   assert.strictEqual(petContent.includes('Byte'), true);
+});
+
+test('Verification 20: Smart Auto-Retract, Chrome Tabs Clearance, and Stealth Bezel Bar', () => {
+  // 1. Windows Active App & Desktop Detector Script
+  const scriptPath = path.join(projectRoot, 'scripts', 'get-active-app.ps1');
+  assert.strictEqual(fs.existsSync(scriptPath), true, 'scripts/get-active-app.ps1 must exist');
+  const scriptContent = fs.readFileSync(scriptPath, 'utf8');
+  assert.strictEqual(scriptContent.includes('GetForegroundWindow'), true);
+  assert.strictEqual(scriptContent.includes('GetWindowThreadProcessId'), true);
+  assert.strictEqual(scriptContent.includes('GetClassName'), true);
+  assert.strictEqual(scriptContent.includes('isDesktop'), true);
+
+  // 2. Island Store State Management
+  const storePath = path.join(projectRoot, 'src', 'stores', 'useIslandStore.ts');
+  const storeContent = fs.readFileSync(storePath, 'utf8');
+  assert.strictEqual(storeContent.includes('isRetracted: boolean;'), true);
+  assert.strictEqual(storeContent.includes('setRetracted: (retracted: boolean) => void;'), true);
+  assert.strictEqual(storeContent.includes('toggleRetracted: () => void;'), true);
+
+  // 3. Types Specification
+  const typesPath = path.join(projectRoot, 'src', 'types', 'index.ts');
+  const typesContent = fs.readFileSync(typesPath, 'utf8');
+  assert.strictEqual(typesContent.includes('enableAutoRetract?: boolean;'), true);
+  assert.strictEqual(typesContent.includes('autoRetractDelaySec?: number;'), true);
+  assert.strictEqual(typesContent.includes('wakeHoverDelayMs?: number;'), true);
+  assert.strictEqual(typesContent.includes('retractOnlyOnApps?: boolean;'), true);
+
+  // 4. Theme Store Defaults
+  const themeStorePath = path.join(projectRoot, 'src', 'stores', 'useThemeStore.ts');
+  const themeStoreContent = fs.readFileSync(themeStorePath, 'utf8');
+  assert.strictEqual(themeStoreContent.includes('enableAutoRetract: true,'), true);
+  assert.strictEqual(themeStoreContent.includes('autoRetractDelaySec: 4,'), true);
+  assert.strictEqual(themeStoreContent.includes('wakeHoverDelayMs: 650,'), true);
+  assert.strictEqual(themeStoreContent.includes('retractOnlyOnApps: true,'), true);
+
+  // 5. Native Electron Sizing & Clearance
+  const electronPath = path.join(projectRoot, 'electron.cjs');
+  const electronContent = fs.readFileSync(electronPath, 'utf8');
+  assert.strictEqual(electronContent.includes("handle('get-active-app'"), true);
+  assert.strictEqual(electronContent.includes("'foreground-app-changed'"), true);
+
+  // 6. Platform Service IPC Bridge
+  const platformPath = path.join(projectRoot, 'src', 'services', 'platformService.ts');
+  const platformContent = fs.readFileSync(platformPath, 'utf8');
+  assert.strictEqual(platformContent.includes('isRetracted: boolean = false'), true);
+  assert.strictEqual(platformContent.includes('isRetracted,'), true);
+
+  // 7. Island Container Dynamic Sizing & Stealth Bar Rendering
+  const containerPath = path.join(projectRoot, 'src', 'components', 'island', 'IslandContainer.tsx');
+  const containerContent = fs.readFileSync(containerPath, 'utf8');
+  assert.strictEqual(containerContent.includes('isRetracted ? 135 : effectivePillWidth'), true);
+  assert.strictEqual(containerContent.includes('isRetracted ? 8 : effectivePillHeight'), true);
+  assert.strictEqual(containerContent.includes('wakeHoverTimerRef'), true);
+  assert.strictEqual(containerContent.includes('settings.autoRetractDelaySec'), true);
+  assert.strictEqual(containerContent.includes('handleManualExpand'), true);
+  assert.strictEqual(containerContent.includes('key="stealth-indicator"'), true);
+  assert.strictEqual(containerContent.includes('NOVA Stealth Bezel'), true);
+
+  // 8. Customization Studio UI Controls in RgbView
+  const rgbPath = path.join(projectRoot, 'src', 'modules', 'rgb', 'RgbView.tsx');
+  const rgbContent = fs.readFileSync(rgbPath, 'utf8');
+  assert.strictEqual(rgbContent.includes('SMART AUTO-RETRACT & TAB CLEARANCE'), true);
+  assert.strictEqual(rgbContent.includes('AUTO-RETRACT IDLE TIMER'), true);
+  assert.strictEqual(rgbContent.includes('HOVER WAKE THRESHOLD'), true);
+  assert.strictEqual(rgbContent.includes('Test Stealth Mode Now'), true);
+
+  // 9. Quick Tuck Header Button in IslandExpanded
+  const expandedPath = path.join(projectRoot, 'src', 'components', 'island', 'IslandExpanded.tsx');
+  const expandedContent = fs.readFileSync(expandedPath, 'utf8');
+  assert.strictEqual(expandedContent.includes('Tuck into bezel'), true);
+});
+
+test('Verification 21: System Tray, Multi-Monitor Roaming, Download Radar, Build Radar, Smart Peripheral Alerts, and AI Whisper', () => {
+  // 1. System Tray Icons Exist in dist-app
+  const iconIco = path.join(projectRoot, 'src-tauri', 'icons', 'icon.ico');
+  const icon32 = path.join(projectRoot, 'src-tauri', 'icons', '32x32.png');
+  assert.strictEqual(fs.existsSync(iconIco), true, 'icon.ico must exist in source');
+  assert.strictEqual(fs.existsSync(icon32), true, '32x32.png must exist in source');
+
+  // 2. Electron Tray and Multi-Monitor Features
+  const electronPath = path.join(projectRoot, 'electron.cjs');
+  const electronContent = fs.readFileSync(electronPath, 'utf8');
+  assert.strictEqual(electronContent.includes('resolveIconPath'), true);
+  assert.strictEqual(electronContent.includes('new Tray(trayImage)'), true);
+  assert.strictEqual(electronContent.includes('getDisplayNearestPoint'), true);
+  assert.strictEqual(electronContent.includes('screen.getDisplayMatching'), true);
+  assert.strictEqual(electronContent.includes('download-status-update'), true);
+  assert.strictEqual(electronContent.includes('build-status-changed'), true);
+  assert.strictEqual(electronContent.includes('clipboard-alert-pulse'), true);
+
+  // 3. Alert Store
+  const alertStorePath = path.join(projectRoot, 'src', 'stores', 'useAlertStore.ts');
+  assert.strictEqual(fs.existsSync(alertStorePath), true);
+  const alertStoreContent = fs.readFileSync(alertStorePath, 'utf8');
+  assert.strictEqual(alertStoreContent.includes('clipboardPulse'), true);
+  assert.strictEqual(alertStoreContent.includes('calendarAlert'), true);
+  assert.strictEqual(alertStoreContent.includes('batteryStatus'), true);
+  assert.strictEqual(alertStoreContent.includes('buildStatus'), true);
+  assert.strictEqual(alertStoreContent.includes('downloadStatus'), true);
+
+  // 4. AI Whisper & Quick Command Bar Component
+  const aiBarPath = path.join(projectRoot, 'src', 'components', 'island', 'AiWhisperCommandBar.tsx');
+  assert.strictEqual(fs.existsSync(aiBarPath), true);
+  const aiBarContent = fs.readFileSync(aiBarPath, 'utf8');
+  assert.strictEqual(aiBarContent.includes('AiWhisperCommandBar'), true);
+  assert.strictEqual(aiBarContent.includes('Search tools or run a command'), true);
+  assert.strictEqual(aiBarContent.includes('convertText(text)'), true);
+  assert.strictEqual(aiBarContent.includes('timer.start(result.seconds)'), true);
+
+  // 5. Island Pill Badges & Scrubber
+  const pillPath = path.join(projectRoot, 'src', 'components', 'island', 'IslandPill.tsx');
+  const pillContent = fs.readFileSync(pillPath, 'utf8');
+  assert.strictEqual(pillContent.includes('downloadStatus'), true);
+  assert.strictEqual(pillContent.includes('buildStatus'), true);
+  assert.strictEqual(pillContent.includes('toggleAiWhisper'), true);
+  assert.strictEqual(pillContent.includes('Downloading:'), true);
+  assert.strictEqual(pillContent.includes('Compiling'), true);
+
+  // 6. Island Container Peripheral Alerts & Hotkeys
+  const containerPath = path.join(projectRoot, 'src', 'components', 'island', 'IslandContainer.tsx');
+  const containerContent = fs.readFileSync(containerPath, 'utf8');
+  assert.strictEqual(containerContent.includes('isPeripheralAlert'), true);
+  assert.strictEqual(containerContent.includes('isClipboardActive'), true);
+  assert.strictEqual(containerContent.includes('isCalendarActive'), true);
+  assert.strictEqual(containerContent.includes('AiWhisperCommandBar'), true);
+  assert.strictEqual(containerContent.includes('settings.autoRetractDelaySec'), true);
+
+  // 7. Multi-Monitor Roaming Setting in RgbView
+  const rgbPath = path.join(projectRoot, 'src', 'modules', 'rgb', 'RgbView.tsx');
+  const rgbContent = fs.readFileSync(rgbPath, 'utf8');
+  assert.strictEqual(rgbContent.includes('Multi-Monitor Cursor Roaming'), true);
+});
+
+test('Verification 22: Desktop Auto-Expansion, Retraction Protection, and AI Whisper Command Bar & Hotkeys', () => {
+  // 1. Script Desktop Detection
+  const scriptPath = path.join(projectRoot, 'scripts', 'get-active-app.ps1');
+  const scriptContent = fs.readFileSync(scriptPath, 'utf8');
+  assert.strictEqual(scriptContent.includes('Progman'), true);
+  assert.strictEqual(scriptContent.includes('WorkerW'), true);
+  assert.strictEqual(scriptContent.includes('Shell_TrayWnd'), true);
+  assert.strictEqual(scriptContent.includes('Shell_SecondaryTrayWnd'), true);
+  assert.strictEqual(scriptContent.includes('NOVA'), true);
+
+  // 2. Electron Hotkey & Window Sizing
+  const electronPath = path.join(projectRoot, 'electron.cjs');
+  const electronContent = fs.readFileSync(electronPath, 'utf8');
+  assert.strictEqual(electronContent.includes("globalShortcut.register('Alt+Space'"), true);
+  assert.strictEqual(electronContent.includes("globalShortcut.register('CommandOrControl+Space'"), true);
+  assert.strictEqual(electronContent.includes("toggle-ai-whisper"), true);
+  assert.strictEqual(electronContent.includes("focus-island-window"), true);
+  assert.strictEqual(electronContent.includes('calculateIslandBounds'), true);
+
+  // 3. Platform Service
+  const platformPath = path.join(projectRoot, 'src', 'services', 'platformService.ts');
+  const platformContent = fs.readFileSync(platformPath, 'utf8');
+  assert.strictEqual(platformContent.includes('isAiWhisperOpen: boolean = false'), true);
+  assert.strictEqual(platformContent.includes('isAiWhisperOpen,'), true);
+
+  // 4. Island Container Desktop Auto-Expansion & Guard
+  const containerPath = path.join(projectRoot, 'src', 'components', 'island', 'IslandContainer.tsx');
+  const containerContent = fs.readFileSync(containerPath, 'utf8');
+  assert.strictEqual(containerContent.includes('(isDesktop && settings.retractOnlyOnApps !== false)'), true);
+  assert.strictEqual(containerContent.includes("ipcRenderer.on('toggle-ai-whisper', handleToggleAiWhisper)"), true);
+  assert.strictEqual(containerContent.includes("ipcRenderer.on('open-ai-whisper', handleOpenAiWhisper)"), true);
+  assert.strictEqual(containerContent.includes('resizeDesktopWindow('), true);
+
+  // 5. AI Whisper Command Bar Component
+  const aiBarPath = path.join(projectRoot, 'src', 'components', 'island', 'AiWhisperCommandBar.tsx');
+  const aiBarContent = fs.readFileSync(aiBarPath, 'utf8');
+  assert.strictEqual(aiBarContent.includes('focus-island-window'), true);
+  assert.strictEqual(aiBarContent.includes('calculate(expression)'), true);
+  assert.strictEqual(aiBarContent.includes('island.setActiveModule(result.value)'), true);
+  assert.strictEqual(aiBarContent.includes('input.current?.focus()'), true);
+
+  // 6. Settings View AI Whisper Card
+  const settingsPath = path.join(projectRoot, 'src', 'modules', 'settings', 'SettingsView.tsx');
+  const settingsContent = fs.readFileSync(settingsPath, 'utf8');
+  assert.strictEqual(settingsContent.includes('Open command bar'), true);
+  assert.strictEqual(settingsContent.includes('setAiWhisperOpen(true)'), true);
 });

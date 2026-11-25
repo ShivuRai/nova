@@ -39,23 +39,11 @@ export const CalendarView: React.FC = () => {
     } catch (e) {}
   };
 
-  // Month navigation
-  const prevMonth = () => {
-    if (currentMonth === 0) {
-      setCurrentMonth(11);
-      setCurrentYear(currentYear - 1);
-    } else {
-      setCurrentMonth(currentMonth - 1);
-    }
-  };
-
-  const nextMonth = () => {
-    if (currentMonth === 11) {
-      setCurrentMonth(0);
-      setCurrentYear(currentYear + 1);
-    } else {
-      setCurrentMonth(currentMonth + 1);
-    }
+  const moveMonth = (delta: number) => {
+    const next = new Date(currentYear, currentMonth + delta, 1);
+    setCurrentMonth(next.getMonth());
+    setCurrentYear(next.getFullYear());
+    setSelectedDay(Math.min(selectedDay, new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate()));
   };
 
   const goToday = () => {
@@ -140,10 +128,10 @@ export const CalendarView: React.FC = () => {
             >
               Today
             </button>
-            <button onClick={prevMonth} style={{ padding: 3, color: 'var(--nova-text-secondary)', background: 'none', border: 'none', cursor: 'pointer' }}>
+            <button onClick={() => moveMonth(-1)} style={{ padding: 3, color: 'var(--nova-text-secondary)', background: 'none', border: 'none', cursor: 'pointer' }}>
               <ChevronLeft size={14} />
             </button>
-            <button onClick={nextMonth} style={{ padding: 3, color: 'var(--nova-text-secondary)', background: 'none', border: 'none', cursor: 'pointer' }}>
+            <button onClick={() => moveMonth(1)} style={{ padding: 3, color: 'var(--nova-text-secondary)', background: 'none', border: 'none', cursor: 'pointer' }}>
               <ChevronRight size={14} />
             </button>
           </div>

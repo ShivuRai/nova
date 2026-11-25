@@ -3,10 +3,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useIslandStore } from '../../stores/useIslandStore';
 import { useSystemStore } from '../../stores/useSystemStore';
 import { useThemeStore } from '../../stores/useThemeStore';
+import { useClipboardStore } from '../../stores/useClipboardStore';
+import { useAlertStore } from '../../stores/useAlertStore';
 import { resizeDesktopWindow, getWallpaperPalette } from '../../services/platformService';
 import { IslandPillContent } from './IslandPill';
 import { IslandExpandedContent } from './IslandExpanded';
 import { AmbientParticles } from './AmbientParticles';
+import { AiWhisperCommandBar } from './AiWhisperCommandBar';
 import {
   playHoverSound,
   playClickSound,
@@ -19,19 +22,34 @@ export const IslandContainer: React.FC = () => {
   const {
     isExpanded,
     setExpanded,
-    toggleExpanded,
     isPinned,
     isInteracting,
+    isRetracted,
+    setRetracted,
+    isAiWhisperOpen,
+    setAiWhisperOpen,
     setActiveModule,
     liveActivity,
     activeModule,
   } = useIslandStore();
-  const { media, updateMedia } = useSystemStore();
+  const media = useSystemStore((state) => state.media);
   const { settings } = useThemeStore();
+  const {
+    clipboardPulse,
+    calendarAlert,
+    batteryStatus,
+    setBatteryStatus,
+    setBuildStatus,
+    setDownloadStatus,
+    triggerClipboardPulse,
+  } = useAlertStore();
 
   const [wallpaperPalette, setWallpaperPalette] = useState<{ accent: string; glow: string; tint: string } | null>(null);
   const [glarePos, setGlarePos] = useState<{ x: number; y: number } | null>(null);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(true);
+  const [pointerInside, setPointerInside] = useState(false);
+  const [keepOpen, setKeepOpen] = useState(false);
 
   useEffect(() => {
     if (settings.enableWallpaperTinting) {
@@ -46,6 +64,7 @@ export const IslandContainer: React.FC = () => {
   const hoverTimerRef = useRef<number | null>(null);
   const collapseTimerRef = useRef<number | null>(null);
   const windowResizeTimerRef = useRef<number | null>(null);
+  const wakeHoverTimerRef = useRef<number | null>(null);
 
   const MODULE_HEIGHTS: Record<string, number> = {
     home: 395,
@@ -63,129 +82,157 @@ export const IslandContainer: React.FC = () => {
     converter: 355,
     calendar: 360,
     message: 360,
-    'quick-settings': 350,
+    'quick-settings': 390,
     'file-tools': 350,
     links: 350,
     analytics: 355,
     revenue: 355,
     weather: 385,
     rgb: 385,
-    settings: 410,
+    settings: 440,
     'ai-coding': 415,
   };
 
   const targetExpandedHeight = MODULE_HEIGHTS[activeModule] || 360;
 
-  // Sync window size & position when expanded state or position changes
   useEffect(() => {
-    // Clear any pending collapse window shrink
-    if (windowResizeTimerRef.current) {
-      window.clearTimeout(windowResizeTimerRef.current);
-      windowResizeTimerRef.current = null;
-    }
+    if (settings.enableAutoRetract === false || isPinned || isExpanded || isInteracting || isAiWhisperOpen || pointerInside || isRetracted ||
+      (isDesktop && settings.retractOnlyOnApps !== false)) return;
 
-    if (isExpanded) {
-      // Expand window immediately so the blooming animation has full space
-      resizeDesktopWindow(
-        true,
-        settings.expandedWidth,
-        targetExpandedHeight,
-        settings.screenPosition,
-        settings.notchStyle,
-        settings.topOffset ?? 0,
-        settings.sideMargin ?? 16
-      );
-    } else {
-      // Delay window shrink until after the spring morph animation completes (350ms)
-      windowResizeTimerRef.current = window.setTimeout(() => {
-        resizeDesktopWindow(
-          false,
-          settings.pillWidth,
-          settings.pillHeight,
-          settings.screenPosition,
-          settings.notchStyle,
-          settings.topOffset ?? 0,
-          settings.sideMargin ?? 16
-        );
-      }, 350);
-    }
+    const timer = window.setTimeout(() => setRetracted(true), (settings.autoRetractDelaySec ?? 4) * 1000);
+    return () => window.clearTimeout(timer);
+  }, [isPinned, isExpanded, isInteracting, isAiWhisperOpen, pointerInside, isRetracted, isDesktop, settings.enableAutoRetract, settings.autoRetractDelaySec, settings.retractOnlyOnApps, setRetracted]);
 
-    return () => {
-      if (windowResizeTimerRef.current) {
-        window.clearTimeout(windowResizeTimerRef.current);
-      }
+  useEffect(() => {
+    if (settings.enableAutoRetract === false || (isDesktop && settings.retractOnlyOnApps !== false)) setRetracted(false);
+  }, [isDesktop, settings.enableAutoRetract, settings.retractOnlyOnApps, setRetracted]);
+
+  useEffect(() => {
+    let cleanup: (() => void) | undefined;
+    let cancelled = false;
+    const getBattery = (navigator as Navigator & {
+      getBattery?: () => Promise<EventTarget & { level: number; charging: boolean }>;
+    }).getBattery;
+    getBattery?.call(navigator).then((battery) => {
+      if (cancelled) return;
+      const update = () => setBatteryStatus({
+        level: Math.round(battery.level * 100),
+        isCharging: battery.charging,
+        isLow: battery.level <= 0.2 && !battery.charging,
+      });
+      update();
+      battery.addEventListener('levelchange', update);
+      battery.addEventListener('chargingchange', update);
+      cleanup = () => {
+        battery.removeEventListener('levelchange', update);
+        battery.removeEventListener('chargingchange', update);
+      };
+    }).catch(() => {});
+    return () => { cancelled = true; cleanup?.(); };
+  }, [setBatteryStatus]);
+
+  useEffect(() => {
+    const ipcRenderer = window.novaDesktop;
+    if (!ipcRenderer) return;
+    let active = true;
+    const openIsland = () => {
+      setKeepOpen(true);
+      setRetracted(false);
+      setExpanded(true);
     };
-  }, [
-    isExpanded,
-    targetExpandedHeight,
-    activeModule,
-    settings.expandedWidth,
-    settings.pillWidth,
-    settings.pillHeight,
-    settings.screenPosition,
-    settings.notchStyle,
-    settings.topOffset,
-    settings.sideMargin,
-  ]);
+    const handleToggle = () => {
+      if (useIslandStore.getState().isExpanded) { setKeepOpen(false); setExpanded(false); }
+      else openIsland();
+    };
+    const handleBringToFront = openIsland;
+    const handleOpenModule = (_event: null, moduleId: string) => {
+      setActiveModule(moduleId);
+      openIsland();
+    };
+    const handleForegroundApp = (_event: null, data: { isDesktop: boolean }) => {
+      if (active && typeof data?.isDesktop === 'boolean') setIsDesktop(data.isDesktop);
+    };
+    const handleToggleAiWhisper = () => {
+      const next = !useIslandStore.getState().isAiWhisperOpen;
+      if (next) setRetracted(false);
+      setAiWhisperOpen(next);
+    };
+    const handleOpenAiWhisper = () => {
+      setRetracted(false);
+      setAiWhisperOpen(true);
+    };
 
-  // Global hotkey & IPC listeners from Electron
-  useEffect(() => {
-    if (typeof window !== 'undefined' && (window as any).require) {
-      try {
-        const { ipcRenderer } = (window as any).require('electron');
-        const handleToggle = () => toggleExpanded();
-        const handleBringToFront = () => {
-          setExpanded(true);
-        };
-        const handleOpenModule = (_event: any, moduleId: string) => {
-          if (moduleId) {
-            setActiveModule(moduleId);
-          }
-          setExpanded(true);
-        };
-        const handleMediaUpdate = (_event: any, data: any) => {
-          if (data && typeof data.isPlaying === 'boolean') {
-            updateMedia({
-              isPlaying: data.isPlaying,
-              title: data.title || '',
-              artist: data.artist || (data.isPlaying ? 'Media Playback' : ''),
-            });
-          }
-        };
+    const unsubscribers = [
+      ipcRenderer.on('bring-to-front', handleBringToFront),
+      ipcRenderer.on('toggle-island', handleToggle),
+      ipcRenderer.on('open-module', handleOpenModule),
+      ipcRenderer.on('foreground-app-changed', handleForegroundApp),
+      ipcRenderer.on('window-blurred', () => {
+        useIslandStore.getState().setInteracting(false);
+        ipcRenderer.invoke('get-active-app').then((data) => handleForegroundApp(null, data)).catch(() => {});
+      }),
+      ipcRenderer.on('download-status-update', (_event, update) => {
+        setDownloadStatus(update);
+        if (update?.completed) playSound('action');
+      }),
+      ipcRenderer.on('drop-file-received', (_event, file) => {
+        useIslandStore.getState().setLiveActivity({
+          id: 'drop-' + file.timestamp, type: 'transfer', title: 'Received ' + file.fileName,
+          icon: 'Check', createdAt: file.timestamp, timeoutMs: 6000,
+        });
+      }),
+      ipcRenderer.on('build-status-changed', (_event, update) => setBuildStatus(update)),
+      ipcRenderer.on('clipboard-alert-pulse', () => {
+        if (useClipboardStore.getState().captureEnabled) triggerClipboardPulse('');
+      }),
+      ipcRenderer.on('toggle-ai-whisper', handleToggleAiWhisper),
+      ipcRenderer.on('open-ai-whisper', handleOpenAiWhisper),
+    ];
+    ipcRenderer.invoke('get-active-app').then((data) => handleForegroundApp(null, data)).catch(() => {});
+    return () => { active = false; unsubscribers.forEach((unsubscribe) => unsubscribe()); };
+  }, [setActiveModule, setExpanded, setRetracted, setAiWhisperOpen, setDownloadStatus, setBuildStatus, triggerClipboardPulse]);
 
-        ipcRenderer.on('bring-to-front', handleBringToFront);
-        ipcRenderer.on('toggle-island', handleToggle);
-        ipcRenderer.on('open-module', handleOpenModule);
-        ipcRenderer.on('media-status-update', handleMediaUpdate);
-        return () => {
-          ipcRenderer.removeListener('bring-to-front', handleBringToFront);
-          ipcRenderer.removeListener('toggle-island', handleToggle);
-          ipcRenderer.removeListener('open-module', handleOpenModule);
-          ipcRenderer.removeListener('media-status-update', handleMediaUpdate);
-        };
-      } catch (e) {}
-    }
-  }, [toggleExpanded, setActiveModule, setExpanded, updateMedia]);
-
-  // Global Escape key handler
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isExpanded) {
-        setExpanded(false);
+      if (e.defaultPrevented) return;
+      const state = useIslandStore.getState();
+      if (e.key === 'Escape') {
+        if (state.isAiWhisperOpen) setAiWhisperOpen(false);
+        else if (state.isExpanded) { setKeepOpen(false); setExpanded(false); }
+      } else if (!window.novaDesktop && !e.repeat && (e.altKey || e.ctrlKey) && e.code === 'Space') {
+        e.preventDefault();
+        if (!state.isAiWhisperOpen) setRetracted(false);
+        setAiWhisperOpen(!state.isAiWhisperOpen);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isExpanded, setExpanded]);
+  }, [setExpanded, setRetracted, setAiWhisperOpen]);
+
+  useEffect(() => () => {
+    for (const timer of [hoverTimerRef, collapseTimerRef, wakeHoverTimerRef]) {
+      if (timer.current !== null) window.clearTimeout(timer.current);
+    }
+  }, []);
+
+  const setWindowHit = (hit: boolean) => {
+    setPointerInside(hit);
+    window.novaDesktop?.send('set-island-hit', hit);
+  };
 
   const handleMouseEnter = () => {
+    setWindowHit(true);
+    setKeepOpen(false);
+    if (collapseTimerRef.current !== null) window.clearTimeout(collapseTimerRef.current);
+    if (isAiWhisperOpen || isExpanded) return;
     playHoverSound();
-    if (collapseTimerRef.current) {
-      window.clearTimeout(collapseTimerRef.current);
-      collapseTimerRef.current = null;
-    }
-
-    if (!isExpanded) {
+    if (isRetracted) {
+      wakeHoverTimerRef.current = window.setTimeout(() => {
+        playExpandSound();
+        setRetracted(false);
+        setExpanded(true);
+      }, settings.wakeHoverDelayMs ?? 650);
+    } else {
       hoverTimerRef.current = window.setTimeout(() => {
         playExpandSound();
         setExpanded(true);
@@ -193,33 +240,48 @@ export const IslandContainer: React.FC = () => {
     }
   };
 
-  const handleMouseLeave = () => {
-    if (hoverTimerRef.current) {
-      window.clearTimeout(hoverTimerRef.current);
-      hoverTimerRef.current = null;
-    }
+  useEffect(() => {
+    if (keepOpen || pointerInside || !isExpanded || isPinned || isInteracting || isAiWhisperOpen) return;
+    if (collapseTimerRef.current !== null) window.clearTimeout(collapseTimerRef.current);
+    collapseTimerRef.current = window.setTimeout(() => {
+      playCollapseSound();
+      setExpanded(false);
+    }, settings.collapseDelayMs);
+    return () => {
+      if (collapseTimerRef.current !== null) window.clearTimeout(collapseTimerRef.current);
+    };
+  }, [keepOpen, pointerInside, isExpanded, isPinned, isInteracting, isAiWhisperOpen, settings.collapseDelayMs, setExpanded]);
 
-    if (isExpanded && !isPinned && !isInteracting) {
-      collapseTimerRef.current = window.setTimeout(() => {
-        playCollapseSound();
-        setExpanded(false);
-      }, settings.collapseDelayMs);
-    }
+  const handleMouseLeave = () => {
+    setWindowHit(false);
+    if (wakeHoverTimerRef.current !== null) window.clearTimeout(wakeHoverTimerRef.current);
+    if (hoverTimerRef.current !== null) window.clearTimeout(hoverTimerRef.current);
   };
 
   const handleManualExpand = () => {
-    if (hoverTimerRef.current) window.clearTimeout(hoverTimerRef.current);
+    if (hoverTimerRef.current !== null) window.clearTimeout(hoverTimerRef.current);
+    if (wakeHoverTimerRef.current !== null) window.clearTimeout(wakeHoverTimerRef.current);
     playClickSound();
     playExpandSound();
+    setRetracted(false);
     setExpanded(true);
   };
 
   const handleManualCollapse = () => {
-    if (collapseTimerRef.current) window.clearTimeout(collapseTimerRef.current);
+    if (collapseTimerRef.current !== null) window.clearTimeout(collapseTimerRef.current);
     playClickSound();
     playCollapseSound();
+    setKeepOpen(false);
     setExpanded(false);
   };
+
+  useEffect(() => {
+    if (!liveActivity?.timeoutMs) return;
+    const timer = window.setTimeout(() => {
+      if (useIslandStore.getState().liveActivity?.id === liveActivity.id) useIslandStore.getState().dismissLiveActivity();
+    }, Math.max(0, liveActivity.createdAt + liveActivity.timeoutMs - Date.now()));
+    return () => window.clearTimeout(timer);
+  }, [liveActivity]);
 
   const isBottom = settings.screenPosition?.startsWith('bottom');
   const isLeft = settings.screenPosition?.endsWith('left');
@@ -240,7 +302,7 @@ export const IslandContainer: React.FC = () => {
   const isCustomShape = settings.notchStyle === 'custom-shape';
   const isRgb = settings.enableRgbBorder || settings.themeMode === 'rgb';
 
-  const customChamfer = Math.max(0, Math.min(28, settings.customNotchChamfer ?? 14));
+  const customChamfer = Math.max(0, Math.min(28, isExpanded ? targetExpandedHeight / 3 : settings.pillHeight / 3, settings.customNotchChamfer ?? 14));
   const customWingDepth = Math.max(0, Math.min(24, settings.customNotchWingDepth ?? 0));
   const customRadiusVal = Math.max(0, Math.min(28, settings.customNotchRadius ?? 12));
 
@@ -253,12 +315,30 @@ export const IslandContainer: React.FC = () => {
     : Math.max(250, settings.pillWidth || 250);
   const effectivePillHeight = isCompact ? 32 : settings.pillHeight;
 
-  const currentWidth = isExpanded ? settings.expandedWidth : effectivePillWidth;
-  const currentHeight = isExpanded ? targetExpandedHeight : effectivePillHeight;
+  const currentWidth = isExpanded ? settings.expandedWidth : isRetracted ? 135 : effectivePillWidth;
+  const currentHeight = isExpanded ? targetExpandedHeight : isRetracted ? 8 : effectivePillHeight;
+
+  useEffect(() => {
+    const sync = () => resizeDesktopWindow(
+      isExpanded, currentWidth, currentHeight, settings.screenPosition, settings.notchStyle,
+      settings.topOffset ?? 0, settings.sideMargin ?? 16, isRetracted,
+      settings.enableMultiMonitorRoaming !== false, isAiWhisperOpen
+    );
+    if (isExpanded || isRetracted || isAiWhisperOpen) {
+      void sync();
+      return;
+    }
+    windowResizeTimerRef.current = window.setTimeout(sync, 200);
+    return () => {
+      if (windowResizeTimerRef.current !== null) window.clearTimeout(windowResizeTimerRef.current);
+    };
+  }, [isExpanded, currentWidth, currentHeight, settings.screenPosition, settings.notchStyle, settings.topOffset, settings.sideMargin, settings.enableMultiMonitorRoaming, isRetracted, isAiWhisperOpen]);
 
   // Explicit radius per shape
   let currentRadius = '20px';
-  if (isChamfered) {
+  if (isRetracted) {
+    currentRadius = '0 0 8px 8px';
+  } else if (isChamfered) {
     currentRadius = '0px';
   } else if (isCustomShape) {
     currentRadius = customChamfer > 0 || customWingDepth > 0 ? '0px' : (isExpanded ? '24px' : `${customRadiusVal}px`);
@@ -288,7 +368,9 @@ export const IslandContainer: React.FC = () => {
   }
 
   let glowRadius = '24px';
-  if (isChamfered || isNotch) {
+  if (isRetracted) {
+    glowRadius = '0 0 10px 10px';
+  } else if (isChamfered || isNotch) {
     glowRadius = isExpanded ? '0 0 28px 28px' : '0 0 24px 24px';
   } else if (isCustomShape) {
     glowRadius = isExpanded ? '28px' : `${Math.max(16, customRadiusVal + 6)}px`;
@@ -314,12 +396,15 @@ export const IslandContainer: React.FC = () => {
     glowRadius = isExpanded ? '28px' : '24px';
   }
 
-  const topGap = typeof settings.topOffset === 'number' ? settings.topOffset : (isNotch ? 0 : 8);
-  const sideGap = typeof settings.sideMargin === 'number' ? settings.sideMargin : 16;
+  const topGap = isRetracted ? 0 : (typeof settings.topOffset === 'number' ? settings.topOffset : (isNotch ? 0 : 8));
+  const nativeInset = window.novaDesktop ? 0 : topGap;
+  const sideGap = window.novaDesktop ? 8 : (settings.sideMargin ?? 16);
 
   // Explicit clip-path for faceted geometric notch shapes
   let currentClipPath = 'none';
-  if (isCustomShape) {
+  if (isRetracted) {
+    currentClipPath = 'none';
+  } else if (isCustomShape) {
     if (customWingDepth > 0) {
       currentClipPath = `polygon(${customChamfer}px 0%, calc(100% - ${customChamfer}px) 0%, 100% ${customChamfer}px, 100% 26%, calc(100% - ${customWingDepth}px) 50%, 100% 74%, 100% calc(100% - ${customChamfer}px), calc(100% - ${customChamfer}px) 100%, ${customChamfer}px 100%, 0% calc(100% - ${customChamfer}px), 0% 74%, ${customWingDepth}px 50%, 0% 26%, 0% ${customChamfer}px)`;
     } else if (customChamfer > 0) {
@@ -352,7 +437,7 @@ export const IslandContainer: React.FC = () => {
   }
 
   const dynamicBg = wallpaperPalette && settings.enableWallpaperTinting
-    ? (isExpanded ? 'rgba(15, 23, 42, 0.88)' : 'rgba(11, 13, 18, 0.92)')
+    ? `color-mix(in srgb, ${wallpaperPalette.accent} 14%, ${isExpanded ? 'var(--nova-surface-glass)' : 'var(--nova-pill-bg)'})`
     : (isExpanded ? 'var(--nova-surface-glass)' : 'var(--nova-pill-bg)');
 
   const dynamicGlow = wallpaperPalette && settings.enableWallpaperTinting
@@ -369,10 +454,20 @@ export const IslandContainer: React.FC = () => {
   };
 
   const customEdgeColor = settings.customEdgeLightingColor || '#38BDF8';
-  const resolvedEdgeBackground =
-    settings.edgeLightingColor === 'custom'
-      ? `linear-gradient(90deg, ${customEdgeColor}, #ffffff, ${customEdgeColor})`
-      : (EDGE_GRADIENTS[settings.edgeLightingColor || 'cyan-pulse'] || EDGE_GRADIENTS['cyan-pulse']);
+  const isClipboardActive = clipboardPulse && clipboardPulse.active;
+  const isCalendarActive = calendarAlert && calendarAlert.active;
+  const isBatteryLow = batteryStatus && batteryStatus.isLow;
+  const isPeripheralAlert = isClipboardActive || isCalendarActive || isBatteryLow;
+
+  const resolvedEdgeBackground = isClipboardActive
+    ? 'linear-gradient(90deg, #38BDF8, #00F0FF, #FFFFFF, #38BDF8)'
+    : isCalendarActive
+    ? 'linear-gradient(90deg, #F59E0B, #FBBF24, #EF4444, #F59E0B)'
+    : isBatteryLow
+    ? 'linear-gradient(90deg, #EF4444, #F97316, #EF4444)'
+    : settings.edgeLightingColor === 'custom'
+    ? `linear-gradient(90deg, ${customEdgeColor}, #ffffff, ${customEdgeColor})`
+    : (EDGE_GRADIENTS[settings.edgeLightingColor || 'cyan-pulse'] || EDGE_GRADIENTS['cyan-pulse']);
 
   // Mathematically exact geometric outline path following the real notch shape
   const getShapePath = () => {
@@ -456,8 +551,8 @@ export const IslandContainer: React.FC = () => {
         alignItems,
         width: '100vw',
         height: '100vh',
-        paddingTop: !isBottom ? topGap : 0,
-        paddingBottom: isBottom ? topGap : 0,
+        paddingTop: !isBottom ? nativeInset : 0,
+        paddingBottom: isBottom ? nativeInset : 0,
         paddingLeft: isLeft ? sideGap : 0,
         paddingRight: isRight ? sideGap : 0,
         pointerEvents: 'none', // pass through clicks on transparent canvas
@@ -466,10 +561,16 @@ export const IslandContainer: React.FC = () => {
       <div
         style={{
           position: 'relative',
+          maxWidth: '100%',
+          maxHeight: '100%',
           pointerEvents: 'auto',
           display: 'flex',
           justifyContent: 'center',
           alignItems: isBottom ? 'flex-end' : 'flex-start',
+        }}
+        onFocusCapture={() => useIslandStore.getState().setInteracting(true)}
+        onBlurCapture={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) useIslandStore.getState().setInteracting(false);
         }}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
@@ -478,8 +579,8 @@ export const IslandContainer: React.FC = () => {
         {settings.enableGlow && (
           <motion.div
             animate={{
-              width: currentWidth + (isNotch ? 40 : 32),
-              height: currentHeight + (isNotch ? 20 : 32),
+              width: currentWidth + (isRetracted ? 14 : isNotch ? 40 : 32),
+              height: currentHeight + (isRetracted ? 6 : isNotch ? 20 : 32),
               borderRadius: glowRadius,
             }}
             transition={{
@@ -490,13 +591,13 @@ export const IslandContainer: React.FC = () => {
             }}
             style={{
               position: 'absolute',
-              top: isNotch ? 0 : -8,
+              top: isRetracted || isNotch ? 0 : -8,
               background: isRgb
                 ? 'radial-gradient(ellipse at center, rgba(96, 165, 250, 0.45) 0%, rgba(167, 139, 250, 0.28) 40%, rgba(244, 63, 94, 0.10) 65%, transparent 80%)'
-                : isNotch
+                : isNotch || isRetracted
                 ? 'radial-gradient(ellipse at 50% 0%, var(--nova-glow-color) 0%, rgba(var(--nova-glow-rgb), 0.22) 40%, rgba(var(--nova-glow-rgb), 0.05) 65%, transparent 80%)'
                 : 'radial-gradient(ellipse at center, var(--nova-glow-color) 0%, rgba(var(--nova-glow-rgb), 0.22) 40%, rgba(var(--nova-glow-rgb), 0.05) 65%, transparent 80%)',
-              filter: 'blur(16px)',
+              filter: isRetracted ? 'blur(8px)' : 'blur(16px)',
               pointerEvents: 'none',
               zIndex: 0,
               animation: isRgb ? 'rgb-flow 8s linear infinite' : undefined,
@@ -505,7 +606,7 @@ export const IslandContainer: React.FC = () => {
         )}
 
         {/* Left Notch Bezel Ear (Curved) */}
-        {settings.notchStyle === 'notch-attached' && !isBottom && topGap === 0 && (
+        {settings.notchStyle === 'notch-attached' && !isBottom && topGap === 0 && !isRetracted && (
           <svg
             width="16"
             height="16"
@@ -527,7 +628,7 @@ export const IslandContainer: React.FC = () => {
         )}
 
         {/* Right Notch Bezel Ear (Curved) */}
-        {settings.notchStyle === 'notch-attached' && !isBottom && topGap === 0 && (
+        {settings.notchStyle === 'notch-attached' && !isBottom && topGap === 0 && !isRetracted && (
           <svg
             width="16"
             height="16"
@@ -549,7 +650,7 @@ export const IslandContainer: React.FC = () => {
         )}
 
         {/* Chamfered Notch Ears */}
-        {isChamfered && !isBottom && topGap === 0 && (
+        {isChamfered && !isBottom && topGap === 0 && !isRetracted && (
           <>
             <svg
               width="16"
@@ -595,7 +696,7 @@ export const IslandContainer: React.FC = () => {
           animate={{
             width: currentWidth,
             height: currentHeight,
-            borderRadius: isChamfered ? '0px' : (isSplit && !isExpanded ? '0px' : currentRadius),
+            borderRadius: isRetracted ? '0 0 8px 8px' : isChamfered ? '0px' : (isSplit && !isExpanded ? '0px' : currentRadius),
           }}
           transition={{
             type: 'spring',
@@ -604,27 +705,29 @@ export const IslandContainer: React.FC = () => {
             mass: 0.8,
           }}
           style={{
-            backgroundColor: isSplit && !isExpanded ? 'transparent' : dynamicBg,
-            boxShadow: isSplit && !isExpanded ? 'none' : (isExpanded ? 'var(--nova-shadow-card)' : 'var(--nova-shadow-pill)'),
-            border: (isSplit && !isExpanded) || currentClipPath !== 'none' ? 'none' : (
+            maxWidth: 'calc(100vw - 16px)',
+            maxHeight: '100vh',
+            backgroundColor: isSplit && !isExpanded && !isRetracted ? 'transparent' : dynamicBg,
+            boxShadow: isSplit && !isExpanded && !isRetracted ? 'none' : isRetracted ? '0 2px 10px rgba(0, 0, 0, 0.6)' : (isExpanded ? 'var(--nova-shadow-card)' : 'var(--nova-shadow-pill)'),
+            border: (isSplit && !isExpanded && !isRetracted) || (currentClipPath !== 'none' && !isRetracted) ? 'none' : (
               isRgb
                 ? '1.5px solid rgba(96, 165, 250, 0.6)'
                 : wallpaperPalette && settings.enableWallpaperTinting
                 ? `1.5px solid ${wallpaperPalette.accent}70`
                 : `1px solid rgba(255, 255, 255, ${Math.max(0.05, ((settings.glassmorphismBorderGlow ?? 35) / 100) * 0.45)})`
             ),
-            borderTop: isNotch ? 'none' : undefined,
-            backdropFilter: isSplit && !isExpanded ? 'none' : `blur(${settings.glassmorphismBlur ?? 28}px) saturate(180%)`,
-            WebkitBackdropFilter: isSplit && !isExpanded ? 'none' : `blur(${settings.glassmorphismBlur ?? 28}px) saturate(180%)`,
-            clipPath: isSplit && !isExpanded ? 'none' : currentClipPath,
+            borderTop: isNotch || isRetracted ? 'none' : undefined,
+            backdropFilter: isSplit && !isExpanded && !isRetracted ? 'none' : `blur(${settings.glassmorphismBlur ?? 28}px) saturate(180%)`,
+            WebkitBackdropFilter: isSplit && !isExpanded && !isRetracted ? 'none' : `blur(${settings.glassmorphismBlur ?? 28}px) saturate(180%)`,
+            clipPath: (isSplit && !isExpanded && !isRetracted) || isRetracted ? 'none' : currentClipPath,
             position: 'relative',
-            overflow: isSplit && !isExpanded ? 'visible' : 'hidden',
+            overflow: isSplit && !isExpanded && !isRetracted ? 'visible' : 'hidden',
             zIndex: 2,
             cursor: isExpanded ? 'default' : 'pointer',
           }}
-          className={isRgb && !(isSplit && !isExpanded) ? 'rgb-border' : ''}
+          className={isRgb && !(isSplit && !isExpanded && !isRetracted) ? 'rgb-border' : ''}
           onMouseMove={(e) => {
-            if (settings.enable3dGyroGlare !== false) {
+            if (settings.enable3dGyroGlare !== false && !isRetracted) {
               const rect = e.currentTarget.getBoundingClientRect();
               setGlarePos({
                 x: e.clientX - rect.left,
@@ -639,7 +742,7 @@ export const IslandContainer: React.FC = () => {
           onDragOver={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            if (!isDraggingOver) setIsDraggingOver(true);
+            if (!isDraggingOver && !isRetracted) setIsDraggingOver(true);
           }}
           onDragLeave={(e) => {
             e.preventDefault();
@@ -658,7 +761,7 @@ export const IslandContainer: React.FC = () => {
           }}
         >
           {/* Dynamic 3D Gyro Glass Glare Specular Highlight */}
-          {settings.enable3dGyroGlare !== false && glarePos && !(isSplit && !isExpanded) && (
+          {settings.enable3dGyroGlare !== false && glarePos && !(isSplit && !isExpanded) && !isRetracted && (
             <div
               style={{
                 position: 'absolute',
@@ -673,7 +776,7 @@ export const IslandContainer: React.FC = () => {
           )}
 
           {/* Global Desktop File Drop Indicator */}
-          {isDraggingOver && (
+          {isDraggingOver && !isRetracted && (
             <div
               style={{
                 position: 'absolute',
@@ -697,10 +800,12 @@ export const IslandContainer: React.FC = () => {
           )}
 
           {/* Seasonal Ambient Particles Engine */}
-          <AmbientParticles mode={settings.ambientParticles} width={currentWidth} height={currentHeight} />
+          {!isRetracted && (
+            <AmbientParticles mode={settings.ambientParticles} width={currentWidth} height={currentHeight} />
+          )}
 
           {/* Audio-Reactive Equalizer Edge Lighting Pulse */}
-          {settings.enableAudioReactiveLighting && media.isPlaying && !(isSplit && !isExpanded) && (
+          {settings.enableAudioReactiveLighting && media.isPlaying && !(isSplit && !isExpanded) && !isRetracted && (
             <motion.div
               animate={{
                 opacity: [0.35, 0.95, 0.35],
@@ -726,7 +831,7 @@ export const IslandContainer: React.FC = () => {
           )}
 
           {/* Geometric SVG Edge Lighting & Precise Glass Rim Engine */}
-          {!(isSplit && !isExpanded) && (
+          {!(isSplit && !isExpanded) && !isRetracted && (
             <svg
               style={{
                 position: 'absolute',
@@ -804,7 +909,7 @@ export const IslandContainer: React.FC = () => {
               )}
 
               {/* Active Animated Edge Lighting Stroke following exact notch shape contour */}
-              {settings.edgeLightingMode && settings.edgeLightingMode !== 'off' && (
+              {((settings.edgeLightingMode && settings.edgeLightingMode !== 'off') || isPeripheralAlert) && (
                 <motion.path
                   d={shapePath}
                   fill="none"
@@ -863,7 +968,43 @@ export const IslandContainer: React.FC = () => {
             </svg>
           )}
           <AnimatePresence mode="wait">
-            {!isExpanded ? (
+            {isRetracted ? (
+              <motion.div
+                key="stealth-indicator"
+                initial={{ opacity: 0, scaleY: 0.5 }}
+                animate={{ opacity: 1, scaleY: 1 }}
+                exit={{ opacity: 0, scaleY: 0.5 }}
+                transition={{ duration: 0.15 }}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  userSelect: 'none',
+                }}
+                onClick={handleManualExpand}
+                title="NOVA Stealth Bezel — Click or hover to restore notch"
+              >
+                <div
+                  style={{
+                    width: 34,
+                    height: 3,
+                    borderRadius: 2,
+                    background: isRgb
+                      ? 'linear-gradient(90deg, #38BDF8, #A855F7, #EC4899)'
+                      : wallpaperPalette && settings.enableWallpaperTinting
+                      ? wallpaperPalette.accent
+                      : 'var(--nova-cyan)',
+                    boxShadow: isRgb
+                      ? '0 0 8px rgba(56, 189, 248, 0.8)'
+                      : '0 0 8px var(--nova-glow-color)',
+                    animation: 'pulse 2.2s infinite ease-in-out',
+                  }}
+                />
+              </motion.div>
+            ) : !isExpanded ? (
               <motion.div
                 key="pill-content"
                 initial={{ opacity: 0 }}
@@ -902,6 +1043,73 @@ export const IslandContainer: React.FC = () => {
             )}
           </AnimatePresence>
         </motion.div>
+
+        {/* Floating Peripheral Alert Toast (Clipboard & Calendar) */}
+        <AnimatePresence>
+          {isClipboardActive && (
+            <motion.div
+              initial={{ opacity: 0, y: -8, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -8, scale: 0.95 }}
+              style={{
+                position: 'absolute',
+                ...(isBottom ? { bottom: currentHeight + 6 } : { top: currentHeight + 6 }),
+                backgroundColor: 'rgba(11, 13, 18, 0.92)',
+                border: '1px solid var(--nova-cyan)',
+                borderRadius: 'var(--nova-radius-pill)',
+                padding: '4px 10px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                boxShadow: '0 4px 14px rgba(56, 189, 248, 0.35)',
+                zIndex: 9990,
+                pointerEvents: 'none',
+              }}
+            >
+              <span style={{ fontSize: '11px' }}>📋</span>
+              <span style={{ fontSize: '10px', fontWeight: 600, color: 'var(--nova-cyan)' }}>
+                Clipboard updated
+              </span>
+            </motion.div>
+          )}
+
+          {isCalendarActive && (
+            <motion.div
+              initial={{ opacity: 0, y: -8, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -8, scale: 0.95 }}
+              style={{
+                position: 'absolute',
+                ...(isBottom ? { bottom: currentHeight + 6 } : { top: currentHeight + 6 }),
+                backgroundColor: 'rgba(11, 13, 18, 0.92)',
+                border: '1px solid #F59E0B',
+                borderRadius: 'var(--nova-radius-pill)',
+                padding: '4px 10px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                boxShadow: '0 4px 14px rgba(245, 158, 11, 0.35)',
+                zIndex: 9990,
+                pointerEvents: 'none',
+              }}
+            >
+              <span style={{ fontSize: '11px' }}>📅</span>
+              <span style={{ fontSize: '10px', fontWeight: 600, color: '#F59E0B' }}>
+                Upcoming: {calendarAlert?.title} in {calendarAlert?.minutesLeft}m
+              </span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* AI Whisper & Quick Command Bar Overlay */}
+        <AiWhisperCommandBar
+          isOpen={isAiWhisperOpen}
+          bottom={isBottom}
+          onClose={() => {
+            if (useIslandStore.getState().isExpanded) setKeepOpen(true);
+            setAiWhisperOpen(false);
+          }}
+        />
       </div>
     </div>
   );

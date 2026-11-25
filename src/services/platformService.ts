@@ -1,7 +1,7 @@
 // Platform service for desktop runtime detection and system integration
 
 export const isElectron = (): boolean => {
-  return typeof window !== 'undefined' && !!(window as any).require;
+  return Boolean(getIpc());
 };
 
 export const isTauri = (): boolean => {
@@ -15,11 +15,14 @@ export const resizeDesktopWindow = async (
   position: string = 'top-center',
   notchStyle: string = 'floating-pill',
   topOffset: number = 0,
-  sideMargin: number = 16
+  sideMargin: number = 16,
+  isRetracted: boolean = false,
+  enableRoaming: boolean = true,
+  isAiWhisperOpen: boolean = false
 ): Promise<void> => {
   try {
-    if (isElectron()) {
-      const { ipcRenderer } = (window as any).require('electron');
+    {
+      const ipcRenderer = getIpc();
       if (ipcRenderer) {
         ipcRenderer.send('set-island-state', {
           expanded,
@@ -29,13 +32,16 @@ export const resizeDesktopWindow = async (
           notchStyle,
           topOffset,
           sideMargin,
+          isRetracted,
+          enableRoaming,
+          isAiWhisperOpen,
         });
         return;
       }
     }
     if (isTauri()) {
       const { invoke } = await import('@tauri-apps/api/core');
-      await invoke('set_island_state', { expanded, width, height });
+      await invoke('set_island_state', { expanded, width: Math.max(width, isAiWhisperOpen ? 400 : 0) + 16, height: Math.max(height + 16, isAiWhisperOpen ? 340 : 0) });
     }
   } catch (err) {
     // Silent fallback
@@ -43,47 +49,26 @@ export const resizeDesktopWindow = async (
 };
 
 export const getAutoStartStatus = async (): Promise<boolean> => {
-  try {
-    if (isElectron()) {
-      const { ipcRenderer } = (window as any).require('electron');
-      if (ipcRenderer) {
-        return await ipcRenderer.invoke('get-autostart-status');
-      }
-    }
-  } catch (err) {
-    // Fallback to localStorage
-  }
-  const stored = localStorage.getItem('nova_autostart_enabled');
-  return stored === 'true';
+  const ipc = getIpc();
+  return ipc ? await ipc.invoke('get-autostart-status').catch(() => false) : false;
 };
 
 export const setAutoStartStatus = async (enabled: boolean): Promise<boolean> => {
-  try {
-    localStorage.setItem('nova_autostart_enabled', String(enabled));
-    if (isElectron()) {
-      const { ipcRenderer } = (window as any).require('electron');
-      if (ipcRenderer) {
-        return await ipcRenderer.invoke('set-autostart-status', enabled);
-      }
-    }
-    return enabled;
-  } catch (err) {
-    console.error('Failed to set autostart status:', err);
-    return enabled;
-  }
+  const ipc = getIpc();
+  if (!ipc) throw new Error('Windows startup settings are unavailable');
+  return ipc.invoke('set-autostart-status', enabled);
 };
 
-export const getIpc = () => {
-  try {
-    if (typeof window !== 'undefined') {
-      if (window.electron?.ipcRenderer) return window.electron.ipcRenderer;
-      if (window.require) {
-        const { ipcRenderer } = window.require('electron');
-        return ipcRenderer;
-      }
-    }
-  } catch (e) {}
-  return null;
+export const getIpc = () => typeof window === 'undefined' ? null : window.novaDesktop ?? null;
+
+export const getLocalFilePath = (file: File) => getIpc()?.getFilePath(file) || '';
+
+export const copyText = async (text: string) => {
+  const ipc = getIpc();
+  if (ipc) return Boolean(await ipc.invoke('write-clipboard-text', text));
+  if (!navigator.clipboard) return false;
+  await navigator.clipboard.writeText(text);
+  return true;
 };
 
 export const runQuickAction = async (action: string) => {
@@ -100,7 +85,7 @@ export const runLaunchShortcut = async (target: string) => {
     return await ipc.invoke('launch-shortcut', target);
   }
   if (/^https?:\/\//i.test(target)) {
-    window.open(target, '_blank');
+    window.open(target, '_blank', 'noopener,noreferrer');
     return { success: true };
   }
   return { success: false, error: 'IPC unavailable' };

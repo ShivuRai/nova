@@ -10,6 +10,10 @@ for (const k of Object.keys(process.env)) {
 
 const path = require('path');
 const fs = require('fs');
+const { execFile, spawn } = require('child_process');
+const execFileAsync = require('util').promisify(execFile);
+const { calculateIslandBounds } = require('./window-bounds.cjs');
+const { createDropReceiver } = require('./drop-receiver.cjs');
 
 const debugLogPath = path.join(__dirname, 'nova-debug.log');
 const debugLog = (msg) => {
@@ -50,7 +54,7 @@ if (!electronModule || typeof electronModule !== 'object' || !electronModule.app
         delete cleanEnv[k];
       }
     }
-    let targetBinary = process.execPath;
+    let targetBinary;
     let targetArgs = [__filename];
     const appNovaExe = path.join(__dirname, '..', '..', 'NOVA.exe');
     if (fs.existsSync(appNovaExe)) {
@@ -63,6 +67,7 @@ if (!electronModule || typeof electronModule !== 'object' || !electronModule.app
         targetArgs = [__filename];
       }
     }
+    if (!targetBinary) throw new Error('Electron runtime unavailable');
     debugLog(`Spawning GUI process: ${targetBinary} with args: ${targetArgs.join(' ')}`);
     const child = spawn(targetBinary, targetArgs, {
       env: cleanEnv,
@@ -77,18 +82,11 @@ if (!electronModule || typeof electronModule !== 'object' || !electronModule.app
   process.exit(0);
 }
 
-const { app, BrowserWindow, screen, ipcMain, Tray, Menu, nativeImage, globalShortcut, shell, clipboard, dialog } = electronModule;
-
-if (dialog && dialog.showErrorBox) {
-  dialog.showErrorBox = (title, content) => {
-    debugLog(`[Suppressed ErrorBox] ${title}: ${content}`);
-  };
-}
+const { app, BrowserWindow, screen, ipcMain, Tray, Menu, nativeImage, globalShortcut, shell, clipboard, dialog, systemPreferences, powerMonitor } = electronModule;
 
 let mainWindow = null;
 let tray = null;
-let dropServerInstance = null;
-let activeDropPort = 5980;
+let dropReceiver = null;
 
 // Single-instance lock: if NOVA is already running, focus and bring the existing instance to front
 const gotTheLock = app.requestSingleInstanceLock();
@@ -116,30 +114,29 @@ app.whenReady().then(createWindow);
 function createWindow() {
   debugLog('createWindow started');
   const primaryDisplay = screen.getPrimaryDisplay();
-  const { width: screenWidth } = primaryDisplay.workAreaSize;
+  const initialBounds = calculateIslandBounds(primaryDisplay.workArea, { width: 268, height: 38 });
 
-  const islandWidth = 740;
-  const islandHeight = 500;
-  const x = Math.round((screenWidth - islandWidth) / 2);
-  const y = 8; // Anchored to top-center
+  // Resolve icon path safely across packaged and development layouts
+  const resolveIconPath = (fileName) => {
+    const candidates = [
+      path.join(__dirname, 'src-tauri', 'icons', fileName),
+      path.join(__dirname, '..', 'src-tauri', 'icons', fileName),
+      path.join(__dirname, '..', '..', 'src-tauri', 'icons', fileName),
+      path.join(__dirname, '..', '..', '..', 'src-tauri', 'icons', fileName),
+      path.join(process.resourcesPath || '', 'app', 'src-tauri', 'icons', fileName),
+    ];
+    for (const c of candidates) {
+      if (fs.existsSync(c)) return c;
+    }
+    return null;
+  };
 
-  // Resolve icon path safely
-  let iconPath = path.join(__dirname, 'src-tauri', 'icons', 'icon.ico');
-  if (!fs.existsSync(iconPath)) {
-    iconPath = path.join(__dirname, '..', 'src-tauri', 'icons', 'icon.ico');
-  }
-
-  let trayIconPath = path.join(__dirname, 'src-tauri', 'icons', '32x32.png');
-  if (!fs.existsSync(trayIconPath)) {
-    trayIconPath = iconPath;
-  }
+  const iconPath = resolveIconPath('icon.ico') || resolveIconPath('32x32.png');
+  const trayIconPath = resolveIconPath('32x32.png') || resolveIconPath('icon.ico');
 
   mainWindow = new BrowserWindow({
     title: 'NOVA - Your desktop. Reimagined.',
-    width: islandWidth,
-    height: islandHeight,
-    x: x,
-    y: y,
+    ...initialBounds,
     frame: false,
     transparent: true,
     backgroundColor: '#00000000',
@@ -147,29 +144,49 @@ function createWindow() {
     skipTaskbar: true, // Hide from the main taskbar; live in the Windows system tray / hidden icons area
     resizable: false,
     hasShadow: false,
-    show: true, // Show immediately!
-    icon: fs.existsSync(iconPath) ? iconPath : undefined,
+    show: false,
+    icon: iconPath && fs.existsSync(iconPath) ? iconPath : undefined,
     webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
-      backgroundThrottling: false,
-      webSecurity: false,
+      preload: path.join(__dirname, 'preload.cjs'),
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: true,
+      webSecurity: true,
     },
   });
 
   mainWindow.setAlwaysOnTop(true, 'screen-saver');
 
+  mainWindow.setIgnoreMouseEvents(true, { forward: true });
+  mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  mainWindow.webContents.on('will-navigate', (event) => event.preventDefault());
+  mainWindow.webContents.on('will-attach-webview', (event) => event.preventDefault());
+  const send = (channel, ...args) => {
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send(channel, ...args);
+  };
+  const handle = (channel, listener) => ipcMain.handle(channel, (event, ...args) => {
+    if (!mainWindow || event.senderFrame !== mainWindow.webContents.mainFrame) throw new Error('Unsupported NOVA window');
+    return listener(event, ...args);
+  });
+  const on = (channel, listener) => ipcMain.on(channel, (event, ...args) => {
+    if (mainWindow && event.senderFrame === mainWindow.webContents.mainFrame) listener(event, ...args);
+  });
+
   // Create Windows Notification Area System Tray Icon ("Hidden Icons" section)
   try {
-    let trayIcon = null;
-    if (fs.existsSync(trayIconPath)) {
-      trayIcon = nativeImage.createFromPath(trayIconPath);
-    } else if (fs.existsSync(iconPath)) {
-      trayIcon = nativeImage.createFromPath(iconPath);
+    let trayImage = null;
+    if (trayIconPath && fs.existsSync(trayIconPath)) {
+      trayImage = nativeImage.createFromPath(trayIconPath);
+    }
+    if ((!trayImage || trayImage.isEmpty()) && iconPath && fs.existsSync(iconPath)) {
+      trayImage = nativeImage.createFromPath(iconPath);
+    }
+    if (!trayImage || trayImage.isEmpty()) {
+      trayImage = nativeImage.createEmpty();
     }
 
-    if (trayIcon && !tray) {
-      tray = new Tray(trayIcon);
+    if (!tray) {
+      tray = new Tray(trayImage);
       tray.setToolTip('NOVA - Dynamic Island Companion');
 
       const contextMenu = Menu.buildFromTemplate([
@@ -180,9 +197,9 @@ function createWindow() {
         { type: 'separator' },
         {
           label: 'Show / Toggle Island',
-          accelerator: 'Alt+Space',
+          accelerator: 'Alt+Shift+Space',
           click: () => {
-            if (mainWindow) {
+            if (mainWindow && !mainWindow.isDestroyed()) {
               if (!mainWindow.isVisible()) {
                 mainWindow.show();
               }
@@ -194,7 +211,7 @@ function createWindow() {
         {
           label: 'Open Settings',
           click: () => {
-            if (mainWindow) {
+            if (mainWindow && !mainWindow.isDestroyed()) {
               if (!mainWindow.isVisible()) {
                 mainWindow.show();
               }
@@ -204,9 +221,9 @@ function createWindow() {
           },
         },
         {
-          label: 'Open RGB & Glow',
+          label: 'Open RGB & Customization',
           click: () => {
-            if (mainWindow) {
+            if (mainWindow && !mainWindow.isDestroyed()) {
               if (!mainWindow.isVisible()) {
                 mainWindow.show();
               }
@@ -230,7 +247,7 @@ function createWindow() {
 
       // Left click or double-click on tray icon toggles the Island
       tray.on('click', () => {
-        if (mainWindow) {
+        if (mainWindow && !mainWindow.isDestroyed()) {
           if (!mainWindow.isVisible()) {
             mainWindow.show();
           }
@@ -239,39 +256,23 @@ function createWindow() {
         }
       });
 
-      tray.on('double-click', () => {
-        if (mainWindow) {
-          if (!mainWindow.isVisible()) {
-            mainWindow.show();
-          }
-          mainWindow.focus();
-          mainWindow.webContents.send('toggle-island');
-        }
-      });
+      debugLog('System Tray created successfully and anchored to taskbar notification area.');
     }
   } catch (err) {
-    console.error('[NOVA] Failed to create system tray icon:', err);
+    debugLog('Failed to create system tray icon: ' + (err.stack || err.message));
   }
 
-  // Load self-contained local build
-  let indexPath = path.join(__dirname, 'dist', 'index.html');
-  if (!fs.existsSync(indexPath)) {
-    indexPath = path.join(__dirname, '..', 'dist', 'index.html');
-  }
-
-  if (fs.existsSync(indexPath)) {
-    console.log('[NOVA] Loading local production bundle from:', indexPath);
-    mainWindow.loadFile(indexPath);
+  const indexPath = path.join(__dirname, 'dist', 'index.html');
+  if (process.argv.includes('--dev') && process.defaultApp) {
+    mainWindow.loadURL('http://localhost:5173').catch((error) => dialog.showErrorBox('NOVA', error.message));
   } else {
-    console.log('[NOVA] Loading local dev server from http://localhost:5173');
-    mainWindow.loadURL('http://localhost:5173');
+    mainWindow.loadFile(indexPath).catch(() => dialog.showErrorBox('NOVA', 'Run npm run build before launching NOVA.'));
   }
 
   mainWindow.webContents.on('did-finish-load', () => {
     debugLog('Window contents finished loading successfully!');
     console.log('[NOVA] Window contents finished loading.');
-    mainWindow.show();
-    mainWindow.focus();
+    mainWindow.showInactive();
   });
 
   mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
@@ -279,72 +280,59 @@ function createWindow() {
     console.error('[NOVA] Failed to load:', errorCode, errorDescription);
   });
 
-  mainWindow.webContents.on('console-message', (event) => {
-    const msg = typeof event === 'object' && event.message ? event.message : event;
-    console.log(`[Renderer Console] ${msg}`);
+  mainWindow.webContents.on('console-message', (event, level, message) => {
+    const msg = typeof event === 'object' && event.message ? event.message : (message || event);
+    debugLog(`[Renderer Console] ${msg}`);
   });
 
   // Window is ready and visible
 
-  // Dynamic sizing & positioning IPC
-  ipcMain.on('set-island-state', (event, { expanded, width, height, position, notchStyle, topOffset = 0, sideMargin = 16 }) => {
-    if (mainWindow) {
-      const currentDisplay = screen.getPrimaryDisplay();
-      const { width: screenWidth, height: screenHeight } = currentDisplay.workAreaSize;
-
-      // Fixed 720 width centered so origin never jumps horizontally
-      const winW = 720;
-      const winH = expanded ? Math.max((height || 360) + 40, 360) : 110;
-
-      let targetX, targetY;
-      const pos = position || 'top-center';
-      const margin = typeof sideMargin === 'number' ? sideMargin : 16;
-      const isTopAttached = (notchStyle === 'notch-attached' || notchStyle === 'chamfered-notch') && topOffset === 0;
-      const topGap = isTopAttached ? 0 : (typeof topOffset === 'number' ? topOffset : 8);
-
-      switch (pos) {
-        case 'top-left':
-          targetX = margin;
-          targetY = topGap;
-          break;
-        case 'top-right':
-          targetX = screenWidth - winW - margin;
-          targetY = topGap;
-          break;
-        case 'bottom-center':
-          targetX = Math.round((screenWidth - winW) / 2);
-          targetY = screenHeight - winH - topGap;
-          break;
-        case 'bottom-left':
-          targetX = margin;
-          targetY = screenHeight - winH - topGap;
-          break;
-        case 'bottom-right':
-          targetX = screenWidth - winW - margin;
-          targetY = screenHeight - winH - topGap;
-          break;
-        case 'top-center':
-        default:
-          targetX = Math.round((screenWidth - winW) / 2);
-          targetY = topGap;
-          break;
-      }
-
-      mainWindow.setBounds({
-        x: targetX,
-        y: targetY,
-        width: winW,
-        height: winH,
-      });
-    }
+  let islandState = { width: 268, height: 38, enableRoaming: true };
+  const moveIsland = () => {
+    const { enableRoaming, expanded, isAiWhisperOpen } = islandState;
+    const display = !enableRoaming
+      ? screen.getPrimaryDisplay()
+      : expanded || isAiWhisperOpen
+        ? screen.getDisplayMatching(mainWindow.getBounds())
+        : screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
+    const bounds = calculateIslandBounds(display.workArea, islandState);
+    const current = mainWindow.getBounds();
+    if (Object.keys(bounds).some((key) => bounds[key] !== current[key])) mainWindow.setBounds(bounds);
+  };
+  on('set-island-state', (_event, state) => {
+    if (!state || typeof state !== 'object') return;
+    islandState = state;
+    moveIsland();
+  });
+  let ignoringMouse = true;
+  on('set-island-hit', (_event, interactive) => {
+    if (typeof interactive !== 'boolean' || ignoringMouse === !interactive) return;
+    ignoringMouse = !interactive;
+    mainWindow.setIgnoreMouseEvents(ignoringMouse, { forward: true });
+  });
+  let lastDisplayId;
+  const roamingTimer = setInterval(() => {
+    const current = screen.getDisplayNearestPoint(screen.getCursorScreenPoint()).id;
+    if (current === lastDisplayId) return;
+    lastDisplayId = current;
+    moveIsland();
+  }, 750);
+  let windowFocused = false;
+  mainWindow.on('blur', () => {
+    windowFocused = false;
+    send('window-blurred');
+  });
+  mainWindow.on('focus', () => {
+    windowFocused = true;
+    send('window-focused');
   });
 
   // Real-Time System Media & YouTube playback monitoring
-  const { execFile } = require('child_process');
   let lastMediaRaw = '';
+  let mediaPending = false;
 
   function pollMedia() {
-    if (!mainWindow || mainWindow.isDestroyed()) return;
+    if (!mainWindow || mainWindow.isDestroyed() || mediaPending) return;
 
     let scriptPath = path.join(__dirname, 'scripts', 'get-media.ps1');
     if (!fs.existsSync(scriptPath)) {
@@ -352,17 +340,19 @@ function createWindow() {
     }
     if (!fs.existsSync(scriptPath)) return;
 
+    mediaPending = true;
     execFile(
       'powershell.exe',
       ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', scriptPath],
       { timeout: 2500, windowsHide: true },
       (err, stdout) => {
+        mediaPending = false;
         if (err || !stdout) return;
         try {
           const raw = stdout.trim();
           if (raw && raw !== lastMediaRaw) {
-            lastMediaRaw = raw;
             const data = JSON.parse(raw);
+            lastMediaRaw = raw;
             if (mainWindow && !mainWindow.isDestroyed()) {
               mainWindow.webContents.send('media-status-update', data);
             }
@@ -376,7 +366,7 @@ function createWindow() {
   const mediaInterval = setInterval(pollMedia, 1500);
   setTimeout(pollMedia, 800);
 
-  ipcMain.handle('get-media-status', () => {
+  handle('get-media-status', () => {
     try {
       if (lastMediaRaw) return JSON.parse(lastMediaRaw);
     } catch (e) {}
@@ -384,7 +374,8 @@ function createWindow() {
   });
 
   // IPC media playback controls (Windows SMTC & Keystroke fallback)
-  ipcMain.on('control-media', (event, action) => {
+  on('control-media', (_event, action) => {
+    if (!['toggle', 'play', 'pause', 'next', 'prev'].includes(action)) return;
     let scriptPath = path.join(__dirname, 'scripts', 'control-media.ps1');
     if (!fs.existsSync(scriptPath)) {
       scriptPath = path.join(__dirname, '..', 'scripts', 'control-media.ps1');
@@ -410,71 +401,154 @@ function createWindow() {
     }
   });
 
-  // Real-Time Screen Time & App Tracking IPC
-  ipcMain.handle('get-screen-time', async () => {
-    return new Promise((resolve) => {
-      let scriptPath = path.join(__dirname, 'scripts', 'get-screen-time.ps1');
-      if (!fs.existsSync(scriptPath)) {
-        scriptPath = path.join(__dirname, '..', 'scripts', 'get-screen-time.ps1');
-      }
-      if (!fs.existsSync(scriptPath)) {
-        resolve({ totalScreenTime: '5h 45m', focusPercent: 82, idleMinutes: 30, apps: [] });
-        return;
-      }
-      execFile(
-        'powershell.exe',
-        ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', scriptPath],
-        { timeout: 3500, windowsHide: true },
-        (err, stdout) => {
-          if (!err && stdout) {
-            try {
-              resolve(JSON.parse(stdout.trim()));
-              return;
-            } catch (e) {}
-          }
-          resolve({
-            totalScreenTime: '6h 15m',
-            focusPercent: 84,
-            idleMinutes: 35,
-            apps: [
-              { name: 'Google Chrome', duration: '4h 10m', percent: 68, color: 'var(--nova-blue)' },
-              { name: 'Antigravity IDE', duration: '1h 25m', percent: 22, color: 'var(--nova-cyan)' },
-              { name: 'ChatGPT Desktop', duration: '35m', percent: 6, color: 'var(--nova-violet)' },
-              { name: 'NOVA Companion', duration: '20m', percent: 4, color: 'var(--nova-warning)' },
-            ],
+  let foregroundRequest;
+  let foreground = { isDesktop: true, process: 'desktop' };
+  const getActiveApp = () => {
+    if (!foregroundRequest) {
+      foregroundRequest = execFileAsync('powershell.exe', [
+        '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', path.join(__dirname, 'scripts', 'get-active-app.ps1'),
+      ], { windowsHide: true, timeout: 3500 }).then(({ stdout }) => {
+        const { isDesktop, process } = JSON.parse(stdout);
+        if (typeof isDesktop === 'boolean') {
+          if (isDesktop !== foreground.isDesktop) send('foreground-app-changed', { isDesktop });
+          foreground = { isDesktop, process };
+        }
+        return foreground;
+      }).catch(() => foreground).finally(() => { foregroundRequest = null; });
+    }
+    return foregroundRequest;
+  };
+  handle('get-active-app', () => windowFocused ? { isDesktop: true } : getActiveApp());
+  let currentDay = new Date().toDateString();
+  let lastSampleAt = Date.now();
+  let idleMs = 0;
+  const appTimes = new Map();
+  const foregroundTimer = setInterval(async () => {
+    const now = Date.now();
+    const day = new Date(now).toDateString();
+    if (day !== currentDay) {
+      currentDay = day;
+      idleMs = 0;
+      appTimes.clear();
+      lastSampleAt = now;
+    }
+    const elapsed = Math.min(3000, Math.max(0, now - lastSampleAt));
+    lastSampleAt = now;
+    if (powerMonitor.getSystemIdleTime() >= 60) {
+      idleMs += elapsed;
+      return;
+    }
+    const active = windowFocused ? { process: 'NOVA' } : await getActiveApp();
+    if (!active.process || active.process === 'desktop') return;
+    appTimes.set(active.process, (appTimes.get(active.process) || 0) + elapsed);
+  }, 2000);
+
+  // Live Chrome / Edge / Browser Download Radar
+  try {
+    const downloadsDir = path.join(require('os').homedir(), 'Downloads');
+    if (fs.existsSync(downloadsDir)) {
+      let downloadCheckTimer = null;
+      const watcher = fs.watch(downloadsDir, (eventType, filename) => {
+        if (!filename) return;
+        if (filename.endsWith('.crdownload') || filename.endsWith('.part')) {
+          if (downloadCheckTimer) clearTimeout(downloadCheckTimer);
+          downloadCheckTimer = setTimeout(() => {
+            if (mainWindow && !mainWindow.isDestroyed()) {
+              try {
+                const fullP = path.join(downloadsDir, filename);
+                if (fs.existsSync(fullP)) {
+                  const stat = fs.statSync(fullP);
+                  const cleanName = filename.replace(/\.(crdownload|part|tmp)$/i, '');
+                  mainWindow.webContents.send('download-status-update', {
+                    active: true,
+                    filename: cleanName,
+                    sizeBytes: stat.size,
+                    sizeFormatted: (stat.size / (1024 * 1024)).toFixed(1) + ' MB',
+                  });
+                } else {
+                  // File completed downloading!
+                  const cleanName = filename.replace(/\.(crdownload|part|tmp)$/i, '');
+                  mainWindow.webContents.send('download-status-update', {
+                    active: false,
+                    completed: fs.existsSync(path.join(downloadsDir, cleanName)),
+                    filename: cleanName,
+                  });
+                }
+              } catch (e) {}
+            }
+          }, 350);
+        }
+      });
+      watcher.on('error', (error) => debugLog('Downloads watcher: ' + error.message));
+      mainWindow.once('closed', () => { clearTimeout(downloadCheckTimer); watcher.close(); });
+    }
+  } catch (err) {
+    debugLog('Downloads watcher note: ' + err.message);
+  }
+
+  // VS Code & Terminal Build Status Watcher
+  try {
+    let lastBuildState = 'idle';
+    const checkBuildProcesses = () => {
+      if (!mainWindow || mainWindow.isDestroyed()) return;
+      execFile('powershell.exe', ['-NoProfile', '-Command',
+        '@(Get-Process -Name "tsc", "vite", "esbuild", "rustc", "cargo", "webpack" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty ProcessName) -join ","'
+      ], { timeout: 2000, windowsHide: true }, (err, stdout) => {
+        if (err) return;
+        const procs = stdout ? stdout.trim() : '';
+        const isBuilding = procs.length > 0;
+        const newState = isBuilding ? 'building' : 'idle';
+        if (newState !== lastBuildState) {
+          lastBuildState = newState;
+          send('build-status-changed', {
+            state: isBuilding ? 'building' : 'idle',
+            tool: procs ? procs.split(',')[0] : 'compiler',
+            timestamp: Date.now(),
           });
         }
-      );
-    });
+      });
+    };
+    const timer = setInterval(checkBuildProcesses, 5000);
+    mainWindow.once('closed', () => clearInterval(timer));
+  } catch (e) {}
+
+  handle('get-screen-time', () => {
+    const total = [...appTimes.values()].reduce((sum, value) => sum + value, 0);
+    const duration = (ms) => {
+      const minutes = Math.floor(ms / 60000);
+      return minutes >= 60 ? `${Math.floor(minutes / 60)}h ${minutes % 60}m` : minutes > 0 ? `${minutes}m` : '<1m';
+    };
+    return {
+      totalScreenTime: total ? duration(total) : '0m',
+      focusPercent: total + idleMs ? Math.round(total / (total + idleMs) * 100) : 0,
+      idleMinutes: Math.floor(idleMs / 60000),
+      apps: [...appTimes.entries()].sort((a, b) => b[1] - a[1]).map(([name, time]) => ({
+        name,
+        duration: duration(time),
+        percent: Math.round(time / total * 100),
+      })),
+    };
   });
 
   // Real-Time System Metrics IPC & Background Broadcaster
-  let latestSystemMetrics = {
-    cpuUsagePercent: 12,
-    cpuTempCelsius: 44,
-    ramUsagePercent: 50,
-    ramUsedGb: 8.0,
-    ramTotalGb: 16.0,
-    diskUsagePercent: 65,
-    diskFreeGb: 120,
-    networkDownloadKbps: 0,
-    networkUploadKbps: 0,
-    batteryPercent: 100,
-    isCharging: true,
-  };
+  let latestSystemMetrics = null;
+  let metricsPending = false;
 
   function pollSystemMetrics() {
+    if (metricsPending) return;
     let scriptPath = path.join(__dirname, 'scripts', 'get-system-metrics.ps1');
     if (!fs.existsSync(scriptPath)) {
       scriptPath = path.join(__dirname, '..', 'scripts', 'get-system-metrics.ps1');
     }
     if (!fs.existsSync(scriptPath)) return;
 
+    metricsPending = true;
     execFile(
       'powershell.exe',
       ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', scriptPath],
       { timeout: 3500, windowsHide: true },
       (err, stdout) => {
+        metricsPending = false;
         if (!err && stdout) {
           try {
             const data = JSON.parse(stdout.trim());
@@ -492,7 +566,7 @@ function createWindow() {
   const metricsTimer = setInterval(pollSystemMetrics, 2500);
   setTimeout(pollSystemMetrics, 300);
 
-  ipcMain.handle('get-system-metrics', () => latestSystemMetrics);
+  handle('get-system-metrics', () => latestSystemMetrics);
 
   // Real-Time Windows Clipboard Watcher
   let lastWatchedClipboardText = '';
@@ -503,19 +577,16 @@ function createWindow() {
   const clipboardTimer = setInterval(() => {
     try {
       const currentText = clipboard.readText();
-      if (currentText && currentText.trim().length > 0 && currentText !== lastWatchedClipboardText) {
-        lastWatchedClipboardText = currentText;
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.webContents.send('clipboard-copy-detected', {
-            textContent: currentText,
-            timestamp: Date.now(),
-          });
-        }
+      if (currentText === lastWatchedClipboardText) return;
+      lastWatchedClipboardText = currentText;
+      if (currentText.trim()) {
+        send('clipboard-copy-detected', { textContent: currentText, timestamp: Date.now() });
+        send('clipboard-alert-pulse');
       }
     } catch (e) {}
   }, 400);
 
-  ipcMain.handle('get-current-clipboard-text', () => {
+  handle('get-current-clipboard-text', () => {
     try {
       return clipboard.readText();
     } catch (e) {
@@ -523,7 +594,7 @@ function createWindow() {
     }
   });
 
-  ipcMain.handle('write-clipboard-text', (event, text) => {
+  handle('write-clipboard-text', (event, text) => {
     try {
       clipboard.writeText(text);
       lastWatchedClipboardText = text;
@@ -533,421 +604,126 @@ function createWindow() {
     }
   });
 
-  // REAL NOVA DROP: Local Wi-Fi File Transfer HTTP Server
-  const http = require('http');
-  const net = require('net');
-  const os = require('os');
-  const dropDir = path.join(os.homedir(), 'Downloads', 'NovaDrop');
-  if (!fs.existsSync(dropDir)) {
-    try {
-      fs.mkdirSync(dropDir, { recursive: true });
-    } catch (e) {}
-  }
+  // NOVA Drop is available only during an explicitly started receiving session.
+  const dropDir = path.join(app.getPath('downloads'), 'NovaDrop');
+  dropReceiver = createDropReceiver({
+    directory: dropDir,
+    onFile: (file) => send('drop-file-received', file),
+    onSession: (session) => send('drop-session-changed', session),
+  });
+  handle('get-drop-info', () => dropReceiver.info());
+  handle('start-drop', () => dropReceiver.start());
+  handle('stop-drop', () => dropReceiver.stop());
+  handle('get-dropped-files', () => dropReceiver.list());
+  handle('open-drop-folder', async () => {
+    await fs.promises.mkdir(dropDir, { recursive: true });
+    const error = await shell.openPath(dropDir);
+    return { success: !error, error };
+  });
 
-  function getLocalWifiIp() {
-    const interfaces = os.networkInterfaces();
-    for (const name in interfaces) {
-      for (const iface of interfaces[name]) {
-        if (iface.family === 'IPv4' && !iface.internal && iface.address !== '127.0.0.1') {
-          return iface.address;
-        }
-      }
-    }
-    return '127.0.0.1';
-  }
+  handle('get-wallpaper-palette', () => {
+    const value = systemPreferences.getAccentColor();
+    const accent = /^[a-f0-9]{8}$/i.test(value) ? `#${value.slice(0, 6)}` : '#38BDF8';
+    return { accent, glow: `${accent}40`, tint: `${accent}18` };
+  });
 
-  function handleDropRequest(req, res) {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-      if (req.method === 'OPTIONS') {
-        res.writeHead(200);
-        res.end();
-        return;
-      }
-
-      if (req.url === '/' && req.method === 'GET') {
-        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end(`<!DOCTYPE html>
-<html>
-<head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NOVA Drop</title>
-<style>
-  body {
-    background: #0B0D12;
-    color: #F8FAFC;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    margin: 0;
-    padding: 20px;
-    box-sizing: border-box;
-  }
-  .card {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 20px;
-    padding: 24px;
-    width: 100%;
-    max-width: 360px;
-    text-align: center;
-    backdrop-filter: blur(20px);
-    box-shadow: 0 12px 32px rgba(0,0,0,0.5);
-  }
-  h2 { margin: 0 0 6px; color: #38BDF8; font-size: 22px; font-weight: 700; }
-  p { font-size: 13px; color: #94A3B8; margin: 0 0 20px; }
-  .drop-zone {
-    border: 2px dashed #38BDF8;
-    border-radius: 14px;
-    padding: 28px 16px;
-    cursor: pointer;
-    background: rgba(56, 189, 248, 0.04);
-    margin-bottom: 16px;
-    transition: all 0.2s;
-  }
-  .drop-zone:hover { background: rgba(56, 189, 248, 0.12); }
-  .btn {
-    background: #3B82F6;
-    color: white;
-    border: none;
-    border-radius: 12px;
-    padding: 12px 20px;
-    font-size: 14px;
-    font-weight: 600;
-    width: 100%;
-    cursor: pointer;
-  }
-  #status { margin-top: 14px; font-size: 13px; font-weight: 600; }
-</style>
-</head>
-<body>
-<div class="card">
-  <h2>NOVA Drop</h2>
-  <p>Send photos, videos, or documents directly to your PC via Wi-Fi</p>
-  <div class="drop-zone" onclick="document.getElementById('fileInput').click()">
-    <div style="font-size: 36px; margin-bottom: 8px;">📁</div>
-    <div style="font-weight: 600; font-size: 14px;">Tap to Choose File</div>
-    <div style="font-size: 11px; color: #64748B; margin-top: 4px;">Instant transfer over local Wi-Fi</div>
-  </div>
-  <input type="file" id="fileInput" style="display:none" onchange="uploadFiles()">
-  <div id="status"></div>
-</div>
-<script>
-function uploadFiles() {
-  const input = document.getElementById('fileInput');
-  if (!input.files || input.files.length === 0) return;
-  const file = input.files[0];
-  const status = document.getElementById('status');
-  status.style.color = '#38BDF8';
-  status.textContent = 'Uploading ' + file.name + ' (' + (file.size > 1048576 ? (file.size / 1048576).toFixed(1) + ' MB' : Math.round(file.size / 1024) + ' KB') + ')...';
-
-  const xhr = new XMLHttpRequest();
-  xhr.open('POST', '/upload?filename=' + encodeURIComponent(file.name), true);
-  xhr.onload = function() {
-    if (xhr.status === 200) {
-      status.style.color = '#4ade80';
-      status.textContent = '✓ Transfer complete! Saved in Downloads/NovaDrop';
-    } else {
-      status.style.color = '#f87171';
-      status.textContent = 'Upload error: ' + xhr.statusText;
-    }
+  const loginItem = {
+    path: process.execPath,
+    args: process.defaultApp ? [__filename, '--autostart'] : ['--autostart'],
   };
-  xhr.onerror = function() {
-    status.style.color = '#f87171';
-    status.textContent = 'Network error during transfer.';
+  handle('get-autostart-status', () => app.getLoginItemSettings(loginItem).openAtLogin);
+  handle('set-autostart-status', (_event, enable) => {
+    if (typeof enable !== 'boolean') throw new Error('Invalid startup preference');
+    app.setLoginItemSettings({ ...loginItem, openAtLogin: enable });
+    return app.getLoginItemSettings(loginItem).openAtLogin;
+  });
+
+  const settingsActions = {
+    'open-wifi': 'ms-availablenetworks:',
+    'open-bluetooth': 'ms-settings:bluetooth',
+    'open-nightlight': 'ms-settings:nightlight',
+    'open-display-settings': 'ms-settings:display',
+    'open-sound-settings': 'ms-settings:sound',
+    'open-windows-settings': 'ms-settings:',
+    'open-snipping-tool': 'ms-screenclip:',
   };
-  xhr.send(file);
-}
-</script>
-</body>
-</html>`);
-        return;
-      }
-
-      if (req.url.startsWith('/upload') && req.method === 'POST') {
-        const parsedUrl = new URL(req.url, 'http://localhost');
-        let fileName = parsedUrl.searchParams.get('filename') || ('drop_' + Date.now() + '.bin');
-        fileName = path.basename(fileName);
-        const targetPath = path.join(dropDir, fileName);
-        const writeStream = fs.createWriteStream(targetPath);
-
-        let bytesReceived = 0;
-        req.on('data', chunk => {
-          bytesReceived += chunk.length;
-          writeStream.write(chunk);
-        });
-
-        req.on('end', () => {
-          writeStream.end();
-          const sizeKb = Math.round(bytesReceived / 1024);
-          const sizeStr = sizeKb > 1024 ? (sizeKb / 1024).toFixed(1) + ' MB' : sizeKb + ' KB';
-          if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.webContents.send('drop-file-received', {
-              fileName,
-              fileSize: sizeStr,
-              fullPath: targetPath,
-              timestamp: Date.now(),
-            });
-          }
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: true, fileName }));
-        });
-        return;
-      }
-
-      if (req.url === '/list' && req.method === 'GET') {
-        try {
-          const files = fs.readdirSync(dropDir).map(f => {
-            const stat = fs.statSync(path.join(dropDir, f));
-            const sizeKb = Math.round(stat.size / 1024);
-            const sizeStr = sizeKb > 1024 ? (sizeKb / 1024).toFixed(1) + ' MB' : sizeKb + ' KB';
-            return { name: f, size: sizeStr, mtime: stat.mtimeMs };
-          });
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ files }));
-        } catch (e) {
-          res.writeHead(500);
-          res.end('{}');
-        }
-        return;
-      }
-
-      res.writeHead(404);
-      res.end('Not Found');
-    }
-
-    let dropServer = null;
-
-    function startDropServer(portToTry = 5980) {
-      try {
-        if (dropServer) {
-          try { dropServer.close(); } catch (e) {}
-          dropServer = null;
-        }
-
-        const server = http.createServer(handleDropRequest);
-
-        server.on('error', (err) => {
-          debugLog(`[NOVA Drop] Server notice on port ${portToTry}: ${err.code || err.message}`);
-          try { server.close(); } catch (e) {}
-          if (err.code === 'EADDRINUSE') {
-            if (portToTry === 5980) {
-              debugLog('[NOVA Drop] Port 5980 in use, binding to ephemeral dynamic port (port 0)...');
-              setTimeout(() => {
-                try {
-                  startDropServer(0);
-                } catch (e) {
-                  debugLog('[NOVA Drop] Ephemeral retry exception: ' + e.message);
-                }
-              }, 100);
-            } else {
-              debugLog('[NOVA Drop] Fallback server port error: ' + err.message);
-            }
-          }
-        });
-
-        server.listen(portToTry, '0.0.0.0', () => {
-          try {
-            const addr = server.address();
-            activeDropPort = typeof addr === 'object' && addr ? addr.port : portToTry;
-            dropServer = server;
-            dropServerInstance = server;
-            debugLog(`[NOVA Drop] Wi-Fi file server active and listening on port ${activeDropPort}`);
-          } catch (e) {
-            debugLog('[NOVA Drop] Port resolution error: ' + e.message);
-          }
-        });
-      } catch (err) {
-        debugLog('[NOVA Drop] Exception in startDropServer: ' + err.message);
-      }
-    }
-
-    startDropServer(5980);
-
-  // NOVA Drop IPC
-  ipcMain.handle('get-drop-info', () => {
-    const ip = getLocalWifiIp();
-    return {
-      active: true,
-      ip,
-      port: activeDropPort,
-      url: `http://${ip}:${activeDropPort}`,
-      dropDir,
-    };
+  const systemActions = {
+    'open-task-manager': ['taskmgr.exe', []],
+    'open-calc': ['calc.exe', []],
+    'lock-workstation': ['rundll32.exe', ['user32.dll,LockWorkStation']],
+  };
+  const volumeActions = { 'volume-mute': 173, 'volume-up': 175, 'volume-down': 174 };
+  const launchProgram = (file, args) => new Promise((resolve, reject) => {
+    const child = spawn(file, args, { windowsHide: true, stdio: 'ignore' });
+    child.once('spawn', resolve);
+    child.once('error', reject);
+    child.unref();
   });
-
-  // Windows Wallpaper & Accent Color IPC for Dynamic Wallpaper Tinting
-  ipcMain.handle('get-wallpaper-palette', async () => {
+  handle('quick-action', async (_event, action) => {
     try {
-      const { execSync } = require('child_process');
-      const cmd = `powershell -NoProfile -Command "try { $c = (Get-ItemProperty -Path 'HKCU:\\Software\\Microsoft\\Windows\\DWM' -Name ColorizationColor -ErrorAction SilentlyContinue).ColorizationColor; if ($c) { $hex = ('{0:X8}' -f $c); ('#' + $hex.Substring(2)) } else { '#38BDF8' } } catch { '#38BDF8' }"`;
-      const stdout = execSync(cmd, { timeout: 1500, windowsHide: true }).toString().trim();
-      const accent = stdout.startsWith('#') && stdout.length === 7 ? stdout : '#38BDF8';
-      return {
-        accent,
-        glow: `${accent}40`,
-        tint: `${accent}18`,
-      };
-    } catch (e) {
-      return { accent: '#38BDF8', glow: 'rgba(56,189,248,0.25)', tint: 'rgba(56,189,248,0.08)' };
-    }
-  });
-
-  ipcMain.handle('open-drop-folder', () => {
-    shell.openPath(dropDir);
-    return true;
-  });
-
-  ipcMain.handle('get-dropped-files', () => {
-    try {
-      if (!fs.existsSync(dropDir)) return [];
-      return fs.readdirSync(dropDir).map(f => {
-        const stat = fs.statSync(path.join(dropDir, f));
-        const sizeKb = Math.round(stat.size / 1024);
-        const sizeStr = sizeKb > 1024 ? (sizeKb / 1024).toFixed(1) + ' MB' : sizeKb + ' KB';
-        return { name: f, size: sizeStr, timestamp: stat.mtimeMs };
-      });
-    } catch (e) {
-      return [];
-    }
-  });
-
-  // Windows Auto-Start / Login Item IPC
-  ipcMain.handle('get-autostart-status', () => {
-    try {
-      const settings = app.getLoginItemSettings();
-      return settings.openAtLogin;
-    } catch (e) {
-      return false;
-    }
-  });
-
-  ipcMain.handle('set-autostart-status', (event, enable) => {
-    try {
-      app.setLoginItemSettings({
-        openAtLogin: enable,
-        path: process.execPath,
-        args: ['--autostart'],
-      });
-      return app.getLoginItemSettings().openAtLogin;
-    } catch (e) {
-      console.error('[NOVA] Error updating autostart:', e);
-      return false;
-    }
-  });
-
-  // Real Windows Quick Actions (Wi-Fi, Bluetooth, Night Light, Volume, Settings, System Tools)
-  ipcMain.handle('quick-action', async (event, action) => {
-    try {
-      debugLog('Received quick-action: ' + action);
-      switch (action) {
-        case 'open-wifi':
-          shell.openExternal('ms-availablenetworks:');
-          return { success: true, message: 'Opening Windows Wi-Fi flyout' };
-        case 'open-bluetooth':
-          shell.openExternal('ms-settings:bluetooth');
-          return { success: true, message: 'Opening Bluetooth settings' };
-        case 'open-nightlight':
-          shell.openExternal('ms-settings:nightlight');
-          return { success: true, message: 'Opening Night Light settings' };
-        case 'volume-mute':
-          execFile('powershell.exe', ['-NoProfile', '-Command', '(New-Object -ComObject WScript.Shell).SendKeys([char]173)'], { windowsHide: true });
-          return { success: true, message: 'Toggled system mute' };
-        case 'volume-up':
-          execFile('powershell.exe', ['-NoProfile', '-Command', '(New-Object -ComObject WScript.Shell).SendKeys([char]175); (New-Object -ComObject WScript.Shell).SendKeys([char]175)'], { windowsHide: true });
-          return { success: true, message: 'Increased master volume' };
-        case 'volume-down':
-          execFile('powershell.exe', ['-NoProfile', '-Command', '(New-Object -ComObject WScript.Shell).SendKeys([char]174); (New-Object -ComObject WScript.Shell).SendKeys([char]174)'], { windowsHide: true });
-          return { success: true, message: 'Decreased master volume' };
-        case 'open-display-settings':
-          shell.openExternal('ms-settings:display');
-          return { success: true, message: 'Opening Display Settings' };
-        case 'open-sound-settings':
-          shell.openExternal('ms-settings:sound');
-          return { success: true, message: 'Opening Sound Settings' };
-        case 'open-windows-settings':
-          shell.openExternal('ms-settings:');
-          return { success: true, message: 'Opening Windows Settings' };
-        case 'open-task-manager':
-          execFile('taskmgr.exe');
-          return { success: true, message: 'Launched Task Manager' };
-        case 'open-snipping-tool':
-          shell.openExternal('ms-screenclip:');
-          return { success: true, message: 'Launched Snipping Tool' };
-        case 'open-calc':
-          execFile('calc.exe');
-          return { success: true, message: 'Launched Calculator' };
-        case 'lock-workstation':
-          execFile('rundll32.exe', ['user32.dll,LockWorkStation']);
-          return { success: true, message: 'Locked workstation' };
-        default:
-          return { success: false, message: 'Unknown action: ' + action };
+      if (Object.hasOwn(settingsActions, action)) {
+        await shell.openExternal(settingsActions[action]);
+      } else if (Object.hasOwn(systemActions, action)) {
+        const [file, args] = systemActions[action];
+        await launchProgram(file, args);
+      } else if (Object.hasOwn(volumeActions, action)) {
+        await execFileAsync('powershell.exe', [
+          '-NoProfile', '-Command',
+          `(New-Object -ComObject WScript.Shell).SendKeys([char]${volumeActions[action]})`,
+        ], { windowsHide: true, timeout: 4000 });
+      } else if (action === 'brightness-up' || action === 'brightness-down') {
+        const delta = action === 'brightness-up' ? '10' : '-10';
+        const { stdout } = await execFileAsync('powershell.exe', [
+          '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', path.join(__dirname, 'scripts', 'set-brightness.ps1'), delta,
+        ], { windowsHide: true, timeout: 6000 }).catch(() => { throw new Error('Brightness control is unavailable for this display.'); });
+        return { success: true, message: `Brightness set to ${stdout.trim()}%` };
+      } else {
+        return { success: false, error: 'Unknown Windows action' };
       }
-    } catch (err) {
-      debugLog('Error executing quick-action: ' + err.message);
-      return { success: false, error: err.message };
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error.message };
     }
   });
 
-  // Real App & Shortcut Launcher
-  ipcMain.handle('launch-shortcut', async (event, target) => {
-    if (!target || typeof target !== 'string') return { success: false, error: 'Empty target' };
+  const openLocalPath = async (targetPath) => {
+    if (typeof targetPath !== 'string' || !path.isAbsolute(targetPath)) {
+      return { success: false, error: 'Choose a full Windows file or folder path' };
+    }
+    const error = await shell.openPath(targetPath);
+    return error ? { success: false, error } : { success: true };
+  };
+  handle('open-path', (_event, targetPath) => openLocalPath(targetPath));
+  handle('launch-shortcut', async (_event, target) => {
+    if (typeof target !== 'string' || !target.trim()) return { success: false, error: 'Enter a shortcut target' };
     const trimmed = target.trim();
-    debugLog('Launching shortcut: ' + trimmed);
     try {
-      if (/^https?:\/\//i.test(trimmed) || /^[a-z0-9-]+:/i.test(trimmed)) {
+      if (path.isAbsolute(trimmed)) return { ...await openLocalPath(trimmed), type: 'path' };
+      if (/^https?:\/\//i.test(trimmed) || /^(ms-settings:|ms-windows-store:|spotify:)[a-z0-9/:?&=._-]*$/i.test(trimmed)) {
         await shell.openExternal(trimmed);
         return { success: true, type: 'url' };
       }
-      if (fs.existsSync(trimmed)) {
-        await shell.openPath(trimmed);
-        return { success: true, type: 'path' };
-      }
-      execFile('powershell.exe', ['-NoProfile', '-Command', `Start-Process "${trimmed}"`], { windowsHide: true }, (err) => {
-        if (err) {
-          shell.openPath(trimmed).catch(() => {});
-        }
-      });
+      if (!/^[\w.-]+\.exe$/i.test(trimmed)) return { success: false, error: 'Use a web link, executable name, or full Windows path' };
+      await launchProgram(trimmed, []);
       return { success: true, type: 'command' };
-    } catch (err) {
-      debugLog('Launch shortcut error: ' + err.message);
-      return { success: false, error: err.message };
+    } catch (error) {
+      return { success: false, error: error.message };
     }
   });
 
-  // Open file or directory
-  ipcMain.handle('open-path', async (event, targetPath) => {
-    try {
-      if (fs.existsSync(targetPath)) {
-        await shell.openPath(targetPath);
-        return { success: true };
-      }
-      return { success: false, error: 'Path does not exist' };
-    } catch (err) {
-      return { success: false, error: err.message };
+  handle('show-item-in-folder', (_event, targetPath) => {
+    if (typeof targetPath !== 'string' || !path.isAbsolute(targetPath) || !fs.existsSync(targetPath)) {
+      return { success: false, error: 'The file could not be found' };
     }
-  });
-
-  // Reveal item in File Explorer
-  ipcMain.handle('show-item-in-folder', async (event, targetPath) => {
-    try {
-      shell.showItemInFolder(targetPath);
-      return { success: true };
-    } catch (err) {
-      return { success: false, error: err.message };
-    }
+    shell.showItemInFolder(targetPath);
+    return { success: true };
   });
 
   // Real cryptographic file hash calculator
-  ipcMain.handle('compute-file-hash', async (event, { filePath, algorithm = 'sha256' }) => {
+  handle('compute-file-hash', async (event, { filePath, algorithm = 'sha256' }) => {
     const crypto = require('crypto');
     try {
-      if (!fs.existsSync(filePath)) {
+      if (typeof filePath !== 'string' || !path.isAbsolute(filePath) || !['sha256', 'sha1', 'sha512'].includes(algorithm) || !fs.existsSync(filePath)) {
         return { success: false, error: 'File not found' };
       }
       return new Promise((resolve) => {
@@ -962,27 +738,56 @@ function uploadFiles() {
     }
   });
 
-  // Global hotkey: Alt+Space toggles window
+  on('focus-island-window', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      if (!mainWindow.isVisible()) mainWindow.show();
+      mainWindow.setAlwaysOnTop(true, 'screen-saver');
+      mainWindow.focus();
+    }
+  });
+
+  // Global hotkeys: Alt+Space & Ctrl+Space trigger AI Whisper & Quick Command Bar!
+  const triggerAiWhisper = () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      if (!mainWindow.isVisible()) {
+        mainWindow.show();
+      }
+      mainWindow.setAlwaysOnTop(true, 'screen-saver');
+      mainWindow.focus();
+      mainWindow.webContents.send('toggle-ai-whisper');
+    }
+  };
+
   try {
-    globalShortcut.register('Alt+Space', () => {
-      if (mainWindow) {
-        if (mainWindow.isVisible()) {
-          mainWindow.webContents.send('toggle-island');
-        } else {
-          mainWindow.show();
-          mainWindow.focus();
-        }
+    globalShortcut.register('Alt+Space', triggerAiWhisper);
+  } catch (e) {
+    debugLog('Alt+Space registration notice: ' + (e.message || e));
+  }
+
+  try {
+    globalShortcut.register('CommandOrControl+Space', triggerAiWhisper);
+  } catch (e) {
+    debugLog('Ctrl+Space registration notice: ' + (e.message || e));
+  }
+
+  // Alt+Shift+Space toggles full island expand/collapse
+  try {
+    globalShortcut.register('Alt+Shift+Space', () => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        if (!mainWindow.isVisible()) mainWindow.show();
+        mainWindow.focus();
+        mainWindow.webContents.send('toggle-island');
       }
     });
-  } catch (e) {
-    // Ignore shortcut conflict
-  }
+  } catch (e) {}
 
   mainWindow.on('close', (e) => {
     debugLog('mainWindow on close called');
   });
 
   mainWindow.on('closed', () => {
+    for (const timer of [roamingTimer, mediaInterval, metricsTimer, clipboardTimer, foregroundTimer]) clearInterval(timer);
+    void dropReceiver?.stop();
     debugLog('mainWindow on closed called');
     mainWindow = null;
   });
@@ -998,10 +803,7 @@ app.on('will-quit', () => {
     globalShortcut.unregisterAll();
   } catch (e) {}
   try {
-    if (dropServerInstance) {
-      dropServerInstance.close();
-      dropServerInstance = null;
-    }
+    void dropReceiver?.stop();
   } catch (e) {}
   if (tray) {
     try {
@@ -1014,6 +816,6 @@ app.on('will-quit', () => {
 app.on('window-all-closed', () => {
   debugLog('app window-all-closed called');
   if (process.platform !== 'darwin') {
-    app.exit(0);
+    app.quit();
   }
 });

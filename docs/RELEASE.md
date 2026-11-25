@@ -1,34 +1,28 @@
-# NOVA Release and Packaging Guide
+# NOVA Windows builds
 
-**Document ID:** NOVA-REL-001  
-**Target:** Windows 10 & 11 (64-bit)  
-**Binary Artifacts:**
-1. **NOVA-Setup.exe:** Standard Windows NSIS installer with desktop shortcut and optional startup entry.
-2. **NOVA-Portable.zip:** Portable zero-install zip archive containing the executable and `./data/` local sandbox.
+The current Windows desktop application uses Electron. Keep the portable runtime, its resources, and shared libraries together when moving it.
 
----
+## Run from the source checkout
 
-## 1. Local Development Build
+Use Node.js 24 LTS and run:
 
-To run the application with live hot reload during development:
-
-```bash
-# Terminal 1: Launch Tauri dev runner
-npm run tauri dev
+```powershell
+npm ci
+npm test
+npm run build
+npm start
 ```
 
----
+For frontend development, run `npm run dev` in one terminal and `npm start -- --dev` in a second terminal.
 
-## 2. Production Packaging
+## Refresh or create the portable build
 
-To compile optimized release binaries:
-
-```bash
-# Build frontend and Rust release binary
-npm run tauri build
+```powershell
+npm run build:desktop
 ```
 
-This compiles:
-- `src-tauri/target/release/nova.exe`
-- `src-tauri/target/release/bundle/nsis/NOVA_1.0.0_x64-setup.exe`
-- Portable binary deployable alongside a local `./data` folder.
+Start `dist-app\NOVA.exe` or double-click `NOVA.bat` in the checkout. When sharing a portable build, include the complete `dist-app` directory.
+
+## Tauri
+
+The Rust/Tauri variant remains in `src-tauri` and the current GitHub workflow builds that variant. Use `npm run tauri -- build` for the Tauri development target. Windows integrations exposed by the Electron preload need separate Tauri implementations before the two builds can offer the same tools.

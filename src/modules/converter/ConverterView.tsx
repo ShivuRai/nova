@@ -18,27 +18,43 @@ export const ConverterView: React.FC = () => {
   const [targetFormat, setTargetFormat] = useState<string>('WEBP');
   const [quality, setQuality] = useState<number>(85);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [error, setError] = useState('');
   const [convertedResult, setConvertedResult] = useState<{ url: string; name: string; size: string; saved: string } | null>(null);
   const [history, setHistory] = useState<ConversionRecord[]>(() => {
     try {
       const saved = localStorage.getItem('nova_conversion_history');
-      if (saved) return JSON.parse(saved);
+      if (saved) return (JSON.parse(saved) as ConversionRecord[]).map(({ downloadUrl: _url, ...record }) => record);
     } catch (e) {}
     return [];
   });
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const outputUrls = useRef(new Set<string>());
+  useEffect(() => () => {
+    for (const url of outputUrls.current) URL.revokeObjectURL(url);
+  }, []);
+  useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl); }, [previewUrl]);
+
+  const makeDownloadUrl = (blob: Blob) => {
+    const url = URL.createObjectURL(blob);
+    outputUrls.current.add(url);
+    return url;
+  };
 
   useEffect(() => {
     try {
-      localStorage.setItem('nova_conversion_history', JSON.stringify(history));
+      localStorage.setItem('nova_conversion_history', JSON.stringify(history.map(({ downloadUrl: _url, ...record }) => record)));
     } catch (e) {}
   }, [history]);
 
   const handleFileSelect = (file: File) => {
+    if (isProcessing) return;
+    setError('');
     setSelectedFile(file);
     setConvertedResult(null);
-    if (file.type.startsWith('image/')) {
+    const imageFile = file.type.startsWith('image/');
+    setTargetFormat(imageFile ? 'WEBP' : 'TXT');
+    if (imageFile) {
       const url = URL.createObjectURL(file);
       setPreviewUrl(url);
     } else {
@@ -60,7 +76,8 @@ export const ConverterView: React.FC = () => {
   };
 
   const handleConvert = async () => {
-    if (!selectedFile) return;
+    if (!selectedFile || isProcessing) return;
+    setError('');
 
     setIsProcessing(true);
     try {
@@ -68,12 +85,12 @@ export const ConverterView: React.FC = () => {
         // Real HTML5 Canvas Image Conversion
         const img = new Image();
         const objectUrl = URL.createObjectURL(selectedFile);
-        img.src = objectUrl;
-
-        await new Promise((resolve, reject) => {
-          img.onload = () => resolve(true);
-          img.onerror = reject;
-        });
+        try {
+          img.src = objectUrl;
+          await img.decode();
+        } finally {
+          URL.revokeObjectURL(objectUrl);
+        }
 
         const canvas = document.createElement('canvas');
         canvas.width = img.width;
@@ -101,9 +118,9 @@ export const ConverterView: React.FC = () => {
           canvas.toBlob((b) => resolve(b), mime, quality / 100)
         );
 
-        if (!blob) throw new Error('Conversion failed');
+        if (!blob || blob.type !== mime) throw new Error('This image format could not be encoded.');
 
-        const downloadUrl = URL.createObjectURL(blob);
+        const downloadUrl = makeDownloadUrl(blob);
         const originalBase = selectedFile.name.substring(0, selectedFile.name.lastIndexOf('.')) || selectedFile.name;
         const outName = `${originalBase}_converted.${ext}`;
         const diff = ((1 - blob.size / selectedFile.size) * 100).toFixed(0);
@@ -127,7 +144,7 @@ export const ConverterView: React.FC = () => {
           downloadUrl: downloadUrl,
           timestamp: Date.now(),
         };
-        setHistory([record, ...history.slice(0, 8)]);
+        setHistory((previous) => [record, ...previous.slice(0, 8)]);
       } else {
         // Text / Document Conversion
         const text = await selectedFile.text();
@@ -145,7 +162,7 @@ export const ConverterView: React.FC = () => {
           outName = `${originalBase}.txt`;
         }
 
-        const downloadUrl = URL.createObjectURL(blob);
+        const downloadUrl = makeDownloadUrl(blob);
         const resultObj = {
           url: downloadUrl,
           name: outName,
@@ -164,16 +181,17 @@ export const ConverterView: React.FC = () => {
           downloadUrl: downloadUrl,
           timestamp: Date.now(),
         };
-        setHistory([record, ...history.slice(0, 8)]);
+        setHistory((previous) => [record, ...previous.slice(0, 8)]);
       }
-    } catch (err: any) {
-      alert(`Conversion error: ${err.message || err}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Conversion failed.');
     } finally {
       setIsProcessing(false);
     }
   };
 
   const clearSelectedFile = () => {
+    setError('');
     setSelectedFile(null);
     setPreviewUrl(null);
     setConvertedResult(null);
@@ -182,15 +200,17 @@ export const ConverterView: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxHeight: 330, overflowY: 'auto', paddingRight: 4 }}>
+      {error && <p role="alert" style={{ color: 'var(--nova-danger)', fontSize: 12 }}>{error}</p>}
       {/* Target Format Strip */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         <div style={{ fontSize: '11px', color: 'var(--nova-text-secondary)', fontWeight: 600 }}>
           TARGET FORMAT
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6 }}>
-          {['WEBP', 'JPG', 'PNG', 'JSON', 'TXT'].map((fmt) => (
+          {(selectedFile && !selectedFile.type.startsWith('image/') ? ['TXT', 'JSON'] : ['WEBP', 'JPG', 'PNG']).map((fmt) => (
             <button
               key={fmt}
+              disabled={isProcessing}
               onClick={() => {
                 setTargetFormat(fmt);
                 setConvertedResult(null);
@@ -320,6 +340,7 @@ export const ConverterView: React.FC = () => {
 
             <button
               onClick={clearSelectedFile}
+              disabled={isProcessing}
               style={{ color: 'var(--nova-danger)', padding: 4 }}
               title="Remove file"
             >

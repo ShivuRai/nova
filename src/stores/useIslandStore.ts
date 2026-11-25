@@ -5,6 +5,8 @@ interface IslandState {
   isExpanded: boolean;
   isPinned: boolean;
   isInteracting: boolean;
+  isRetracted: boolean;
+  isAiWhisperOpen: boolean;
   activeModule: string;
   liveActivity: LiveActivity | null;
   recentActivities: LiveActivity[];
@@ -13,6 +15,10 @@ interface IslandState {
   toggleExpanded: () => void;
   setPinned: (pinned: boolean) => void;
   setInteracting: (interacting: boolean) => void;
+  setRetracted: (retracted: boolean) => void;
+  toggleRetracted: () => void;
+  setAiWhisperOpen: (open: boolean) => void;
+  toggleAiWhisper: () => void;
   setActiveModule: (moduleId: string) => void;
   setLiveActivity: (activity: LiveActivity | null) => void;
   dismissLiveActivity: () => void;
@@ -22,6 +28,8 @@ export const useIslandStore = create<IslandState>((set) => ({
   isExpanded: false, // Default to sleek rounded capsule pill
   isPinned: false,
   isInteracting: false,
+  isRetracted: false,
+  isAiWhisperOpen: false,
   activeModule: 'home',
   liveActivity: null,
   recentActivities: [],
@@ -30,6 +38,10 @@ export const useIslandStore = create<IslandState>((set) => ({
   toggleExpanded: () => set((state) => ({ isExpanded: !state.isExpanded })),
   setPinned: (pinned) => set({ isPinned: pinned }),
   setInteracting: (interacting) => set({ isInteracting: interacting }),
+  setRetracted: (retracted) => set({ isRetracted: retracted }),
+  toggleRetracted: () => set((state) => ({ isRetracted: !state.isRetracted })),
+  setAiWhisperOpen: (open) => set({ isAiWhisperOpen: open }),
+  toggleAiWhisper: () => set((state) => ({ isAiWhisperOpen: !state.isAiWhisperOpen })),
   setActiveModule: (moduleId) => set({ activeModule: moduleId }),
   setLiveActivity: (activity) =>
     set((state) => ({

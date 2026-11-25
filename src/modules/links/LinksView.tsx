@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Search, Globe, Plus, Trash2, ExternalLink, Star, Copy, Check } from 'lucide-react';
+import { runLaunchShortcut } from '../../services/platformService';
 import { useIslandStore } from '../../stores/useIslandStore';
 
 interface SavedLink {
@@ -96,14 +97,7 @@ export const LinksView: React.FC = () => {
   };
 
   const openUrl = (url: string) => {
-    if (typeof window !== 'undefined' && (window as any).require) {
-      try {
-        const { shell } = (window as any).require('electron');
-        shell.openExternal(url);
-        return;
-      } catch (e) {}
-    }
-    window.open(url, '_blank');
+    if (/^https?:\/\//i.test(url)) void runLaunchShortcut(url);
   };
 
   const copyUrl = (id: string, url: string, e: React.MouseEvent) => {

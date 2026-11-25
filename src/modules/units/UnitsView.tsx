@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ArrowLeftRight, Copy, Check } from 'lucide-react';
 import { useIslandStore } from '../../stores/useIslandStore';
 
-type UnitType = 'length' | 'weight' | 'temp' | 'data' | 'currency';
+import { unitsConfig, type UnitType } from '../../services/units';
 
 export const UnitsView: React.FC = () => {
   const { setInteracting } = useIslandStore();
@@ -11,79 +11,6 @@ export const UnitsView: React.FC = () => {
   const [fromUnit, setFromUnit] = useState<string>('meter');
   const [toUnit, setToUnit] = useState<string>('foot');
   const [copied, setCopied] = useState(false);
-
-  const unitsConfig: Record<UnitType, { units: string[]; convert: (val: number, from: string, to: string) => number }> = {
-    length: {
-      units: ['meter', 'kilometer', 'centimeter', 'mile', 'foot', 'inch'],
-      convert: (val, from, to) => {
-        const inMeters: Record<string, number> = {
-          meter: 1,
-          kilometer: 1000,
-          centimeter: 0.01,
-          mile: 1609.34,
-          foot: 0.3048,
-          inch: 0.0254,
-        };
-        const meters = val * (inMeters[from] || 1);
-        return meters / (inMeters[to] || 1);
-      },
-    },
-    weight: {
-      units: ['kilogram', 'gram', 'pound', 'ounce', 'ton'],
-      convert: (val, from, to) => {
-        const inGrams: Record<string, number> = {
-          kilogram: 1000,
-          gram: 1,
-          pound: 453.592,
-          ounce: 28.3495,
-          ton: 1000000,
-        };
-        const grams = val * (inGrams[from] || 1);
-        return grams / (inGrams[to] || 1);
-      },
-    },
-    temp: {
-      units: ['celsius', 'fahrenheit', 'kelvin'],
-      convert: (val, from, to) => {
-        let c = val;
-        if (from === 'fahrenheit') c = (val - 32) * (5 / 9);
-        else if (from === 'kelvin') c = val - 273.15;
-
-        if (to === 'fahrenheit') return c * (9 / 5) + 32;
-        if (to === 'kelvin') return c + 273.15;
-        return c;
-      },
-    },
-    data: {
-      units: ['byte', 'kilobyte', 'megabyte', 'gigabyte', 'terabyte'],
-      convert: (val, from, to) => {
-        const inBytes: Record<string, number> = {
-          byte: 1,
-          kilobyte: 1024,
-          megabyte: 1024 * 1024,
-          gigabyte: 1024 * 1024 * 1024,
-          terabyte: 1024 * 1024 * 1024 * 1024,
-        };
-        const b = val * (inBytes[from] || 1);
-        return b / (inBytes[to] || 1);
-      },
-    },
-    currency: {
-      units: ['USD', 'EUR', 'GBP', 'INR', 'JPY', 'CAD'],
-      convert: (val, from, to) => {
-        const inUsd: Record<string, number> = {
-          USD: 1,
-          EUR: 1.08,
-          GBP: 1.28,
-          INR: 0.012,
-          JPY: 0.0065,
-          CAD: 0.72,
-        };
-        const usd = val * (inUsd[from] || 1);
-        return usd / (inUsd[to] || 1);
-      },
-    },
-  };
 
   const handleTypeChange = (type: UnitType) => {
     setUnitType(type);

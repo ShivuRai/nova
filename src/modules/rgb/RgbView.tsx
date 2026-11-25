@@ -20,8 +20,10 @@ import {
   VolumeX,
   Music,
   Radio,
+  ChevronUp,
 } from 'lucide-react';
 import { useThemeStore } from '../../stores/useThemeStore';
+import { useIslandStore } from '../../stores/useIslandStore';
 import { playSound } from '../../services/soundService';
 import {
   RgbPreset,
@@ -169,6 +171,7 @@ const PARTICLE_OPTIONS: Array<{ id: AmbientParticleMode; label: string; icon: st
 
 export const RgbView: React.FC = () => {
   const { settings, updateSettings } = useThemeStore();
+  const { setRetracted } = useIslandStore();
   const [activeTab, setActiveTabState] = useState<StudioTab>(() => {
     try {
       const saved = localStorage.getItem('nova_active_studio_tab') as StudioTab;
@@ -1216,6 +1219,204 @@ export const RgbView: React.FC = () => {
               </div>
             </div>
           )}
+
+          {/* Smart Auto-Retract & Bezel Clearance for Chrome/Apps */}
+          <div
+            style={{
+              marginTop: 4,
+              padding: '12px 14px',
+              backgroundColor: 'rgba(56, 189, 248, 0.04)',
+              border: '1px solid rgba(56, 189, 248, 0.22)',
+              borderRadius: 'var(--nova-radius-widget)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 10,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <ChevronUp size={14} style={{ color: 'var(--nova-cyan)' }} />
+                <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--nova-cyan)', letterSpacing: '0.03em' }}>
+                  SMART AUTO-RETRACT & TAB CLEARANCE
+                </span>
+              </div>
+              <button
+                onClick={() => updateSettings({ enableAutoRetract: !settings.enableAutoRetract })}
+                style={{
+                  padding: '3px 9px',
+                  borderRadius: 'var(--nova-radius-pill)',
+                  backgroundColor: settings.enableAutoRetract !== false ? 'var(--nova-cyan)' : 'rgba(255,255,255,0.08)',
+                  color: settings.enableAutoRetract !== false ? '#000' : 'var(--nova-text-muted)',
+                  fontSize: '9.5px',
+                  fontWeight: 700,
+                  border: 'none',
+                  cursor: 'pointer',
+                }}
+              >
+                {settings.enableAutoRetract !== false ? 'Enabled' : 'Disabled'}
+              </button>
+            </div>
+
+            <div style={{ fontSize: '9.5px', color: 'var(--nova-text-muted)', lineHeight: 1.4 }}>
+              When working in Chrome or multi-tab software, NOVA automatically slides up into a discreet 8px stealth bezel so titlebars, tabs, and close buttons are 100% unobstructed. Hover for 0.65s or click to instantly glide it back down.
+            </div>
+
+            {/* Desktop vs App behavior */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 8px', backgroundColor: 'var(--nova-surface)', borderRadius: 6, border: '1px solid var(--nova-border)' }}>
+              <div>
+                <div style={{ fontSize: '10px', fontWeight: 600, color: 'var(--nova-text-primary)' }}>
+                  Keep Full Notch Open on Desktop
+                </div>
+                <div style={{ fontSize: '8.5px', color: 'var(--nova-text-muted)' }}>
+                  Only retract when actively using external apps like Chrome, Edge, or VS Code
+                </div>
+              </div>
+              <button
+                onClick={() => updateSettings({ retractOnlyOnApps: !settings.retractOnlyOnApps })}
+                style={{
+                  padding: '3px 8px',
+                  borderRadius: 'var(--nova-radius-pill)',
+                  backgroundColor: settings.retractOnlyOnApps !== false ? 'rgba(56, 189, 248, 0.18)' : 'rgba(255,255,255,0.06)',
+                  color: settings.retractOnlyOnApps !== false ? 'var(--nova-cyan)' : 'var(--nova-text-muted)',
+                  fontSize: '9px',
+                  fontWeight: 600,
+                  border: settings.retractOnlyOnApps !== false ? '1px solid var(--nova-cyan)' : '1px solid transparent',
+                  cursor: 'pointer',
+                }}
+              >
+                {settings.retractOnlyOnApps !== false ? 'Desktop Stays Open' : 'Retract Everywhere'}
+              </button>
+            </div>
+
+            {/* Multi-Monitor Cursor Roaming Control */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 8px', backgroundColor: 'var(--nova-surface)', borderRadius: 6, border: '1px solid var(--nova-border)' }}>
+              <div>
+                <div style={{ fontSize: '10px', fontWeight: 600, color: 'var(--nova-text-primary)' }}>
+                  Multi-Monitor Cursor Roaming
+                </div>
+                <div style={{ fontSize: '8.5px', color: 'var(--nova-text-muted)' }}>
+                  Automatically shifts the island to whichever monitor your mouse is active on
+                </div>
+              </div>
+              <button
+                onClick={() => updateSettings({ enableMultiMonitorRoaming: settings.enableMultiMonitorRoaming === false ? true : false })}
+                style={{
+                  padding: '3px 8px',
+                  borderRadius: 'var(--nova-radius-pill)',
+                  backgroundColor: settings.enableMultiMonitorRoaming !== false ? 'rgba(56, 189, 248, 0.18)' : 'rgba(255,255,255,0.06)',
+                  color: settings.enableMultiMonitorRoaming !== false ? 'var(--nova-cyan)' : 'var(--nova-text-muted)',
+                  fontSize: '9px',
+                  fontWeight: 600,
+                  border: settings.enableMultiMonitorRoaming !== false ? '1px solid var(--nova-cyan)' : '1px solid transparent',
+                  cursor: 'pointer',
+                }}
+              >
+                {settings.enableMultiMonitorRoaming !== false ? 'Roaming Active' : 'Fixed to Main'}
+              </button>
+            </div>
+
+            {/* Delays Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+              {/* Idle Delay */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <span style={{ fontSize: '9px', fontWeight: 600, color: 'var(--nova-text-secondary)' }}>
+                  AUTO-RETRACT IDLE TIMER
+                </span>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  {[
+                    { sec: 2, label: '2s' },
+                    { sec: 4, label: '4s' },
+                    { sec: 6, label: '6s' },
+                    { sec: 8, label: '8s' },
+                  ].map((d) => {
+                    const isSel = (settings.autoRetractDelaySec ?? 4) === d.sec;
+                    return (
+                      <button
+                        key={d.sec}
+                        onClick={() => updateSettings({ autoRetractDelaySec: d.sec })}
+                        style={{
+                          flex: 1,
+                          padding: '4px 0',
+                          fontSize: '9px',
+                          fontWeight: isSel ? 700 : 500,
+                          borderRadius: 4,
+                          backgroundColor: isSel ? 'var(--nova-cyan)' : 'var(--nova-surface)',
+                          color: isSel ? '#000' : 'var(--nova-text-secondary)',
+                          border: isSel ? '1px solid var(--nova-cyan)' : '1px solid var(--nova-border)',
+                          cursor: 'pointer',
+                          textAlign: 'center',
+                        }}
+                      >
+                        {d.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Hover Wake Threshold */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <span style={{ fontSize: '9px', fontWeight: 600, color: 'var(--nova-text-secondary)' }}>
+                  HOVER WAKE THRESHOLD
+                </span>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  {[
+                    { ms: 400, label: '0.4s Fast' },
+                    { ms: 650, label: '0.65s Bal' },
+                    { ms: 1000, label: '1.0s Calm' },
+                  ].map((w) => {
+                    const isSel = (settings.wakeHoverDelayMs ?? 650) === w.ms;
+                    return (
+                      <button
+                        key={w.ms}
+                        onClick={() => updateSettings({ wakeHoverDelayMs: w.ms })}
+                        style={{
+                          flex: 1,
+                          padding: '4px 0',
+                          fontSize: '8.5px',
+                          fontWeight: isSel ? 700 : 500,
+                          borderRadius: 4,
+                          backgroundColor: isSel ? 'var(--nova-blue)' : 'var(--nova-surface)',
+                          color: isSel ? '#fff' : 'var(--nova-text-secondary)',
+                          border: isSel ? '1px solid var(--nova-blue)' : '1px solid var(--nova-border)',
+                          cursor: 'pointer',
+                          textAlign: 'center',
+                        }}
+                      >
+                        {w.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* 1-Click Test Button */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 2 }}>
+              <button
+                onClick={() => {
+                  playSound('collapse');
+                  setRetracted(true);
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '5px 12px',
+                  borderRadius: 'var(--nova-radius-pill)',
+                  backgroundColor: 'rgba(56, 189, 248, 0.15)',
+                  border: '1px solid var(--nova-cyan)',
+                  color: 'var(--nova-cyan)',
+                  fontSize: '9.5px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                <ChevronUp size={12} />
+                <span>Test Stealth Mode Now</span>
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

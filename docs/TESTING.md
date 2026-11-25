@@ -3,6 +3,9 @@
 **Document ID:** NOVA-TEST-001  
 **Scope:** Automated & Manual Verification Matrix across Windows 10 & 11  
 
+
+Run `npm test` for source checks and automated regression tests. See [the project audit](AUDIT.md) for the latest Windows smoke test and pending hardware checks.
+
 ---
 
 ## 1. Unit & Subsystem Testing

@@ -3,7 +3,7 @@ import { Play, Pause, RotateCcw, Coffee, Target, Timer as TimerIcon, Plus } from
 import { useTimerStore, TimerMode } from '../../stores/useTimerStore';
 
 export const TimersView: React.FC = () => {
-  const { mode, secondsRemaining, stopwatchSeconds, isRunning, setMode, start, pause, reset } = useTimerStore();
+  const { mode, secondsRemaining, stopwatchSeconds, totalSeconds, extend, isRunning, setMode, start, pause, reset } = useTimerStore();
 
   const selectMode = (m: TimerMode) => {
     setMode(m);
@@ -14,16 +14,14 @@ export const TimersView: React.FC = () => {
   const secs = currentSeconds % 60;
   const timeFormatted = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 
-  const totalModeSeconds = mode === 'pomodoro' ? 25 * 60 : mode === 'break' ? 5 * 60 : Math.max(stopwatchSeconds, 60);
+  const totalModeSeconds = mode === 'stopwatch' ? Math.max(stopwatchSeconds, 60) : totalSeconds;
   const progressPercent = mode === 'stopwatch'
     ? Math.min(100, (stopwatchSeconds % 60) / 60 * 100)
     : Math.max(0, Math.min(100, ((totalModeSeconds - secondsRemaining) / totalModeSeconds) * 100));
 
   const addExtraTime = (extraMinutes: number) => {
     if (mode === 'stopwatch') return;
-    useTimerStore.setState((state) => ({
-      secondsRemaining: state.secondsRemaining + extraMinutes * 60,
-    }));
+    extend(extraMinutes * 60);
   };
 
   return (
